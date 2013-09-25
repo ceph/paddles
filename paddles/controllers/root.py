@@ -1,6 +1,8 @@
 from pecan import expose, redirect
 from webob.exc import status_map
 
+from paddles.controllers.run import RunsController
+
 
 class RootController(object):
 
@@ -8,3 +10,5 @@ class RootController(object):
     def index(self):
         # Should probably return the status of the service
         return dict()
+
+    runs = RunsController()
