@@ -1,0 +1,18 @@
+import json
+from sqlalchemy import types
+
+
+class JSONType(types.MutableType, types.TypeDecorator):
+    impl = types.UnicodeText
+
+    def process_bind_param(self, value, engine):
+        return unicode(json.dumps(value))
+
+    def process_result_value(self, value, engine):
+        if value:
+            return json.loads(value)
+        else:
+            return {}  # pragma: nocover
+
+    def copy_value(self, value):
+        return deepcopy(value)
