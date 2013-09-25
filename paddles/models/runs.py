@@ -3,8 +3,8 @@ from hashlib import sha1
 from sqlalchemy import Column, Integer, String, Unicode, Boolean
 from sqlalchemy.orm import synonym
 from sqlalchemy.orm.exc import DetachedInstanceError
-from upload.models import Base
-from upload.models.types import JSONType
+from paddles.models import Base
+from paddles.models.types import JSONType
 
 
 class Run(Base):
@@ -20,10 +20,10 @@ class Run(Base):
     kernel = Column(JSONType())
     last_in_suite = Column(Boolean())
     machine_type = Column(String(32))
-    mon.a-kernel-sha1 = Column(String(128))
-    mon.b-kernel-sha1 = Column(String(128))
+    mon.a_kernel_sha1 = Column(String(128))
+    mon.b_kernel_sha1 = Column(String(128))
     name = Column(String(128))
-    nuke-on-error = Column(Boolean())
+    nuke_on_error = Column(Boolean())
     os_type = Column(String(16))
     overrides = Column(JSONType())
     owner = Column(String(64))
@@ -45,28 +45,26 @@ class Run(Base):
         return dict(
             name = self.name,
             email = self.email,
-            birthday = self.birthday.isoformat()
-            archive_path = self.archive_path
-            description = self.description
-            duration = self.duration
-            email = self.email
-            flavor = self.flavor
-            job_id = self.job_id
-            kernel = self.kernel
-            last_in_suite = self.last_in_suite
-            machine_type = self.machine_type
-            mon.a-kernel-sha1 = self.mon.a-kernel-sha1
-            mon.b-kernel-sha1 = self.mon.b-kernel-sha1
-            name = self.name
-            nuke-on-error = self.nuke-on-error
-            os_type = self.os_type
-            overrides = self.overrides
-            owner = self.owner
-            pid = self.pid
-            roles = self.roles
-            success = self.success
-            targets = self.targets
-            tasks = self.tasks
-            teuthology_branch = self.teuthology_branch
-            verbose = self.verbose
+            birthday = self.birthday.isoformat(),
+            archive_path = self.archive_path,
+            description = self.description,
+            duration = self.duration,
+            flavor = self.flavor,
+            job_id = self.job_id,
+            kernel = self.kernel,
+            last_in_suite = self.last_in_suite,
+            machine_type = self.machine_type,
+            mon_a_kernel_sha1 = self.mon.a_kernel_sha1,
+            mon_b_kernel_sha1 = self.mon.b_kernel_sha1,
+            nuke_on_error = self.nuke_on_error,
+            os_type = self.os_type,
+            overrides = self.overrides,
+            owner = self.owner,
+            pid = self.pid,
+            roles = self.roles,
+            success = self.success,
+            targets = self.targets,
+            tasks = self.tasks,
+            teuthology_branch = self.teuthology_branch,
+            verbose = self.verbose,
         )
