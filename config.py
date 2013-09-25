@@ -10,6 +10,7 @@ app = {
     'modules': ['paddles'],
     'static_root': '%(confdir)s/public',
     'template_path': '%(confdir)s/paddles/templates',
+    'default_renderer': 'json',
     'debug': True,
     'errors': {
         404: '/error/404',
