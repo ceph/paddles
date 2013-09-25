@@ -45,7 +45,6 @@ class Run(Base):
         return dict(
             name = self.name,
             email = self.email,
-            birthday = self.birthday.isoformat(),
             archive_path = self.archive_path,
             description = self.description,
             duration = self.duration,
