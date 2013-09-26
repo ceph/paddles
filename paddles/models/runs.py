@@ -20,8 +20,8 @@ class Run(Base):
     kernel = Column(JSONType())
     last_in_suite = Column(Boolean())
     machine_type = Column(String(32))
-    mon.a_kernel_sha1 = Column(String(128))
-    mon.b_kernel_sha1 = Column(String(128))
+    mon_a_kernel_sha1 = Column(String(128))
+    mon_b_kernel_sha1 = Column(String(128))
     name = Column(String(128))
     nuke_on_error = Column(Boolean())
     os_type = Column(String(16))
@@ -53,8 +53,8 @@ class Run(Base):
             kernel = self.kernel,
             last_in_suite = self.last_in_suite,
             machine_type = self.machine_type,
-            mon_a_kernel_sha1 = self.mon.a_kernel_sha1,
-            mon_b_kernel_sha1 = self.mon.b_kernel_sha1,
+            mon_a_kernel_sha1 = self.mon_a_kernel_sha1,
+            mon_b_kernel_sha1 = self.mon_b_kernel_sha1,
             nuke_on_error = self.nuke_on_error,
             os_type = self.os_type,
             overrides = self.overrides,
