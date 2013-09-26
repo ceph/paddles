@@ -1,7 +1,7 @@
 from pecan import expose, redirect
 from webob.exc import status_map
 
-from paddles.controllers.run import RunsController
+from paddles.controllers.runs import RunsController
 
 
 class RootController(object):
