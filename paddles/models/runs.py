@@ -35,6 +35,11 @@ class Run(Base):
     teuthology_branch = Column(String(16))
     verbose = Column(Boolean())
 
+    def __init__(self, json_data):
+        for k, v in json_data.items():
+            key = k.replace('-', '_')
+            setattr(self, key, v)
+
     def __repr__(self):
         try:
             return '<Run %r>' % self.username
