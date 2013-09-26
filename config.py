@@ -40,9 +40,11 @@ logging = {
     }
 }
 
-# Custom Configurations must be in Python dictionary format::
-#
-# foo = {'bar':'baz'}
-#
-# All configurations are accessible at::
-# pecan.conf
+
+sqlalchemy = {
+    'url': 'sqlite:///dev.db',
+    'echo'          : True,
+    'echo_pool'     : True,
+    'pool_recycle'  : 3600,
+    'encoding'      : 'utf-8'
+}
