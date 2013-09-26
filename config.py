@@ -1,3 +1,7 @@
+from pecan.hooks import TransactionHook, RequestViewerHook
+from paddles import models
+
+
 # Server Specific Configurations
 server = {
     'port': '8080',
@@ -12,8 +16,19 @@ app = {
     'template_path': '%(confdir)s/paddles/templates',
     'default_renderer': 'json',
     'debug': True,
+    'hooks': [
+        TransactionHook(
+            models.start,
+            models.start_read_only,
+            models.commit,
+            models.rollback,
+            models.clear
+        ),
+        RequestViewerHook(),
+    ],
+
     'errors': {
-        404: '/error/404',
+    #    404: '/error/404',
         '__force_dict__': True
     }
 }
