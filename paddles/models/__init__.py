@@ -89,3 +89,4 @@ def clear():
 
 
 from runs import Run
+from jobs import Job
