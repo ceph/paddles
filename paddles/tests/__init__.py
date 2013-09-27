@@ -1,6 +1,6 @@
 from copy import deepcopy
 import os
-from pecan import set_config, configuration
+from pecan import configuration
 from pecan.testing import load_test_app
 from paddles import models as pmodels
 from sqlalchemy import create_engine
@@ -116,4 +116,3 @@ class TestApp(TestModel):
         @returns (paste.fixture.TestResponse)
         """
         return self._do_request(url, 'DELETE', **kwargs)
-
