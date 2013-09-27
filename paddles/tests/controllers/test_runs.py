@@ -1,3 +1,4 @@
+from paddles.models import Run
 from paddles.tests import TestApp
 
 
@@ -20,3 +21,14 @@ class TestRunController(TestApp):
         assert response.status_int == 200
         assert response.json == {}
 
+    def test_create_new_run(self):
+        self.app.post_json('/runs/', dict(name="foo"))
+        new_run = Run.get(1)
+        assert new_run.name == 'foo'
+
+    def test_create_then_get_new_run(self):
+        self.app.post_json('/runs/', dict(name="foo"))
+        response = self.app.get('/runs/')
+        result = response.json[0]
+        assert result['name'] == 'foo'
+        assert result['results'] == {'fail': 0, 'pass': 0, 'running': 0}

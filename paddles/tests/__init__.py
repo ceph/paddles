@@ -2,7 +2,7 @@ from copy import deepcopy
 import os
 from pecan import set_config, configuration
 from pecan.testing import load_test_app
-from paddles import models as pxmodel
+from paddles import models as pmodels
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
@@ -15,7 +15,8 @@ def config_file():
 class TestModel(object):
 
     config = configuration.conf_from_file(config_file()).to_dict()
-    engine_url = 'sqlite://'
+    # XXX This is absolutely terrible!
+    engine_url = 'sqlite:////tmp/test.db'
 
     __db__ = None
 
@@ -25,7 +26,7 @@ class TestModel(object):
             TestModel.__db__ = 'paddlestest'
 
             # Bind and create the database tables
-            pxmodel.clear()
+            pmodels.clear()
 
             db_engine = create_engine(
                 cls.engine_url,
@@ -33,12 +34,12 @@ class TestModel(object):
                 poolclass=NullPool)
 
             # AKA models.start()
-            pxmodel.Session.bind = db_engine
-            pxmodel.metadata.bind = pxmodel.Session.bind
+            pmodels.Session.bind = db_engine
+            pmodels.metadata.bind = pmodels.Session.bind
 
-            pxmodel.Base.metadata.create_all(db_engine)
-            pxmodel.commit()
-            pxmodel.clear()
+            pmodels.Base.metadata.create_all(db_engine)
+            pmodels.commit()
+            #pmodels.clear()
 
     def setup(self):
         config = deepcopy(self.config)
@@ -52,14 +53,14 @@ class TestModel(object):
 
         # Set up a fake app
         self.app = self.load_test_app(config)
-        pxmodel.start()
+        pmodels.start()
 
     def load_test_app(self, config):
         return load_test_app(config)
 
     def teardown(self):
         # Tear down and dispose the DB binding
-        pxmodel.clear()
+        pmodels.clear()
 
 
 class TestApp(TestModel):
