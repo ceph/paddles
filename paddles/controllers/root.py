@@ -1,5 +1,4 @@
-from pecan import expose, redirect
-from webob.exc import status_map
+from pecan import expose
 
 from paddles.controllers.runs import RunsController
 
