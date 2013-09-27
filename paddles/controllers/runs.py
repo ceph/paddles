@@ -1,5 +1,6 @@
 from pecan import expose, abort, request
-from paddles.models import Run, Job
+from paddles.models import Run
+from paddles.controllers.jobs import JobController
 
 
 class RunController(object):
@@ -20,7 +21,7 @@ class RunController(object):
     @index.when(method='POST', template='json')
     def index_post(self):
         # save to DB here
-        new_run = Job(request.json)
+        new_run = Run(request.json)
         return dict()
 
     @expose('json')
