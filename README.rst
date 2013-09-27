@@ -17,20 +17,34 @@ object of all recent jobs reported.
     {
         "teuthology-2013-09-25_23:00:06-rados-master-testing-basic-plana": {
             "href": "http://paddles/runs/teuthology-2013-09-25_23:00:06-rados-master-testing-basic-plana/",
-            "status": "pass"
+            "status": {
+                "pass": 10,
+                "pending": 15,
+                "fail": 0
+            }
         },
         "teuthology-2013-09-26_01:30:26-upgrade-fs-next-testing-basic-plana": {
             "href": "http://paddles/teuthology-2013-09-26_01:30:26-upgrade-fs-next-testing-basic-plana",
-            "status": "failed"
+            "status": {
+                "pass": 3,
+                "pending": 10,
+                "fail": 1
+            }
         },
         "teuthology-2013-09-26_01:30:26-rados-next-testing-basic-plana": {
             "href": "http://paddles/runs/teuthology-2013-09-26_01:30:26-rados-next-testing-basic-plana/",
-            "status": "pending"
+            "status": {
+                "pass": 8,
+                "pending": 13,
+                "fail": 2
+            }
         }
     }
 
 The example above gives returns the three statuses available for jobs:
-``pass``, ``failed``, and ``pending`` with its respective links.
+``pass``, ``fail``, and ``pending`` with its respective links. These are built
+from the information for every run as the results come in. They are read-only
+values.
 
 Create
 ------
@@ -59,39 +73,40 @@ request::
     {
         "1500": {
             "href": "http://paddles/runs/teuthology-2013-09-01_23:59:59-rados-master-testing-basic-plana/1500/",
-            "status": "pass"
+            "status": {
+                "pass": 8,
+                "pending": 13,
+                "fail": 2
+            }
         },
         "1501": {
             "href": "http://paddles/runs/teuthology-2013-09-01_23:59:59-rados-master-testing-basic-plana/1501/",
-            "status": "failed"
+            "status": {
+                "pass": 8,
+                "pending": 0,
+                "fail": 4
+            }
         },
         "1502": {
             "href": "http://paddles/runs/teuthology-2013-09-01_23:59:59-rados-master-testing-basic-plana/1502/",
-            "status": "pending"
+            "status": {
+                "pass": 3,
+                "pending": 8,
+                "fail": 17
+            }
         }
     }
 
-    
+
 
 HTTP responses:
 
 * **200**: Success.
 * **404**: The requested run was not found.
 
+.. note:: updates for these runs are programatically calculated from individual
+          jobs
 
-Update
-------
-For updates to the status of a run clients should send a ``PUT`` request with
-the new status of the run. By default all new runs are created with
-a ``"pending"`` status. A valid ``JSON`` object for this operation would look
-like::
-
-    { "status": "failed" }
-
-
-* **200**: Success.
-* **400**: Invalid request.
-* **404**: The requested run was not found.
 
 
 ``/runs/{name}/{job_id}/``
@@ -131,6 +146,8 @@ database are:
 * tasks
 * teuthology_branch
 * verbose
+
+HTTP responses:
 
 * **200**: Success.
 * **400**: Invalid request.
