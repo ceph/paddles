@@ -15,7 +15,7 @@ class RunController(object):
     def index(self):
         if not self.run:
             abort(404)
-        return self.run.jobs
+        return self.run
 
     @index.when(method='POST', template='json')
     def index_post(self):
@@ -32,10 +32,7 @@ class RunsController(object):
 
     @expose(generic=True, template='json')
     def index(self):
-        # A list of runs would be nice here, no?
-        # maybe even the last 50 or so
         return Run.query.limit(10).all()
-        return dict()
 
     @index.when(method='POST', template='json')
     def index_post(self):
