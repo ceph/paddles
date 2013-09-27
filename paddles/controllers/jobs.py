@@ -1,5 +1,5 @@
 from pecan import expose, abort, request
-from paddles.models import Run
+from paddles.models import Job
 
 
 class JobController(object):
@@ -11,8 +11,14 @@ class JobController(object):
         except ValueError:
             self.job = None
 
-    @expose('json')
+    @expose(generic=True, template='json')
     def index(self):
         if not self.job:
             abort(404)
         return self.job
+
+    @index.when(method='POST', template='json')
+    def index_post(self):
+        # save to DB here
+        new_job = Job(request.json)
+        return dict()
