@@ -8,6 +8,8 @@ server = {
     'host': '0.0.0.0'
 }
 
+address = 'http://localhost:%s' % server['port']
+
 # Pecan Application Configurations
 app = {
     'root': 'paddles.controllers.root.RootController',
