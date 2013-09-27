@@ -9,6 +9,9 @@ class Job(Base):
 
     __tablename__ = 'jobs'
     id = Column(Integer, primary_key=True)
+    run_id = Column(Integer, ForeignKey('runs.id'))
+    run = relationship('Run', backref=backref('jobs', lazy='dynamic'))
+
     archive_path = Column(String(256))
     description = Column(String(128))
     duration = Column(Integer)
@@ -30,13 +33,36 @@ class Job(Base):
     tasks = Column(JSONType())
     teuthology_branch = Column(String(16))
     verbose = Column(Boolean())
-    run_id = Column(Integer, ForeignKey('runs.id'))
-    run = relationship('Run', backref=backref('jobs', lazy='dynamic'))
+
+    allowed_keys = (
+        "archive_path",
+        "description",
+        "duration",
+        "email",
+        "flavor",
+        "job_id",
+        "kernel",
+        "last_in_suite",
+        "machine_type",
+        "name",
+        "nuke_on_error",
+        "os_type",
+        "overrides",
+        "owner",
+        "pid",
+        "roles",
+        "success",
+        "targets",
+        "tasks",
+        "teuthology_branch",
+        "verbose",
+    )
 
     def __init__(self, json_data):
         for k, v in json_data.items():
             key = k.replace('-', '_')
-            setattr(self, key, v)
+            if key in self.allowed_keys:
+                setattr(self, key, v)
 
     def __repr__(self):
         try:
@@ -45,27 +71,8 @@ class Job(Base):
             return '<Run detached>'
 
     def __json__(self):
-        return dict(
-            name = self.name,
-            email = self.email,
-            archive_path = self.archive_path,
-            description = self.description,
-            duration = self.duration,
-            flavor = self.flavor,
-            job_id = self.job_id,
-            kernel = self.kernel,
-            last_in_suite = self.last_in_suite,
-            machine_type = self.machine_type,
-            nuke_on_error = self.nuke_on_error,
-            os_type = self.os_type,
-            overrides = self.overrides,
-            owner = self.owner,
-            pid = self.pid,
-            roles = self.roles,
-            success = self.success,
-            targets = self.targets,
-            tasks = self.tasks,
-            teuthology_branch = self.teuthology_branch,
-            verbose = self.verbose,
-        )
+        json_ = dict()
+        for key in self.allowed_keys:
+            json_[key] = getattr(self, key)
 
+        return json_
