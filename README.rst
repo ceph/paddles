@@ -58,15 +58,15 @@ request::
 
     {
         "1500": {
-            "href": "http://paddles/runs/foo/1500/",
+            "href": "http://paddles/runs/teuthology-2013-09-01_23:59:59-rados-master-testing-basic-plana/1500/",
             "status": "pass"
         },
         "1501": {
-            "href": "http://paddles/runs/foo/1501/",
+            "href": "http://paddles/runs/teuthology-2013-09-01_23:59:59-rados-master-testing-basic-plana/1501/",
             "status": "failed"
         },
         "1502": {
-            "href": "http://paddles/runs/foo/1502/",
+            "href": "http://paddles/runs/teuthology-2013-09-01_23:59:59-rados-master-testing-basic-plana/1502/",
             "status": "pending"
         }
     }
@@ -94,15 +94,54 @@ like::
 * **404**: The requested run was not found.
 
 
-jobs
-====
+``/runs/{name}/{job_id}/``
+=========================
 
 Read
 ----
+On ``GET`` requests an object with all metadata saved from the actual job will
+be returned.
 
 Create
 ------
+``POST`` requests with valid metadata for a job can create new jobs. Keys that
+are not part of the schema **will be ignored**. Keys that are saved to the
+database are:
+
+* name
+* email
+* archive_path
+* description
+* duration
+* flavor
+* job_id
+* kernel
+* last_in_suite
+* machine_type
+* mon.a_kernel_sha1 (note this key gets transformed to underscores)
+* mon.b_kernel_sha1 (note this key gets transformed to underscores)
+* nuke_on_error
+* os_type
+* overrides
+* owner
+* pid
+* roles
+* success
+* targets
+* tasks
+* teuthology_branch
+* verbose
+
+* **200**: Success.
+* **400**: Invalid request.
+* **404**: The requested run was not found.
 
 Update
 ------
+``PUT`` requests can contain *any* of the keys accepted for metadata, they get
+updated accordingly .
+
+* **200**: Success.
+* **400**: Invalid request.
+* **404**: The requested run was not found.
 
