@@ -17,34 +17,38 @@ object of all recent jobs reported.
     {
         "teuthology-2013-09-25_23:00:06-rados-master-testing-basic-plana": {
             "href": "http://paddles/runs/teuthology-2013-09-25_23:00:06-rados-master-testing-basic-plana/",
-            "status": {
+            "status": "running",
+            "results": {
                 "pass": 10,
-                "pending": 15,
+                "running": 15,
                 "fail": 0
             }
         },
         "teuthology-2013-09-26_01:30:26-upgrade-fs-next-testing-basic-plana": {
             "href": "http://paddles/teuthology-2013-09-26_01:30:26-upgrade-fs-next-testing-basic-plana",
-            "status": {
+            "status": "running",
+            "results": {
                 "pass": 3,
-                "pending": 10,
+                "running": 10,
                 "fail": 1
             }
         },
         "teuthology-2013-09-26_01:30:26-rados-next-testing-basic-plana": {
             "href": "http://paddles/runs/teuthology-2013-09-26_01:30:26-rados-next-testing-basic-plana/",
-            "status": {
+            "status": "finished",
+            "results": {
                 "pass": 8,
-                "pending": 13,
+                "running": 0,
                 "fail": 2
             }
         }
     }
 
-The example above gives returns the three statuses available for jobs:
-``pass``, ``fail``, and ``pending`` with its respective links. These are built
+The example above gives returns the three result types available for jobs:
+``pass``, ``fail``, and ``running`` with its respective links. These are built
 from the information for every run as the results come in. They are read-only
-values.
+values. It will also report on the overall status of the run: running or
+finished.
 
 Create
 ------
@@ -73,25 +77,28 @@ request::
     {
         "1500": {
             "href": "http://paddles/runs/teuthology-2013-09-01_23:59:59-rados-master-testing-basic-plana/1500/",
-            "status": {
+            "status": "running",
+            "results": {
                 "pass": 8,
-                "pending": 13,
+                "running": 13,
                 "fail": 2
             }
         },
         "1501": {
             "href": "http://paddles/runs/teuthology-2013-09-01_23:59:59-rados-master-testing-basic-plana/1501/",
-            "status": {
+            "status": "finished",
+            "results": {
                 "pass": 8,
-                "pending": 0,
+                "running": 0,
                 "fail": 4
             }
         },
         "1502": {
             "href": "http://paddles/runs/teuthology-2013-09-01_23:59:59-rados-master-testing-basic-plana/1502/",
-            "status": {
+            "status": "finished",
+            "results": {
                 "pass": 3,
-                "pending": 8,
+                "running": 0,
                 "fail": 17
             }
         }
