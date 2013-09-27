@@ -1,40 +1,51 @@
 from pecan import expose, abort, request
-from paddles.models import Run
+from paddles.models import Run, Job
 
 
 class RunController(object):
 
-    def __init__(self, job_id):
-        self.job_id = job_id
+    def __init__(self, name):
+        self.name = name
         try:
-            self.run = Run.filter_by(job_id=job_id).first()
+            self.run = Run.filter_by(name=name).first()
         except ValueError:
             self.run = None
-        # grab this guy from DB
 
-    @expose('json')
+    @expose(generic=True, template='json')
     def index(self):
-        # return JSON repr of the database obj
-        # with jsonify
         if not self.run:
             abort(404)
-        return self.run
+        return self.run.jobs
+
+    @index.when(method='POST', template='json')
+    def index_post(self):
+        # save to DB here
+        new_run = Job(request.json)
         return dict()
+
+    @expose('json')
+    def _lookup(self, job_id, *remainder):
+        return JobController(job_id), remainder
 
 
 class RunsController(object):
 
-    @expose(generic=True)
+    @expose(generic=True, template='json')
     def index(self):
+        # A list of runs would be nice here, no?
+        # maybe even the last 50 or so
+        return Run.query.limit(10).all()
         return dict()
 
     @index.when(method='POST', template='json')
     def index_post(self):
         # save to DB here
-        new_run = Run(request.json)
+        name = request.json.get('name')
+        if not name:
+            abort(400)
+        new_run = Run(name)
         return dict()
 
     @expose('json')
-    def _lookup(self, _id, *remainder):
-        return RunController(_id), remainder
-
+    def _lookup(self, name, *remainder):
+        return RunController(name), remainder
