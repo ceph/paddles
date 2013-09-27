@@ -1,9 +1,7 @@
-from unittest import TestCase
-from webtest import TestApp
-from paddles.tests import FunctionalTest
+from paddles.tests import TestApp
 
 
-class TestRootController(FunctionalTest):
+class TestRootController(TestApp):
 
     def test_get_root(self):
         response = self.app.get('/')
