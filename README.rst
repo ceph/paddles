@@ -13,6 +13,7 @@ On ``GET`` operations it will display the latest 100 runs with a ``JSON``
 object of all recent jobs reported.
 
 ::
+
     {
         "teuthology-2013-09-25_23:00:06-rados-master-testing-basic-plana": {
             "href": "http://paddles/runs/teuthology-2013-09-25_23:00:06-rados-master-testing-basic-plana/",
