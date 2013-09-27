@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm.exc import DetachedInstanceError
+from pecan import conf
 from paddles.models import Base
 
 
@@ -22,7 +23,7 @@ class Run(Base):
         return dict(
             name = self.name,
             jobs = [job for job in self.jobs],
-            href = "/runs/%s" % self.name,
+            href = "%s/runs/%s/" % (conf.address, self.name),
             status = self.status,
             results = self.get_results(),
         )
