@@ -1,8 +1,14 @@
+from pecan.hooks import TransactionHook, RequestViewerHook
+from paddles import models
+
+
 # Server Specific Configurations
 server = {
     'port': '8080',
     'host': '0.0.0.0'
 }
+
+address = 'http://localhost:%s' % server['port']
 
 # Pecan Application Configurations
 app = {
@@ -17,9 +23,11 @@ app = {
     }
 }
 
-# Custom Configurations must be in Python dictionary format::
-#
-# foo = {'bar':'baz'}
-#
-# All configurations are accessible at::
-# pecan.conf
+
+sqlalchemy = {
+    'url': 'sqlite://',
+    'echo'          : True,
+    'echo_pool'     : True,
+    'pool_recycle'  : 3600,
+    'encoding'      : 'utf-8'
+}
