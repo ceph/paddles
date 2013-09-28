@@ -33,14 +33,14 @@ class Run(Base):
         return "%s/runs/%s/" % (conf.address, self.name),
 
     def get_results(self):
-        results = {'pass': 0, 'running': 0, 'fail': 0}
-        for job in self.jobs:
-            if job.success:
-                results['pass'] += 1
-            elif not job.success:
-                results['fail'] += 1
-            # TODO determine how we do pending ones
-        return results
+        passing = self.jobs.filter_by(success=True).count()
+        running = self.jobs.filter_by(success=None).count()
+        fail = self.jobs.filter_by(success=False).count()
+        return {
+            'pass': passing,
+            'running': running,
+            'fail': fail
+        }
 
     def get_jobs(self):
         return [
@@ -53,7 +53,7 @@ class Run(Base):
 
     @property
     def status(self):
-        # TODO We can't determine this until we know
-        # about job statuses that tells us they are not
-        # done.
+        running = self.jobs.filter_by(success=None).count()
+        if running:
+            return "running"
         return "finished"
