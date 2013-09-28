@@ -34,7 +34,7 @@ class RunController(object):
         if not job_id:
             error('/errors/invalid/', "could not find required key: 'job_id'")
         # Make sure this doesn't exist already
-        if not Job.filter_by(job_id=job_id, run=self.run):
+        if not Job.filter_by(job_id=job_id, run=self.run).first():
             new_job = Job(data, self.run)
             return dict()
         else:
@@ -60,8 +60,11 @@ class RunsController(object):
             error('/errors/invalid/', 'could not decode JSON body')
         if not name:
             error('/errors/invalid/', "could not find required key: 'name'")
-        new_run = Run(name)
-        return dict()
+        if not Run.filter_by(name=name).first():
+            new_run = Run(name)
+            return dict()
+        else:
+            error('/errors/invalid/', "run with name %s already exists" % name)
 
     @expose('json')
     def _lookup(self, name, *remainder):
