@@ -13,7 +13,7 @@ class ErrorsController(object):
         return dict(message=msg)
 
     @expose('json')
-    def not_found(self):
+    def not_found(self, **kw):
         msg = kw.get(
             'error_message',
             'resource was not found'
