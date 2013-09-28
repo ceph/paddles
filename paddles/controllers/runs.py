@@ -1,5 +1,5 @@
-from pecan import expose, abort, request
-from paddles.models import Run
+from pecan import expose, request
+from paddles.models import Run, Job
 from paddles.controllers.jobs import JobController
 from paddles.controllers import error
 
@@ -14,11 +14,24 @@ class RunController(object):
             self.run = None
         request.context['run'] = self.run
 
-    @expose('json')
+    @expose(generic=True, template='json')
     def index(self):
         if not self.run:
             error('/errors/not_found/', 'requested job resource does not exist')
         return self.run
+
+    @index.when(method='POST', template='json')
+    def index_post(self):
+        """
+        We create new jobs associated to this run here
+        """
+        try:
+            data = request.json
+        except ValueError:
+            error('/errors/invalid/', 'could not decode JSON body')
+        # we allow empty data to be pushed
+        new_job = Job(data, self.run)
+        return dict()
 
     @expose('json')
     def _lookup(self, job_id, *remainder):
