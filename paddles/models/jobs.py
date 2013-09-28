@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy.orm import relationship, backref
+from pecan import conf
 from paddles.models import Base
 from paddles.models.types import JSONType
 
@@ -70,6 +71,10 @@ class Job(Base):
 
     def update(self, json_data):
         self.set_or_update(json_data)
+
+    @property
+    def href(self):
+        return "%s/runs/%s/%s/" % (conf.address, self.run.name, self.job_id),
 
     def __repr__(self):
         try:
