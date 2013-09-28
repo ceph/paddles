@@ -1,5 +1,6 @@
 from pecan import expose, abort, request
 from paddles.models import Job
+from paddles.controllers import error
 
 
 class JobController(object):
@@ -20,6 +21,14 @@ class JobController(object):
 
     @index.when(method='POST', template='json')
     def index_post(self):
-        # save to DB here
-        new_job = Job(request.json)
+        """
+        We update a job here, it should obviously exist already but most likely
+        the data is empty.
+        """
+        if not self.job:
+            error(
+                '/errors/not_found/',
+                'attempted to update a non-existent job'
+            )
+        self.job.update(request.json)
         return dict()
