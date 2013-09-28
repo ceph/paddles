@@ -34,12 +34,18 @@ class TestModel(object):
                 poolclass=NullPool)
 
             # AKA models.start()
+            pmodels.Base.metadata.drop_all(db_engine)
             pmodels.Session.bind = db_engine
             pmodels.metadata.bind = pmodels.Session.bind
 
             pmodels.Base.metadata.create_all(db_engine)
             pmodels.commit()
-            #pmodels.clear()
+            pmodels.clear()
+
+    @classmethod
+    def teardown_class(cls):
+        pmodels.rollback()
+        pmodels.clear()
 
     def setup(self):
         config = deepcopy(self.config)
@@ -60,6 +66,7 @@ class TestModel(object):
 
     def teardown(self):
         # Tear down and dispose the DB binding
+        pmodels.rollback()
         pmodels.clear()
 
 
