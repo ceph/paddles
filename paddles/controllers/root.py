@@ -1,6 +1,7 @@
 from pecan import expose
 
 from paddles.controllers.runs import RunsController
+from paddles.controllers.errors import ErrorsController
 
 
 class RootController(object):
@@ -11,3 +12,4 @@ class RootController(object):
         return dict()
 
     runs = RunsController()
+    errors = ErrorsController()
