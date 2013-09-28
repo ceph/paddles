@@ -28,11 +28,6 @@ app = {
         ),
         RequestViewerHook(),
     ],
-
-    'errors': {
-    #    404: '/error/404',
-        '__force_dict__': True
-    }
 }
 
 logging = {
