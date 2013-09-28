@@ -60,10 +60,16 @@ class Job(Base):
 
     def __init__(self, json_data, run):
         self.run = run
+        self.set_or_update(json_data)
+
+    def set_or_update(self, json_data):
         for k, v in json_data.items():
             key = k.replace('-', '_')
             if key in self.allowed_keys:
                 setattr(self, key, v)
+
+    def update(self, json_data):
+        self.set_or_update(json_data)
 
     def __repr__(self):
         try:
