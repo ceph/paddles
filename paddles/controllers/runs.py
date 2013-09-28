@@ -1,6 +1,7 @@
 from pecan import expose, abort, request
 from paddles.models import Run
 from paddles.controllers.jobs import JobController
+from paddles.controllers import error
 
 
 class RunController(object):
@@ -11,11 +12,12 @@ class RunController(object):
             self.run = Run.filter_by(name=name).first()
         except ValueError:
             self.run = None
+        request.context['run'] = self.run
 
     @expose('json')
     def index(self):
         if not self.run:
-            abort(404)
+            error('/errors/not_found/', 'requested job resource does not exist')
         return self.run
 
     @expose('json')
@@ -32,9 +34,12 @@ class RunsController(object):
     @index.when(method='POST', template='json')
     def index_post(self):
         # save to DB here
-        name = request.json.get('name')
+        try:
+            name = request.json.get('name')
+        except ValueError:
+            error('/errors/invalid/', 'could not decode JSON body')
         if not name:
-            abort(400)
+            error('/errors/invalid/', "could not find required key: 'name'")
         new_run = Run(name)
         return dict()
 
