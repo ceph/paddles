@@ -32,3 +32,9 @@ class TestRunController(TestApp):
         result = response.json[0]
         assert result['name'] == 'foo'
         assert result['results'] == {'fail': 0, 'pass': 0, 'running': 0}
+
+    def test_no_json_posted(self):
+        # this is just posting a dict in the body, no proper headers
+        response = self.app.post('/runs/', dict(), expect_errors=True)
+        assert response.status_int == 400
+        assert response.json['message'] == 'could not decode JSON body'
