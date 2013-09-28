@@ -16,6 +16,11 @@ class TestRunController(TestApp):
         response = self.app.post_json('/runs/', dict(), expect_errors=True)
         assert response.status_int == 400
 
+    def test_get_invalid_url_on_run(self):
+        response = self.app.get('/runs/suck/', dict(name="foo"))
+        assert response.status_int == 200
+        assert response.json == {}
+
     def test_post_valid_body(self):
         response = self.app.post_json('/runs/', dict(name="foo"))
         assert response.status_int == 200
