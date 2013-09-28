@@ -6,3 +6,4 @@ mccabe==0.2.1
 pecan==0.3.2
 simplegeneric==0.8.1
 wsgiref==0.1.2
+psycopg2==2.5.1
