@@ -12,17 +12,11 @@ class RunController(object):
         except ValueError:
             self.run = None
 
-    @expose(generic=True, template='json')
+    @expose('json')
     def index(self):
         if not self.run:
             abort(404)
         return self.run
-
-    @index.when(method='POST', template='json')
-    def index_post(self):
-        # save to DB here
-        new_run = Run(request.json)
-        return dict()
 
     @expose('json')
     def _lookup(self, job_id, *remainder):

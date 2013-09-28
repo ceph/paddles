@@ -66,7 +66,7 @@ class Job(Base):
 
     def __repr__(self):
         try:
-            return '<Run %r>' % self.username
+            return '<Run %r>' % self.job_id
         except DetachedInstanceError:
             return '<Run detached>'
 
