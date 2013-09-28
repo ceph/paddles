@@ -27,11 +27,18 @@ class RunController(object):
         """
         try:
             data = request.json
+            job_id = data.get('job_id')
         except ValueError:
             error('/errors/invalid/', 'could not decode JSON body')
         # we allow empty data to be pushed
-        new_job = Job(data, self.run)
-        return dict()
+        if not job_id:
+            error('/errors/invalid/', "could not find required key: 'job_id'")
+        # Make sure this doesn't exist already
+        if not Job.filter_by(job_id=job_id, run=self.run):
+            new_job = Job(data, self.run)
+            return dict()
+        else:
+            error('/errors/invalid/', "job with job_id %s already exists" % job_id)
 
     @expose('json')
     def _lookup(self, job_id, *remainder):
