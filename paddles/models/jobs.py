@@ -58,7 +58,8 @@ class Job(Base):
         "verbose",
     )
 
-    def __init__(self, json_data):
+    def __init__(self, json_data, run):
+        self.run = run
         for k, v in json_data.items():
             key = k.replace('-', '_')
             if key in self.allowed_keys:
