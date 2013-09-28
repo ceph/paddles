@@ -105,25 +105,6 @@ request::
     }
 
 
-
-HTTP responses:
-
-* **200**: Success.
-* **404**: The requested run was not found.
-
-.. note:: updates for these runs are programatically calculated from individual
-          jobs
-
-
-
-``/runs/{name}/{job_id}/``
-=========================
-
-Read
-----
-On ``GET`` requests an object with all metadata saved from the actual job will
-be returned.
-
 Create
 ------
 ``POST`` requests with valid metadata for a job can create new jobs. Keys that
@@ -154,16 +135,35 @@ database are:
 * teuthology_branch
 * verbose
 
+For initial creation of a ``job`` associated to its ``run`` a ``job_id`` key is
+**required**. It is the only key in the JSON body that *must* exist, otherwise
+a 400 error is returned.
+
+
 HTTP responses:
 
 * **200**: Success.
 * **400**: Invalid request.
 * **404**: The requested run was not found.
 
+.. note:: updates for the results of these runs are programatically calculated
+          from individual jobs
+
+
+``/runs/{name}/{job_id}/``
+=========================
+
+Read
+----
+On ``GET`` requests an object with all metadata saved from the actual job will
+be returned.
+
+
 Update
 ------
 ``PUT`` requests can contain *any* of the keys accepted for metadata, they get
-updated accordingly .
+updated accordingly **except** for ``job_id``. That is the one key that can
+never be changed.
 
 * **200**: Success.
 * **400**: Invalid request.
