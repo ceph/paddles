@@ -19,7 +19,7 @@ class JobController(object):
             abort(404)
         return self.job
 
-    @index.when(method='POST', template='json')
+    @index.when(method='PUT', template='json')
     def index_post(self):
         """
         We update a job here, it should obviously exist already but most likely
