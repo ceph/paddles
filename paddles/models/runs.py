@@ -22,11 +22,15 @@ class Run(Base):
     def __json__(self):
         return dict(
             name = self.name,
-            jobs = [job for job in self.jobs],
-            href = "%s/runs/%s/" % (conf.address, self.name),
+            jobs = self.get_jobs(),
+            href = self.href,
             status = self.status,
             results = self.get_results(),
         )
+
+    @property
+    def href(self):
+        return "%s/runs/%s/" % (conf.address, self.name),
 
     def get_results(self):
         results = {'pass': 0, 'running': 0, 'fail': 0}
@@ -37,6 +41,15 @@ class Run(Base):
                 results['fail'] += 1
             # TODO determine how we do pending ones
         return results
+
+    def get_jobs(self):
+        return [
+            {
+                'job_id': job.job_id,
+                'href': job.href
+            }
+            for job in self.jobs
+        ]
 
     @property
     def status(self):
