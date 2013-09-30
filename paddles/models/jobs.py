@@ -78,9 +78,9 @@ class Job(Base):
 
     def __repr__(self):
         try:
-            return '<Run %r>' % self.job_id
+            return '<Job %r>' % self.job_id
         except DetachedInstanceError:
-            return '<Run detached>'
+            return '<Job detached>'
 
     def __json__(self):
         json_ = dict()
