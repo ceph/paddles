@@ -1,4 +1,4 @@
-from paddles.models import Run
+from paddles.models import Run, Job
 from paddles.tests import TestApp
 
 
