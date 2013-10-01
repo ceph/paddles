@@ -8,10 +8,20 @@ from paddles.controllers.util import last_seen
 
 class RootController(object):
 
+    _help = {
+        "docs": "https://github.com/alfredodeza/paddles",
+        "extensions": {
+            "Chrome": "https://chrome.google.com/webstore/detail/jsonview/chklaanhfefbnpoihckbnefhakgolnmc",
+            "Firefox" : "https://addons.mozilla.org/en-US/firefox/addon/jsonview/"
+        }
+    }
+
+
     @expose('json')
     def index(self):
-        # Should probably return the status of the service
+
         return dict(
+            _help_ = self._help,
             last_run = last_seen(Run),
             last_job = last_seen(Job),
         )
