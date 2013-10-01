@@ -12,6 +12,7 @@ down_revision = None
 
 from alembic import op
 import sqlalchemy as sa
+from paddles.models.types import JSONType
 
 
 def upgrade():
@@ -30,19 +31,19 @@ def upgrade():
     sa.Column('email', sa.String(length=128), nullable=True),
     sa.Column('flavor', sa.String(length=128), nullable=True),
     sa.Column('job_id', sa.String(length=32), nullable=True),
-    sa.Column('kernel', sa.JSONType(), nullable=True),
+    sa.Column('kernel', JSONType(), nullable=True),
     sa.Column('last_in_suite', sa.Boolean(), nullable=True),
     sa.Column('machine_type', sa.String(length=32), nullable=True),
     sa.Column('name', sa.String(length=512), nullable=True),
     sa.Column('nuke_on_error', sa.Boolean(), nullable=True),
     sa.Column('os_type', sa.String(length=32), nullable=True),
-    sa.Column('overrides', sa.JSONType(), nullable=True),
+    sa.Column('overrides', JSONType(), nullable=True),
     sa.Column('owner', sa.String(length=128), nullable=True),
     sa.Column('pid', sa.String(length=32), nullable=True),
-    sa.Column('roles', sa.JSONType(), nullable=True),
+    sa.Column('roles', JSONType(), nullable=True),
     sa.Column('success', sa.Boolean(), nullable=True),
-    sa.Column('targets', sa.JSONType(), nullable=True),
-    sa.Column('tasks', sa.JSONType(), nullable=True),
+    sa.Column('targets', JSONType(), nullable=True),
+    sa.Column('tasks', JSONType(), nullable=True),
     sa.Column('teuthology_branch', sa.String(length=32), nullable=True),
     sa.Column('verbose', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['run_id'], ['runs.id'], ),
