@@ -34,6 +34,7 @@ class RunController(object):
         if not job_id:
             error('/errors/invalid/', "could not find required key: 'job_id'")
         # Make sure this doesn't exist already
+        job_id = str(job_id)
         if not Job.filter_by(job_id=job_id, run=self.run).first():
             new_job = Job(data, self.run)
             return dict()
