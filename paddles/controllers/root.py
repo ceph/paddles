@@ -2,6 +2,7 @@ from pecan import expose
 
 from paddles.controllers.runs import RunsController
 from paddles.controllers.errors import ErrorsController
+from paddles.models import Run, Job
 
 
 class RootController(object):

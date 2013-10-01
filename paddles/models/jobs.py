@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy.orm import relationship, backref
 from pecan import conf
@@ -10,6 +11,7 @@ class Job(Base):
 
     __tablename__ = 'jobs'
     id = Column(Integer, primary_key=True)
+    timestamp = Column(DateTime)
     run_id = Column(Integer, ForeignKey('runs.id'))
     run = relationship('Run', backref=backref('jobs', lazy='dynamic'))
 
@@ -62,6 +64,7 @@ class Job(Base):
     def __init__(self, json_data, run):
         self.run = run
         self.set_or_update(json_data)
+        self.timestamp = datetime.utcnow()
 
     def set_or_update(self, json_data):
         for k, v in json_data.items():

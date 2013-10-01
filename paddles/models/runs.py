@@ -1,5 +1,7 @@
+from datetime import datetime
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm.exc import DetachedInstanceError
+from sqlalchemy import DateTime
 from pecan import conf
 from paddles.models import Base
 
@@ -9,9 +11,11 @@ class Run(Base):
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
     name = Column(String(512))
+    timestamp = Column(DateTime)
 
     def __init__(self, name):
         self.name = name
+        self.timestamp = datetime.utcnow()
 
     def __repr__(self):
         try:
