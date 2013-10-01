@@ -6,7 +6,7 @@ def last_seen(model_obj):
     try:
         last_obj = model_obj.query[0].timestamp
         if not last_obj:
-            last_obj = None
+            last_obj = now
     except IndexError:
         last_obj = now
     difference = now - last_obj
