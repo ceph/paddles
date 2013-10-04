@@ -50,7 +50,7 @@ class RunsController(object):
 
     @expose(generic=True, template='json')
     def index(self):
-        return Run.query.limit(10).all()
+        return Run.query.order_by(Run.timestamp.desc()).limit(10).all()
 
     @index.when(method='POST', template='json')
     def index_post(self):
