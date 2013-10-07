@@ -77,7 +77,7 @@ class Job(Base):
 
     @property
     def href(self):
-        return "%s/runs/%s/%s/" % (conf.address, self.run.name, self.job_id),
+        return "%s/runs/%s/jobs/%s/" % (conf.address, self.run.name, self.job_id),
 
     def __repr__(self):
         try:
