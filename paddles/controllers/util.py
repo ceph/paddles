@@ -47,7 +47,7 @@ class ReadableSeconds(object):
         hours = self.relative.hour
         hour_str = 'hours' if hours > 1 else 'hour'
         if hours:
-            return "%d %s, " % (self.relative.hours, hour_str)
+            return "%d %s, " % (self.relative.hour, hour_str)
         return ""
 
     @property
@@ -55,7 +55,7 @@ class ReadableSeconds(object):
         minutes = self.relative.minute
         minutes_str = 'minutes' if minutes > 1 else 'minute'
         if minutes:
-            return "%d %s, " % (self.relative.minutes, minutes_str)
+            return "%d %s, " % (self.relative.minute, minutes_str)
         return ""
 
     @property
@@ -63,6 +63,6 @@ class ReadableSeconds(object):
         seconds = self.relative.second
         seconds_str = 'seconds' if seconds > 1 else 'second'
         if seconds:
-            return "%d %s, " % (self.relative.seconds, seconds_str)
+            return "%d %s, " % (self.relative.second, seconds_str)
         return ""
 
