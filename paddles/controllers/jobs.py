@@ -32,3 +32,42 @@ class JobController(object):
             )
         self.job.update(request.json)
         return dict()
+
+
+class JobsController(object):
+
+    @property
+    def run(self):
+        run = request.context.get('run')
+        if not run:
+            abort(404)
+
+    @expose(generic=True, template='json')
+    def index(self):
+        return Job.filter_by(
+            run=self.run).order_by(Job.timestamp.desc()).limit(10).all()
+
+    @index.when(method='POST', template='json')
+    def index_post(self):
+        """
+        We create new jobs associated to this run here
+        """
+        try:
+            data = request.json
+            job_id = data.get('job_id')
+        except ValueError:
+            error('/errors/invalid/', 'could not decode JSON body')
+        # we allow empty data to be pushed
+        if not job_id:
+            error('/errors/invalid/', "could not find required key: 'job_id'")
+        # Make sure this doesn't exist already
+        job_id = str(job_id)
+        if not Job.filter_by(job_id=job_id, run=self.run).first():
+            new_job = Job(data, self.run)
+            return dict()
+        else:
+            error('/errors/invalid/', "job with job_id %s already exists" % job_id)
+
+    @expose('json')
+    def _lookup(self, job_id, *remainder):
+        return JobController(job_id), remainder
