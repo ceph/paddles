@@ -18,7 +18,9 @@ class RunController(object):
     def index(self):
         if not self.run:
             error('/errors/not_found/', 'requested job resource does not exist')
-        return self.run
+        json_run = self.run.__json__()
+        json_run['jobs'] = self.run.get_jobs()
+        return json_run
 
     jobs = JobsController()
 
