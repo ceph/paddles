@@ -105,6 +105,45 @@ request::
     }
 
 
+``/runs/{name}/jobs/``
+======================
+
+Read
+----
+``GET`` requests will return a full list of all the jobs associated with the
+current ``run``.
+
+If no jobs exist, an empty array is returned, otherwise this is how a single
+object would look like::
+
+    [
+
+        {
+            "archive_path": null,
+            "kernel": null,
+            "teuthology_branch": null,
+            "tasks": null,
+            "verbose": null,
+            "description": null,
+            "roles": null,
+            "overrides": null,
+            "pid": null,
+            "success": null,
+            "name": null,
+            "targets": null,
+            "owner": null,
+            "last_in_suite": null,
+            "os_type": null,
+            "machine_type": null,
+            "nuke_on_error": null,
+            "duration": null,
+            "flavor": null,
+            "email": null,
+            "job_id": "1"
+        }
+
+    ]
+
 Create
 ------
 ``POST`` requests with valid metadata for a job can create new jobs. Keys that
@@ -150,8 +189,8 @@ HTTP responses:
           from individual jobs
 
 
-``/runs/{name}/{job_id}/``
-=========================
+``/runs/{name}/jobs/{job_id}/``
+===============================
 
 Read
 ----
