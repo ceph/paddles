@@ -32,6 +32,15 @@ class Run(Base):
             results = self.get_results(),
         )
 
+    def get_jobs(self):
+        return [
+            {
+                'job_id': job.job_id,
+                'href': job.href
+            }
+            for job in self.jobs
+        ]
+
     @property
     def href(self):
         return "%s/runs/%s/" % (conf.address, self.name),
