@@ -5,11 +5,11 @@ from paddles.tests import TestApp
 class TestRunController(TestApp):
 
     def test_get_root(self):
-        response = self.app.get('/')
+        response = self.app.get('/runs/')
         assert response.status_int == 200
 
     def test_get_not_found(self):
-        response = self.app.get('/a/bogus/url', expect_errors=True)
+        response = self.app.get('/runs/bogus/url', expect_errors=True)
         assert response.status_int == 404
 
     def test_post_invalid(self):
@@ -46,7 +46,7 @@ class TestRunController(TestApp):
 
     def test_create_new_job(self):
         self.app.post_json('/runs/', dict(name="foo"))
-        self.app.post_json('/runs/foo/', dict(
+        self.app.post_json('/runs/foo/jobs/', dict(
             job_id=1,
         ))
         new_job = Job.get(1)
