@@ -26,7 +26,7 @@ class Run(Base):
     def __json__(self):
         return dict(
             name = self.name,
-            jobs = self.get_jobs(),
+            jobs_count = self.jobs.count(),
             href = self.href,
             status = self.status,
             results = self.get_results(),
@@ -45,15 +45,6 @@ class Run(Base):
             'running': running,
             'fail': fail
         }
-
-    def get_jobs(self):
-        return [
-            {
-                'job_id': job.job_id,
-                'href': job.href
-            }
-            for job in self.jobs
-        ]
 
     @property
     def status(self):
