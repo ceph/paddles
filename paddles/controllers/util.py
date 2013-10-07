@@ -27,16 +27,37 @@ class ReadableSeconds(object):
         return datetime(1, 1, 1) + timedelta(seconds=self.original_seconds)
 
     def __str__(self):
-        return "%s%s%s%s" % (
+        return "{0}{1}{2}{3}{4}{5}".format(
+            self.years,
+            self.months,
             self.days,
             self.hours,
             self.minutes,
             self.seconds,
-        )
+        ).rstrip(' ,')
+
+    @property
+    def years(self):
+        # Subtract 1 here because the earliest datetime() is 1/1/1
+        years = self.relative.year - 1
+        year_str = 'years' if years > 1 else 'year'
+        if years:
+            return "%d %s, " % (years, year_str)
+        return ""
+
+    @property
+    def months(self):
+        # Subtract 1 here because the earliest datetime() is 1/1/1
+        months = self.relative.month - 1
+        month_str = 'months' if months > 1 else 'month'
+        if months:
+            return "%d %s, " % (months, month_str)
+        return ""
 
     @property
     def days(self):
-        days = self.relative.day
+        # Subtract 1 here because the earliest datetime() is 1/1/1
+        days = self.relative.day - 1
         day_str = 'days' if days > 1 else 'day'
         if days:
             return "%d %s, " % (days, day_str)
