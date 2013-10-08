@@ -29,7 +29,10 @@ class RunsController(object):
 
     @expose(generic=True, template='json')
     def index(self):
-        return Run.query.order_by(Run.timestamp.desc()).limit(10).all()
+        runs = Run.query.order_by(Run.timestamp.desc()).limit(20).all()
+        return dict(
+            latest_runs=[dict(href=run.href, name=run.name) for run in runs)]
+        )
 
     @index.when(method='POST', template='json')
     def index_post(self):
