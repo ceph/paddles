@@ -11,7 +11,7 @@ class Job(Base):
 
     __tablename__ = 'jobs'
     id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime)
+    timestamp = Column(DateTime, index=True)
     run_id = Column(Integer, ForeignKey('runs.id'))
     run = relationship('Run', backref=backref('jobs', lazy='dynamic'))
 
@@ -20,7 +20,7 @@ class Job(Base):
     duration = Column(Integer)
     email = Column(String(128))
     flavor = Column(String(128))
-    job_id = Column(String(32))
+    job_id = Column(String(32), index=True)
     kernel = Column(JSONType())
     last_in_suite = Column(Boolean())
     machine_type = Column(String(32))
@@ -31,7 +31,7 @@ class Job(Base):
     owner = Column(String(128))
     pid = Column(String(32))
     roles = Column(JSONType())
-    success = Column(Boolean())
+    success = Column(Boolean(), index=True)
     targets = Column(JSONType())
     tasks = Column(JSONType())
     teuthology_branch = Column(String(32))

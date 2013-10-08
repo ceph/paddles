@@ -11,7 +11,7 @@ class Run(Base):
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
     name = Column(String(512))
-    timestamp = Column(DateTime)
+    timestamp = Column(DateTime, index=True)
 
     def __init__(self, name):
         self.name = name
