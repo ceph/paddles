@@ -34,9 +34,8 @@ class TestRunController(TestApp):
     def test_create_then_get_new_run(self):
         self.app.post_json('/runs/', dict(name="foo"))
         response = self.app.get('/runs/')
-        result = response.json[0]
+        result = response.json['latest_runs'][0]
         assert result['name'] == 'foo'
-        assert result['results'] == {'fail': 0, 'pass': 0, 'running': 0}
 
     def test_no_json_posted(self):
         # this is just posting a dict in the body, no proper headers
