@@ -6,7 +6,7 @@ from paddles.controllers import error
 class JobController(object):
 
     def __init__(self, job_id):
-        self.job_id = job_id
+        self.job_id = str(job_id)
         self.run = request.context['run']
         try:
             self.job = Job.filter_by(job_id=job_id, run=self.run).first()
@@ -40,7 +40,8 @@ class JobsController(object):
     def run(self):
         run = request.context.get('run')
         if not run:
-            abort(404)
+            error('/errors/notfound', 'associated run was not found')
+        return run
 
     @expose(generic=True, template='json')
     def index(self):
