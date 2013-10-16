@@ -1,4 +1,5 @@
 from pecan import expose, abort, request
+from paddles import models
 from paddles.models import Job
 from paddles.controllers import error
 
@@ -39,8 +40,12 @@ class JobsController(object):
     @property
     def run(self):
         run = request.context.get('run')
-        if not run:
-            error('/errors/notfound', 'associated run was not found')
+        run_name = request.context.get('run_name')
+        if not run and not run_name:
+            error('/errors/notfound', 'associated run was not found and no name was provided to create one')
+        elif not run:
+            run = models.Run(run_name)
+            return run
         return run
 
     @expose(generic=True, template='json')
@@ -61,10 +66,18 @@ class JobsController(object):
         # we allow empty data to be pushed
         if not job_id:
             error('/errors/invalid/', "could not find required key: 'job_id'")
-        # Make sure this doesn't exist already
+
         job_id = str(job_id)
-        if not Job.filter_by(job_id=job_id, run=self.run).first():
-            new_job = Job(data, self.run)
+
+        run = request.context.get('run')
+        if not run:
+            #Job(data, models.Run(run_name))
+            Job(data, self.run)
+            return dict()
+
+        # Make sure this doesn't exist already
+        if not Job.filter_by(job_id=job_id, run=run).first():
+            new_job = Job(data, run)
             return dict()
         else:
             error('/errors/invalid/', "job with job_id %s already exists" % job_id)

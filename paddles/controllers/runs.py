@@ -13,6 +13,7 @@ class RunController(object):
         except ValueError:
             self.run = None
         request.context['run'] = self.run
+        request.context['run_name'] = self.name
 
     @expose('json')
     def index(self):
