@@ -62,3 +62,9 @@ class TestJobsController(TestApp):
         )
         assert response.status_code == 200
 
+    def test_create_run_if_it_does_not_exist(self):
+        self.app.post_json('/runs/bar/jobs/', dict(
+            job_id=13,
+        ))
+        response = self.app.get('/runs/bar/jobs/13/')
+        assert response.json['job_id'] == '13'
