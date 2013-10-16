@@ -87,6 +87,8 @@ def rollback():
 def clear():
     Session.remove()
 
+def flush():
+    Session.flush()
 
 from runs import Run
 from jobs import Job
