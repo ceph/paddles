@@ -1,7 +1,14 @@
-from pecan import expose, request
+from pecan import conf, expose, redirect, request
 from paddles.models import Run
 from paddles.controllers.jobs import JobsController
 from paddles.controllers import error
+
+
+def latest_runs(count):
+    runs = Run.query.order_by(Run.timestamp.desc()).limit(count).all()
+    return dict(
+        latest_runs=[dict(href=run.href, name=run.name) for run in runs]
+    )
 
 
 class RunController(object):
@@ -35,14 +42,40 @@ class RunController(object):
     jobs = JobsController()
 
 
+class LatestRunsByCountController(object):
+
+    def __init__(self, count):
+        if count == '':
+            count = conf.default_latest_runs_count
+
+        try:
+            self.count = int(count)
+        except ValueError:
+            error('/errors/invalid/',
+                  "must specify an integer")
+
+    @expose('json')
+    def index(self):
+        return latest_runs(self.count)
+
+
+class LatestRunsController(object):
+
+    @expose(generic=True, template='json')
+    def index(self):
+        count = conf.default_latest_runs_count
+        return latest_runs(count)
+
+    @expose('json')
+    def _lookup(self, count, *remainder):
+        return LatestRunsByCountController(count), remainder
+
+
 class RunsController(object):
 
     @expose(generic=True, template='json')
     def index(self):
-        runs = Run.query.order_by(Run.timestamp.desc()).limit(20).all()
-        return dict(
-            latest_runs=[run for run in runs]
-        )
+        return latest_runs(conf.default_latest_runs_count)
 
     @index.when(method='POST', template='json')
     def index_post(self):
@@ -58,6 +91,8 @@ class RunsController(object):
             return dict()
         else:
             error('/errors/invalid/', "run with name %s already exists" % name)
+
+    latest = LatestRunsController()
 
     @expose('json')
     def _lookup(self, name, *remainder):
