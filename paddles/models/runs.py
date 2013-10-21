@@ -24,12 +24,13 @@ class Run(Base):
             return '<Run detached>'
 
     def __json__(self):
+        results = self.get_results()
+        status = 'running' if results['running'] else 'finished'
         return dict(
             name = self.name,
-            jobs_count = self.jobs.count(),
             href = self.href,
-            status = self.status,
-            results = self.get_results(),
+            status = status,
+            results = results,
         )
 
     def get_jobs(self):
@@ -46,9 +47,10 @@ class Run(Base):
         return "%s/runs/%s/" % (conf.address, self.name),
 
     def get_results(self):
-        passing = self.jobs.filter_by(success=True).count()
-        running = self.jobs.filter_by(success=None).count()
-        fail = self.jobs.filter_by(success=False).count()
+        jobs_success = [job.success for job in self.jobs]
+        passing = jobs_success.count(True)
+        running = jobs_success.count(None)
+        fail = jobs_success.count(False)
         return {
             'pass': passing,
             'running': running,
