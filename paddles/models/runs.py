@@ -1,5 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import DateTime
 from pecan import conf
@@ -12,6 +13,11 @@ class Run(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(512))
     timestamp = Column(DateTime, index=True)
+    jobs = relationship('Job',
+                        backref=backref('run'),
+                        cascade='all,delete',
+                        lazy='dynamic',
+                        )
 
     def __init__(self, name):
         self.name = name

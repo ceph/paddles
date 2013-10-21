@@ -19,7 +19,7 @@ class TestRunController(TestApp):
     def test_get_invalid_url_on_run(self):
         response = self.app.get('/runs/suck/', expect_errors=True)
         assert response.status_int == 404
-        assert response.json == {'message': 'requested job resource does not exist'}
+        assert response.json == {'message': 'requested run resource does not exist'}
 
     def test_post_valid_body(self):
         response = self.app.post_json('/runs/', dict(name="foo"))
@@ -50,3 +50,18 @@ class TestRunController(TestApp):
         ))
         new_job = Job.get(1)
         assert new_job.job_id == '1'
+
+    def test_delete_empty_run(self):
+        self.app.post_json('/runs/', dict(name='foo'))
+        self.app.delete('/runs/foo/')
+        response = self.app.get('/runs/foo/', expect_errors=True)
+        assert response.status_int == 404
+
+    def test_delete_full_run(self):
+        self.app.post_json('/runs/', dict(name='foo'))
+        self.app.post_json('/runs/foo/', dict(job_id='42'))
+        self.app.post_json('/runs/foo/', dict(job_id='9'))
+        self.app.post_json('/runs/foo/', dict(job_id='12345'))
+        self.app.delete('/runs/foo/')
+        response = self.app.get('/runs/foo/jobs/12345/', expect_errors=True)
+        assert response.status_int == 404
