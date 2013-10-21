@@ -1,5 +1,6 @@
 from pecan.hooks import TransactionHook, RequestViewerHook
 from paddles import models
+from paddles.hooks.cors import CorsHook
 
 
 # Server Specific Configurations
@@ -27,6 +28,7 @@ app = {
             models.clear
         ),
         RequestViewerHook(),
+        CorsHook(),
     ],
 }
 
