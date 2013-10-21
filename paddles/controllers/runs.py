@@ -32,7 +32,7 @@ class RunsController(object):
     def index(self):
         runs = Run.query.order_by(Run.timestamp.desc()).limit(20).all()
         return dict(
-            latest_runs=[dict(run for run in runs)]
+            latest_runs=[run for run in runs]
         )
 
     @index.when(method='POST', template='json')
