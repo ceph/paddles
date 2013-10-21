@@ -40,13 +40,7 @@ class Run(Base):
         )
 
     def get_jobs(self):
-        return [
-            {
-                'job_id': job.job_id,
-                'href': job.href
-            }
-            for job in self.jobs
-        ]
+        return [job for job in self.jobs]
 
     @property
     def href(self):
