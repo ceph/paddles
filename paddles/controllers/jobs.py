@@ -34,6 +34,14 @@ class JobController(object):
         self.job.update(request.json)
         return dict()
 
+    @index.when(method='DELETE', template='json')
+    def index_delete(self):
+        if not self.job:
+            error('/errors/not_found/',
+                  'attempted to delete a non-existent job')
+        self.job.delete()
+        return dict()
+
 
 class JobsController(object):
 

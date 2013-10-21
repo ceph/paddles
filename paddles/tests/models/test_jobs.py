@@ -11,6 +11,14 @@ class TestJobModel(TestApp):
         models.commit()
         assert Job.get(1)
 
+    def test_basic_deletion(self):
+        new_run = Run('some-run-here')
+        new_job = Job({'job_id': '42'}, new_run)
+        models.commit()
+        new_job.delete()
+        models.commit()
+        assert not Job.filter_by(job_id='42').first()
+
     def test_relationship_works(self):
         new_run = Run('some-run-here')
         Job({}, new_run)

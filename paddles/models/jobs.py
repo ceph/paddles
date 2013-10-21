@@ -1,7 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm.exc import DetachedInstanceError
-from sqlalchemy.orm import relationship, backref
 from pecan import conf
 from paddles.models import Base
 from paddles.models.types import JSONType
@@ -12,8 +11,7 @@ class Job(Base):
     __tablename__ = 'jobs'
     id = Column(Integer, primary_key=True)
     timestamp = Column(DateTime, index=True)
-    run_id = Column(Integer, ForeignKey('runs.id'))
-    run = relationship('Run', backref=backref('jobs', lazy='dynamic'))
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
 
     archive_path = Column(String(512))
     description = Column(String(512))

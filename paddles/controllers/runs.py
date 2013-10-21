@@ -15,13 +15,22 @@ class RunController(object):
         request.context['run'] = self.run
         request.context['run_name'] = self.name
 
-    @expose('json')
+    @expose(generic=True, template='json')
     def index(self):
         if not self.run:
-            error('/errors/not_found/', 'requested job resource does not exist')
+            error('/errors/not_found/',
+                  'requested run resource does not exist')
         json_run = self.run.__json__()
         json_run['jobs'] = self.run.get_jobs()
         return json_run
+
+    @index.when(method='DELETE', template='json')
+    def index_delete(self):
+        if not self.run:
+            error('/errors/not_found/',
+                  'attempted to delete a non-existent run')
+        self.run.delete()
+        return dict()
 
     jobs = JobsController()
 
