@@ -17,6 +17,7 @@ class Run(Base):
                         backref=backref('run'),
                         cascade='all,delete',
                         lazy='dynamic',
+                        order_by='Job.id',
                         )
 
     def __init__(self, name):
