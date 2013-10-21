@@ -11,6 +11,8 @@ server = {
 
 address = 'http://paddles.sepia.font.ceph.com'
 
+default_latest_runs_count = 20
+
 # Pecan Application Configurations
 app = {
     'root': 'paddles.controllers.root.RootController',

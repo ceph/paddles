@@ -33,10 +33,11 @@ class Run(Base):
         results = self.get_results()
         status = 'running' if results['running'] else 'finished'
         return dict(
-            name = self.name,
-            href = self.href,
-            status = status,
-            results = results,
+            name=self.name,
+            href=self.href,
+            status=status,
+            results=results,
+            jobs_count=results['total']
         )
 
     def get_jobs(self):
@@ -51,10 +52,12 @@ class Run(Base):
         passing = jobs_success.count(True)
         running = jobs_success.count(None)
         fail = jobs_success.count(False)
+        total = self.jobs.count()
         return {
             'pass': passing,
             'running': running,
-            'fail': fail
+            'fail': fail,
+            'total': total
         }
 
     @property

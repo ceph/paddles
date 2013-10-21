@@ -10,6 +10,8 @@ server = {
 
 address = 'http://localhost:%s' % server['port']
 
+default_latest_runs_count = 20
+
 # Pecan Application Configurations
 app = {
     'root': 'paddles.controllers.root.RootController',
