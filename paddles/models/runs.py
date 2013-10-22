@@ -48,6 +48,7 @@ class Run(Base):
             results=results,
             jobs_count=results['total'],
             timestamp=self.timestamp,
+            scheduled=self.scheduled,
         )
 
     def get_jobs(self):
