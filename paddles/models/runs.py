@@ -38,7 +38,8 @@ class Run(Base):
             href=self.href,
             status=status,
             results=results,
-            jobs_count=results['total']
+            jobs_count=results['total'],
+            timestamp=self.timestamp,
         )
 
     def get_jobs(self):
