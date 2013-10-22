@@ -4,8 +4,14 @@ from paddles.controllers.jobs import JobsController
 from paddles.controllers import error
 
 
-def latest_runs(count):
-    runs = Run.query.order_by(Run.posted.desc()).limit(count).all()
+def latest_runs(count, fields=None):
+    runs = Run.query.order_by(Run.timestamp.desc()).limit(count).all()
+    if fields:
+        try:
+            return dict(latest_runs=[run.slice(fields) for run in runs])
+        except AttributeError:
+            error('/errors/invalid/',
+                  'an invalid field was specified')
     return dict(
         latest_runs=[run for run in runs]
     )
@@ -55,16 +61,16 @@ class LatestRunsByCountController(object):
                   "must specify an integer")
 
     @expose('json')
-    def index(self):
-        return latest_runs(self.count)
+    def index(self, fields=''):
+        return latest_runs(self.count, fields)
 
 
 class LatestRunsController(object):
 
     @expose(generic=True, template='json')
-    def index(self):
+    def index(self, fields=''):
         count = conf.default_latest_runs_count
-        return latest_runs(count)
+        return latest_runs(count, fields)
 
     @expose('json')
     def _lookup(self, count, *remainder):
@@ -74,8 +80,8 @@ class LatestRunsController(object):
 class RunsController(object):
 
     @expose(generic=True, template='json')
-    def index(self):
-        return latest_runs(conf.default_latest_runs_count)
+    def index(self, fields=''):
+        return latest_runs(conf.default_latest_runs_count, fields)
 
     @index.when(method='POST', template='json')
     def index_post(self):
