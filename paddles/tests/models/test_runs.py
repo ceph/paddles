@@ -43,3 +43,9 @@ class TestRunModel(TestApp):
         new_run.delete()
         models.commit()
         assert not Job.filter_by(job_id='9999').first()
+
+    def test_scheduled(self):
+        run_name = 'teuthology-2013-10-23_01:35:02-upgrade-small-next-testing-basic-vps'  # noqa
+        new_run = Run(run_name)
+        assert str(new_run.scheduled) == '2013-10-23 01:35:02'
+

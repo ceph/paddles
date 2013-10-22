@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.exc import DetachedInstanceError
@@ -13,6 +14,7 @@ class Run(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(512))
     timestamp = Column(DateTime, index=True)
+    scheduled = Column(DateTime, index=True)
     jobs = relationship('Job',
                         backref=backref('run'),
                         cascade='all,delete',
@@ -21,6 +23,12 @@ class Run(Base):
                         )
 
     def __init__(self, name):
+        # This ought to go at the top of the class declaration, but if we do
+        # that we run into an circular import race condition
+        if not hasattr(Run, 'timestamp_regex'):
+            Run.timestamp_regex = re.compile('(%s)' % conf.timestamp_regex)
+            Run.timestamp_format = conf.timestamp_format
+
         self.name = name
         self.timestamp = datetime.utcnow()
 
@@ -44,6 +52,15 @@ class Run(Base):
 
     def get_jobs(self):
         return [job for job in self.jobs]
+
+    @property
+    def scheduled(self):
+        match = re.search(self.timestamp_regex, self.name)
+        if match:
+            stamp = match.groups()[0]
+            return datetime.strptime(stamp, self.timestamp_format)
+        else:
+            return self.timestamp
 
     @property
     def href(self):
