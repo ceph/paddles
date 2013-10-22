@@ -11,6 +11,7 @@ class Job(Base):
     __tablename__ = 'jobs'
     id = Column(Integer, primary_key=True)
     timestamp = Column(DateTime, index=True)
+    updated = Column(DateTime, index=True)
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
 
     archive_path = Column(String(512))
@@ -61,14 +62,15 @@ class Job(Base):
 
     def __init__(self, json_data, run):
         self.run = run
-        self.set_or_update(json_data)
         self.timestamp = datetime.utcnow()
+        self.set_or_update(json_data)
 
     def set_or_update(self, json_data):
         for k, v in json_data.items():
             key = k.replace('-', '_')
             if key in self.allowed_keys:
                 setattr(self, key, v)
+        self.updated = datetime.utcnow()
 
     def update(self, json_data):
         self.set_or_update(json_data)

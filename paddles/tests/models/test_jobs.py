@@ -1,6 +1,7 @@
 from paddles.models import Job, Run
 from paddles.tests import TestApp
 from paddles import models
+from datetime import datetime
 
 
 class TestJobModel(TestApp):
@@ -25,3 +26,10 @@ class TestJobModel(TestApp):
         models.commit()
         new_job = Job.get(1)
         assert new_job.run.name == 'some-run-here'
+
+    def test_job_updated(self):
+        new_run = Run('test_job_updated')
+        Job({}, new_run)
+        models.commit()
+        new_job = Job.get(1)
+        assert isinstance(new_job.updated, datetime)
