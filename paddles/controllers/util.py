@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 def last_seen(model_obj):
     now = datetime.utcnow()
     try:
-        last_obj = model_obj.query[0].timestamp
+        last_obj = model_obj.query[0].posted
         if not last_obj:
             last_obj = now
     except IndexError:

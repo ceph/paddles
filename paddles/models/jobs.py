@@ -10,7 +10,7 @@ class Job(Base):
 
     __tablename__ = 'jobs'
     id = Column(Integer, primary_key=True)
-    timestamp = Column(DateTime, index=True)
+    posted = Column(DateTime, index=True)
     updated = Column(DateTime, index=True)
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
 
@@ -62,7 +62,7 @@ class Job(Base):
 
     def __init__(self, json_data, run):
         self.run = run
-        self.timestamp = datetime.utcnow()
+        self.posted = datetime.utcnow()
         self.set_or_update(json_data)
 
     def set_or_update(self, json_data):

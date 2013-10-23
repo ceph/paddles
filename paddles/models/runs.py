@@ -14,7 +14,7 @@ class Run(Base):
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
     name = Column(String(512))
-    timestamp = Column(DateTime, index=True)
+    posted = Column(DateTime, index=True)
     scheduled = Column(DateTime, index=True)
     jobs = relationship('Job',
                         backref=backref('run'),
@@ -31,7 +31,7 @@ class Run(Base):
             Run.timestamp_format = conf.timestamp_format
 
         self.name = name
-        self.timestamp = datetime.utcnow()
+        self.posted = datetime.utcnow()
 
     def __repr__(self):
         try:
@@ -48,7 +48,7 @@ class Run(Base):
             status=status,
             results=results,
             jobs_count=results['total'],
-            timestamp=self.timestamp,
+            posted=self.posted,
             scheduled=self.scheduled,
         )
 
@@ -62,7 +62,7 @@ class Run(Base):
             stamp = match.groups()[0]
             return datetime.strptime(stamp, self.timestamp_format)
         else:
-            return self.timestamp
+            return self.posted
 
     @property
     def updated(self):
@@ -70,7 +70,7 @@ class Run(Base):
             last_updated_job = self.jobs.order_by(Job.updated)[-1]
             return last_updated_job.updated
         else:
-            return max(self.scheduled, self.timestamp)
+            return max(self.scheduled, self.posted)
 
     @property
     def href(self):
