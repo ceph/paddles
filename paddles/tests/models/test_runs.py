@@ -49,3 +49,13 @@ class TestRunModel(TestApp):
         new_run = Run(run_name)
         assert str(new_run.scheduled) == '2013-10-23 01:35:02'
 
+    def test_updated(self):
+        run_name = 'test_updated'
+        new_run = Run(run_name)
+        Job({}, new_run)
+        Job({}, new_run)
+        Job({}, new_run)
+        Job({}, new_run)
+        last_job = Job({}, new_run)
+        models.commit()
+        assert new_run.updated == last_job.updated

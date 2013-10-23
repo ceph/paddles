@@ -6,6 +6,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import DateTime
 from pecan import conf
 from paddles.models import Base
+from paddles.models.jobs import Job
 
 
 class Run(Base):
@@ -62,6 +63,14 @@ class Run(Base):
             return datetime.strptime(stamp, self.timestamp_format)
         else:
             return self.timestamp
+
+    @property
+    def updated(self):
+        if self.jobs.count():
+            last_updated_job = self.jobs.order_by(Job.updated)[-1]
+            return last_updated_job.updated
+        else:
+            return max(self.scheduled, self.timestamp)
 
     @property
     def href(self):
