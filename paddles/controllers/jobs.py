@@ -59,7 +59,7 @@ class JobsController(object):
     @expose(generic=True, template='json')
     def index(self, fields=''):
         jobs = Job.filter_by(
-            run=self.run).order_by(Job.posted.desc()).limit(10).all()
+            run=self.run).order_by(Job.posted.desc()).all()
         if fields:
             try:
                 return [job.slice(fields) for job in jobs]
