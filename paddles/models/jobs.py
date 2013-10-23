@@ -91,3 +91,13 @@ class Job(Base):
             json_[key] = getattr(self, key)
 
         return json_
+
+    def slice(self, fields_str):
+        sep = ','
+        fields = fields_str.strip(sep).split(sep)
+
+        job_slice = dict()
+        for field in fields:
+            job_slice[field] = getattr(self, field)
+        return job_slice
+

@@ -68,3 +68,10 @@ class TestJobsController(TestApp):
         ))
         response = self.app.get('/runs/bar/jobs/13/')
         assert response.json['job_id'] == '13'
+
+    def test_slice_valid(self):
+        self.app.post_json('/runs/foo/jobs/', dict(job_id='314'))
+        response = self.app.get('/runs/foo/jobs/?fields=job_id')
+        assert response.json == [dict(
+            job_id='314',
+        )]
