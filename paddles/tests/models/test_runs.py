@@ -52,10 +52,8 @@ class TestRunModel(TestApp):
     def test_updated(self):
         run_name = 'test_updated'
         new_run = Run(run_name)
-        Job({}, new_run)
-        Job({}, new_run)
-        Job({}, new_run)
-        Job({}, new_run)
-        last_job = Job({}, new_run)
+        for i in range(1, 5):
+            Job(dict(job_id=i), new_run)
         models.commit()
-        assert new_run.updated == last_job.updated
+        new_run = Run.filter_by(name=run_name).first()
+        assert new_run.updated == new_run.get_jobs()[-1].updated
