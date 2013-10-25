@@ -59,7 +59,7 @@ class JobsController(object):
     @expose(generic=True, template='json')
     def index(self):
         return Job.filter_by(
-            run=self.run).order_by(Job.timestamp.desc()).limit(10).all()
+            run=self.run).order_by(Job.posted.desc()).limit(10).all()
 
     @index.when(method='POST', template='json')
     def index_post(self):
