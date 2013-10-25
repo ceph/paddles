@@ -11,6 +11,10 @@ from paddles.models.jobs import Job
 
 class Run(Base):
 
+    timestamp_regex = re.compile(
+        '([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})')
+    timestamp_format = '%Y-%m-%d_%H:%M:%S'
+
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
     name = Column(String(512))
@@ -24,12 +28,6 @@ class Run(Base):
                         )
 
     def __init__(self, name):
-        # This ought to go at the top of the class declaration, but if we do
-        # that we run into an circular import race condition
-        if not hasattr(Run, 'timestamp_regex'):
-            Run.timestamp_regex = re.compile('(%s)' % conf.timestamp_regex)
-            Run.timestamp_format = conf.timestamp_format
-
         self.name = name
         self.posted = datetime.utcnow()
 

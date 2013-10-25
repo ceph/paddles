@@ -12,8 +12,6 @@ server = {
 address = 'http://localhost:%s' % server['port']
 
 default_latest_runs_count = 20
-timestamp_format = '%Y-%m-%d_%H:%M:%S'
-timestamp_regex = '[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}'  # noqa
 
 # Pecan Application Configurations
 app = {
