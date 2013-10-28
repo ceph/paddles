@@ -8,7 +8,7 @@ def latest_runs(count, fields=None):
     runs = Run.query.order_by(Run.posted.desc()).limit(count).all()
     if fields:
         try:
-            return dict(latest_runs=[run.slice(fields) for run in runs])
+            return [run.slice(fields) for run in runs]
         except AttributeError:
             error('/errors/invalid/',
                   'an invalid field was specified')
