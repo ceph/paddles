@@ -57,9 +57,17 @@ class JobsController(object):
         return run
 
     @expose(generic=True, template='json')
-    def index(self):
-        return Job.filter_by(
-            run=self.run).order_by(Job.posted.desc()).limit(10).all()
+    def index(self, fields=''):
+        jobs = Job.filter_by(
+            run=self.run).order_by(Job.posted.desc()).all()
+        if fields:
+            try:
+                return [job.slice(fields) for job in jobs]
+            except AttributeError:
+                error('/errors/invalid/',
+                    'an invalid field was specified')
+        else:
+            return jobs
 
     @index.when(method='POST', template='json')
     def index_post(self):

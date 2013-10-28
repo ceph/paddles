@@ -65,3 +65,13 @@ class TestRunController(TestApp):
         self.app.delete('/runs/foo/')
         response = self.app.get('/runs/foo/jobs/12345/', expect_errors=True)
         assert response.status_int == 404
+
+    def test_slice_valid(self):
+        self.app.post_json('/runs/', dict(name='foo'))
+        response = self.app.get('/runs/?fields=name,status')
+        assert response.json == [dict(
+            name='foo',
+            status='finished',
+        )]
+
+

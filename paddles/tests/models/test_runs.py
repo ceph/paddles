@@ -2,6 +2,8 @@ from paddles.models import Job, Run
 from paddles.tests import TestApp
 from paddles import models
 
+import pytest
+
 
 class TestRunModel(TestApp):
 
@@ -57,3 +59,21 @@ class TestRunModel(TestApp):
         models.commit()
         new_run = Run.filter_by(name=run_name).first()
         assert new_run.updated == new_run.get_jobs()[-1].updated
+
+    def test_run_slice_valid(self):
+        run_name = 'test_run_slice_valid'
+        new_run = Run(run_name)
+        assert 'posted' in new_run.slice('posted')
+
+    def test_run_slice_valid_many(self):
+        run_name = 'test_run_slice_valid_many'
+        new_run = Run(run_name)
+        run_slice = new_run.slice('posted,name,status')
+        assert ('posted' in run_slice and 'name' in run_slice and 'status'
+                in run_slice)
+
+    def test_run_slice_invalid(self):
+        run_name = 'test_run_slice_invalid'
+        new_run = Run(run_name)
+        with pytest.raises(AttributeError):
+            new_run.slice('bullcrap')
