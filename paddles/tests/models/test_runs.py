@@ -77,3 +77,19 @@ class TestRunModel(TestApp):
         new_run = Run(run_name)
         with pytest.raises(AttributeError):
             new_run.slice('bullcrap')
+
+    def test_run_suite_typical(self):
+        run_name = \
+            'teuthology-2013-10-22_03:00:02-big-next-testing-basic-plana'
+        new_run = Run(run_name)
+        assert new_run.suite == 'big'
+
+    def test_run_suite_weird(self):
+        run_name = 'teuthology-2013-10-23_00:30:38-rgw-next---basic-saya'
+        new_run = Run(run_name)
+        assert new_run.suite == 'rgw'
+
+    def test_run_suite_nosuite(self):
+        run_name = 'whatup'
+        new_run = Run(run_name)
+        assert new_run.suite == ''

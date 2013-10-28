@@ -11,13 +11,17 @@ from paddles.models.jobs import Job
 
 class Run(Base):
 
-    timestamp_regex = re.compile(
-        '([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})')
+    # Typical run names are of the format:
+    #   user-timestamp-suite-branch-flavor-machine_type
+    timestamp_regex = \
+        '([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})'
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
+    suite_regex = '.*-%s-(.*?)-.*?-.*?-.*?-.*?' % timestamp_regex
 
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
     name = Column(String(512))
+    suite = Column(String(64), index=True)
     posted = Column(DateTime, index=True)
     scheduled = Column(DateTime, index=True)
     jobs = relationship('Job',
@@ -29,6 +33,7 @@ class Run(Base):
 
     def __init__(self, name):
         self.name = name
+        self.suite = self._parse_suite()
         self.posted = datetime.utcnow()
 
     def __repr__(self):
@@ -49,6 +54,13 @@ class Run(Base):
             posted=self.posted,
             scheduled=self.scheduled,
         )
+
+    def _parse_suite(self):
+        suite_match = re.match(self.suite_regex, self.name)
+        if suite_match:
+            return suite_match.groups()[1]
+        else:
+            return ''
 
     def get_jobs(self):
         return [job for job in self.jobs]
