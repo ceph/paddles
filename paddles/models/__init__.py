@@ -27,6 +27,20 @@ class _EntityBase(object):
         return dict((k, v) for k, v in self.__dict__.items()
                     if not k.startswith('_'))
 
+    def slice(self, fields_str):
+        sep = ','
+        fields = fields_str.strip(sep).split(sep)
+
+        obj_slice = dict()
+        for field in fields:
+            if field.startswith('_'):
+                continue
+            value = getattr(self, field)
+            if callable(value):
+                continue
+            obj_slice[field] = value
+        return obj_slice
+
 
 Session = scoped_session(sessionmaker())
 metadata = MetaData()

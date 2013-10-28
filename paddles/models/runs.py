@@ -50,15 +50,6 @@ class Run(Base):
             scheduled=self.scheduled,
         )
 
-    def slice(self, fields_str):
-        sep = ','
-        fields = fields_str.strip(sep).split(sep)
-
-        run_slice = dict()
-        for field in fields:
-            run_slice[field] = getattr(self, field)
-        return run_slice
-
     def get_jobs(self):
         return [job for job in self.jobs]
 
