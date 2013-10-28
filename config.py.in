@@ -1,4 +1,3 @@
-import os
 from pecan.hooks import TransactionHook, RequestViewerHook
 from paddles import models
 
@@ -9,7 +8,7 @@ server = {
     'host': '0.0.0.0'
 }
 
-address = 'http://paddles.sepia.font.ceph.com'
+address = 'http://localhost:%s' % server['port']
 
 default_latest_runs_count = 20
 
@@ -55,11 +54,11 @@ logging = {
     }
 }
 
-
 sqlalchemy = {
-    'url': 'postgresql+psycopg2://paddles:%s@localhost/paddles' % os.environ['PADDLES_DBPASS'],
-    'echo'          : True,
-    'echo_pool'     : True,
-    'pool_recycle'  : 3600,
-    'encoding'      : 'utf-8'
+    #'url': 'postgresql+psycopg2://paddles:PASSWORD@localhost/paddles',
+    'url': 'sqlite:///dev.db',
+    'echo': True,
+    'echo_pool': True,
+    'pool_recycle': 3600,
+    'encoding': 'utf-8'
 }
