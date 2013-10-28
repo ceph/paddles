@@ -5,7 +5,7 @@ from paddles.controllers import error
 
 
 def latest_runs(count, fields=None):
-    runs = Run.query.order_by(Run.timestamp.desc()).limit(count).all()
+    runs = Run.query.order_by(Run.posted.desc()).limit(count).all()
     if fields:
         try:
             return dict(latest_runs=[run.slice(fields) for run in runs])
