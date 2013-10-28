@@ -12,9 +12,7 @@ def latest_runs(count, fields=None):
         except AttributeError:
             error('/errors/invalid/',
                   'an invalid field was specified')
-    return dict(
-        latest_runs=[run for run in runs]
-    )
+    return [run for run in runs]
 
 
 class RunController(object):
