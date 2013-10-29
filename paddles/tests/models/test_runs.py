@@ -93,3 +93,9 @@ class TestRunModel(TestApp):
         run_name = 'whatup'
         new_run = Run(run_name)
         assert new_run.suite == ''
+
+    def test_run_branch(self):
+        run_name = \
+            'teuthology-2013-10-22_03:00:02-big-next-testing-basic-plana'
+        new_run = Run(run_name)
+        assert new_run.branch == 'next'

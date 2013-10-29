@@ -1,4 +1,4 @@
-"""Add Run.suite
+"""Add Run.suite and Run.branch
 
 Revision ID: 40bf4a529955
 Revises: 10e5bab61d0f
@@ -17,7 +17,10 @@ import sqlalchemy as sa
 def upgrade():
     op.add_column('runs', sa.Column('suite', sa.String(length=64),
                                     nullable=True))
+    op.add_column('runs', sa.Column('branch', sa.String(length=64),
+                                    nullable=True))
 
 
 def downgrade():
     op.drop_column('runs', 'suite')
+    op.drop_column('runs', 'branch')

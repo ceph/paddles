@@ -17,11 +17,13 @@ class Run(Base):
         '([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})'
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
     suite_regex = '.*-%s-(.*?)-.*?-.*?-.*?-.*?' % timestamp_regex
+    branch_regex = '.*-%s-.*?-(.*?)-.*?-.*?-.*?' % timestamp_regex
 
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
     name = Column(String(512))
     suite = Column(String(64), index=True)
+    branch = Column(String(64), index=True)
     posted = Column(DateTime, index=True)
     scheduled = Column(DateTime, index=True)
     jobs = relationship('Job',
@@ -34,6 +36,7 @@ class Run(Base):
     def __init__(self, name):
         self.name = name
         self.suite = self._parse_suite()
+        self.branch = self._parse_branch()
         self.posted = datetime.utcnow()
 
     def __repr__(self):
@@ -59,6 +62,13 @@ class Run(Base):
         suite_match = re.match(self.suite_regex, self.name)
         if suite_match:
             return suite_match.groups()[1]
+        else:
+            return ''
+
+    def _parse_branch(self):
+        branch_match = re.match(self.branch_regex, self.name)
+        if branch_match:
+            return branch_match.groups()[1]
         else:
             return ''
 
