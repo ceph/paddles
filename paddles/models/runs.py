@@ -11,9 +11,12 @@ from paddles.models.jobs import Job
 
 class Run(Base):
 
-    timestamp_regex = re.compile(
-        '([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})')
+    timestamp_regex = \
+        '([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})'
+    _timestamp_regex = re.compile(timestamp_regex)
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
+    suite_regex = '.*-%s-(.*?)-.*?-.*?-.*?-.*?' % timestamp_regex
+    _suite_regex = re.compile(suite_regex)
 
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
@@ -55,7 +58,7 @@ class Run(Base):
 
     @property
     def scheduled(self):
-        match = re.search(self.timestamp_regex, self.name)
+        match = re.search(self._timestamp_regex, self.name)
         if match:
             stamp = match.groups()[0]
             return datetime.strptime(stamp, self.timestamp_format)
@@ -69,6 +72,14 @@ class Run(Base):
             return last_updated_job.updated
         else:
             return max(self.scheduled, self.posted)
+
+    @property
+    def suite(self):
+        match = re.match(self._suite_regex, self.name)
+        if match:
+            return match.groups()[1]
+        else:
+            return ''
 
     @property
     def href(self):
