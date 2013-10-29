@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
+                        Text)
 from sqlalchemy.orm.exc import DetachedInstanceError
 from pecan import conf
 from paddles.models import Base
@@ -18,6 +19,7 @@ class Job(Base):
     description = Column(String(512))
     duration = Column(Integer)
     email = Column(String(128))
+    failure_reason = Column(Text)
     flavor = Column(String(128))
     job_id = Column(String(32), index=True)
     kernel = Column(JSONType())
@@ -41,6 +43,7 @@ class Job(Base):
         "description",
         "duration",
         "email",
+        "failure_reason",
         "flavor",
         "job_id",
         "kernel",
