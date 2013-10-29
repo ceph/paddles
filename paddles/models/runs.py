@@ -16,8 +16,8 @@ class Run(Base):
     timestamp_regex = \
         '([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})'
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
-    suite_regex = '.*-%s-(.*?)-.*?-.*?-.*?-.*?' % timestamp_regex
-    branch_regex = '.*-%s-.*?-(.*?)-.*?-.*?-.*?' % timestamp_regex
+    suite_regex = '.*-%s-(.*?)-.*-.*?-.*?-.*?' % timestamp_regex
+    branch_regex = '.*-%s-.*-(.*)-.*?-.*?-.*?' % timestamp_regex
 
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
