@@ -16,7 +16,6 @@ def latest_runs(count, fields=None):
 
 
 class RunController(object):
-
     def __init__(self, name):
         self.name = name
         try:
@@ -47,7 +46,6 @@ class RunController(object):
 
 
 class LatestRunsByCountController(object):
-
     def __init__(self, count):
         if count == '':
             count = conf.default_latest_runs_count
@@ -64,7 +62,6 @@ class LatestRunsByCountController(object):
 
 
 class LatestRunsController(object):
-
     @expose(generic=True, template='json')
     def index(self, fields=''):
         count = conf.default_latest_runs_count
@@ -75,8 +72,69 @@ class LatestRunsController(object):
         return LatestRunsByCountController(count), remainder
 
 
-class RunsController(object):
+class RunsByFieldValueController(object):
+    def __init__(self, field_name, value, base_query=None):
+        self.field_name = field_name
+        self.field = getattr(Run, field_name)
+        self.value = value
+        if not base_query:
+            base_query = Run.query
+        #self.base_query = base_query
+        self.base_query = base_query.filter(self.field == self.value)
 
+    @expose(generic=True, template='json')
+    def index(self):
+        return self.base_query.all()
+        #return self.base_query.filter(self.field == self.value).all()
+
+
+class RunsByFieldController(object):
+    def __init__(self, field_name, value_controller=RunsByFieldValueController,
+                 base_query=None):
+        self.field_name = field_name
+        self.field = getattr(Run, field_name)
+        self.value_controller = value_controller
+        if not base_query:
+            base_query = Run.query
+        self.base_query = base_query
+
+    @expose(generic=True, template='json')
+    def index(self):
+        return list(set([item[0] for item in self.base_query.values(self.field)
+                         if item[0]]))
+
+    @expose('json')
+    def _lookup(self, value, *remainder):
+        return (self.value_controller(
+            self.field_name,
+            value,
+            self.base_query),
+            remainder)
+
+
+class RunsBySuiteController(RunsByFieldController):
+    def __init__(self, base_query=None):
+        self.field_name = 'suite'
+        supercls = super(RunsBySuiteController, self)
+        supercls.__init__(self.field_name, RunsByFieldValueController,
+                          base_query)
+
+
+class RunsByBranchValueController(RunsByFieldValueController):
+    @property
+    def suite(self):
+        return RunsBySuiteController(self.base_query)
+
+
+class RunsByBranchController(RunsByFieldController):
+    def __init__(self, base_query=None):
+        self.field_name = 'branch'
+        supercls = super(RunsByBranchController, self)
+        supercls.__init__(self.field_name, RunsByBranchValueController,
+                          base_query)
+
+
+class RunsController(object):
     @expose(generic=True, template='json')
     def index(self, fields=''):
         return latest_runs(conf.default_latest_runs_count, fields)
@@ -97,6 +155,10 @@ class RunsController(object):
             error('/errors/invalid/', "run with name %s already exists" % name)
 
     latest = LatestRunsController()
+
+    branch = RunsByBranchController()
+
+    suite = RunsBySuiteController()
 
     @expose('json')
     def _lookup(self, name, *remainder):

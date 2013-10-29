@@ -74,4 +74,41 @@ class TestRunController(TestApp):
             status='finished',
         )]
 
+    def test_runs_by_branch(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-plana'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        response = self.app.get('/runs/branch/master/')
+        assert response.json[0]['name'] == run_b_name
 
+    def test_runs_by_suite(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-plana'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        response = self.app.get('/runs/suite/rados/')
+        assert response.json[0]['name'] == run_a_name
+
+    def test_runs_by_branch_and_suite(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-plana'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        response = self.app.get('/runs/branch/master/suite/big/')
+        assert response.json[0]['name'] == run_b_name
+
+    def test_get_branches(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-plana'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        assert self.app.get('/runs/branch/').json == ['next', 'master']
