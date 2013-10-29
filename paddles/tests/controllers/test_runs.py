@@ -34,7 +34,7 @@ class TestRunController(TestApp):
     def test_create_then_get_new_run(self):
         self.app.post_json('/runs/', dict(name="foo"))
         response = self.app.get('/runs/')
-        result = response.json['latest_runs'][0]
+        result = response.json[0]
         assert result['name'] == 'foo'
 
     def test_no_json_posted(self):
