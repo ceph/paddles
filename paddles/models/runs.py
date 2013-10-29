@@ -75,6 +75,13 @@ class Run(Base):
     def get_jobs(self):
         return [job for job in self.jobs]
 
+    def get_jobs_by_description(self):
+        jobs = self.get_jobs()
+        by_desc = {}
+        for job in jobs:
+            by_desc[job.description] = job
+        return by_desc
+
     @property
     def scheduled(self):
         match = re.search(self.timestamp_regex, self.name)
