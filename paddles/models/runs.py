@@ -14,10 +14,9 @@ class Run(Base):
     # Typical run names are of the format:
     #   user-timestamp-suite-branch-flavor-machine_type
     timestamp_regex = \
-        '([0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})'
+        '[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}'
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
-    suite_regex = '.*-%s-(.*?)-.*-.*?-.*?-.*?' % timestamp_regex
-    branch_regex = '.*-%s-.*-(.*)-.*?-.*?-.*?' % timestamp_regex
+    name_regex = '.*-(%s)-(.*)-(.*)-.*?-.*?-.*?' % timestamp_regex
 
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
@@ -35,9 +34,11 @@ class Run(Base):
 
     def __init__(self, name):
         self.name = name
-        self.suite = self._parse_suite()
-        self.branch = self._parse_branch()
         self.posted = datetime.utcnow()
+        parsed_name = self._parse_name()
+        self.scheduled = parsed_name.get('scheduled', self.posted)
+        self.suite = parsed_name.get('suite', '')
+        self.branch = parsed_name.get('branch', '')
 
     def __repr__(self):
         try:
@@ -60,19 +61,17 @@ class Run(Base):
             suite=self.suite,
         )
 
-    def _parse_suite(self):
-        suite_match = re.match(self.suite_regex, self.name)
-        if suite_match:
-            return suite_match.groups()[1]
-        else:
-            return ''
-
-    def _parse_branch(self):
-        branch_match = re.match(self.branch_regex, self.name)
-        if branch_match:
-            return branch_match.groups()[1]
-        else:
-            return ''
+    def _parse_name(self):
+        name_match = re.match(self.name_regex, self.name)
+        if name_match:
+            scheduled = datetime.strptime(name_match.groups()[0],
+                                          self.timestamp_format)
+            return dict(
+                scheduled=scheduled,
+                suite=name_match.groups()[1],
+                branch=name_match.groups()[2],
+                )
+        return dict()
 
     def get_jobs(self):
         return [job for job in self.jobs]
@@ -83,15 +82,6 @@ class Run(Base):
         for job in jobs:
             by_desc[job.description] = job
         return by_desc
-
-    @property
-    def scheduled(self):
-        match = re.search(self.timestamp_regex, self.name)
-        if match:
-            stamp = match.groups()[0]
-            return datetime.strptime(stamp, self.timestamp_format)
-        else:
-            return self.posted
 
     @property
     def updated(self):
