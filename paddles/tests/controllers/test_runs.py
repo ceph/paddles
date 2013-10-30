@@ -94,7 +94,7 @@ class TestRunController(TestApp):
         response = self.app.get('/runs/suite/rados/')
         assert response.json[0]['name'] == run_a_name
 
-    def test_runs_by_branch_and_suite(self):
+    def test_runs_by_branch_then_suite(self):
         run_a_name = \
             'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
         run_b_name = \
@@ -103,6 +103,16 @@ class TestRunController(TestApp):
         self.app.post_json('/runs/', dict(name=run_b_name))
         response = self.app.get('/runs/branch/master/suite/big/')
         assert response.json[0]['name'] == run_b_name
+
+    def test_runs_by_suite_then_branch(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-plana'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        response = self.app.get('/runs/suite/rados/branch/next/')
+        assert response.json[0]['name'] == run_a_name
 
     def test_get_branches(self):
         run_a_name = \
@@ -113,3 +123,23 @@ class TestRunController(TestApp):
         self.app.post_json('/runs/', dict(name=run_b_name))
         response = self.app.get('/runs/branch/')
         assert sorted(response.json) == ['master', 'next']
+
+    def test_get_suites(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-plana'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        response = self.app.get('/runs/suite/')
+        assert sorted(response.json) == ['big', 'rados']
+
+    def test_get_suites_after_runs_by_branch(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-plana'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        response = self.app.get('/runs/branch/master/suite/')
+        assert response.json == ['big']
