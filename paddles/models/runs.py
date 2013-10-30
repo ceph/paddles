@@ -56,6 +56,8 @@ class Run(Base):
             jobs_count=results['total'],
             posted=self.posted,
             scheduled=self.scheduled,
+            branch=self.branch,
+            suite=self.suite,
         )
 
     def _parse_suite(self):
