@@ -73,13 +73,10 @@ class LatestRunsController(object):
 
 
 class SuitesController(object):
-    def __init__(self, query=None):
-        self.query = query
-
     @expose('json')
     def index(self):
-        self.query = self.query or Run.query
-        return list(set([item[0] for item in self.query.values(Run.suite) if
+        query = request.context.get('query', Run.query)
+        return list(set([item[0] for item in query.values(Run.suite) if
                          item[0]]))
 
     @expose('json')
@@ -87,29 +84,11 @@ class SuitesController(object):
         return SuiteController(suite), remainder
 
 
-class SuiteController(object):
-    def __init__(self, suite, query=None):
-        self.suite = suite
-        query = query or Run.query
-        self.query = query.filter(Run.suite == self.suite)
-
-    @expose('json')
-    def index(self):
-        return self.query.all()
-
-    @property
-    def branch(self):
-        return BranchesController(query=self.query)
-
-
 class BranchesController(object):
-    def __init__(self, query=None):
-        self.query = query
-
     @expose('json')
     def index(self):
-        self.query = self.query or Run.query
-        return list(set([item[0] for item in self.query.values(Run.branch) if
+        query = request.context.get('query', Run.query)
+        return list(set([item[0] for item in query.values(Run.branch) if
                          item[0]]))
 
     @expose('json')
@@ -117,19 +96,30 @@ class BranchesController(object):
         return BranchController(branch), remainder
 
 
-class BranchController(object):
-    def __init__(self, branch, query=None):
-        self.branch = branch
-        query = query or Run.query
-        self.query = query.filter(Run.branch == self.branch)
+class SuiteController(object):
+    def __init__(self, suite):
+        self.suite = suite
+        base_query = request.context.get('query', Run.query)
+        request.context['query'] = base_query.filter(Run.suite == self.suite)
 
     @expose('json')
     def index(self):
-        return self.query.all()
+        return request.context['query'].all()
 
-    @property
-    def suite(self):
-        return SuitesController(query=self.query)
+    branch = BranchesController()
+
+
+class BranchController(object):
+    def __init__(self, branch):
+        self.branch = branch
+        base_query = request.context.get('query', Run.query)
+        request.context['query'] = base_query.filter(Run.branch == self.branch)
+
+    @expose('json')
+    def index(self):
+        return request.context['query'].all()
+
+    suite = SuitesController()
 
 
 class RunsController(object):
