@@ -74,11 +74,12 @@ class LatestRunsController(object):
 
 class SuitesController(object):
     def __init__(self, query=None):
-        self.query = query or Run.query
+        self.query = query
 
     @expose('json')
     def index(self):
-        return list(set([item[0] for item in Run.query.values(Run.suite) if
+        self.query = self.query or Run.query
+        return list(set([item[0] for item in self.query.values(Run.suite) if
                          item[0]]))
 
     @expose('json')
@@ -103,11 +104,12 @@ class SuiteController(object):
 
 class BranchesController(object):
     def __init__(self, query=None):
-        self.query = query or Run.query
+        self.query = query
 
     @expose('json')
     def index(self):
-        return list(set([item[0] for item in Run.query.values(Run.branch) if
+        self.query = self.query or Run.query
+        return list(set([item[0] for item in self.query.values(Run.branch) if
                          item[0]]))
 
     @expose('json')
