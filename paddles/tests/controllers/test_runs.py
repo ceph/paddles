@@ -111,4 +111,5 @@ class TestRunController(TestApp):
             'teuthology-2013-01-02_00:00:00-big-master-testing-basic-plana'
         self.app.post_json('/runs/', dict(name=run_a_name))
         self.app.post_json('/runs/', dict(name=run_b_name))
-        assert self.app.get('/runs/branch/').json == ['next', 'master']
+        response = self.app.get('/runs/branch/')
+        assert sorted(response.json) == ['master', 'next']

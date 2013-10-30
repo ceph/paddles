@@ -72,66 +72,44 @@ class LatestRunsController(object):
         return LatestRunsByCountController(count), remainder
 
 
-class RunsByFieldValueController(object):
-    def __init__(self, field_name, value, base_query=None):
-        self.field_name = field_name
-        self.field = getattr(Run, field_name)
-        self.value = value
-        if not base_query:
-            base_query = Run.query
-        #self.base_query = base_query
-        self.base_query = base_query.filter(self.field == self.value)
-
-    @expose(generic=True, template='json')
+class SuitesController(object):
+    @expose('json')
     def index(self):
-        return self.base_query.all()
-        #return self.base_query.filter(self.field == self.value).all()
-
-
-class RunsByFieldController(object):
-    def __init__(self, field_name, value_controller=RunsByFieldValueController,
-                 base_query=None):
-        self.field_name = field_name
-        self.field = getattr(Run, field_name)
-        self.value_controller = value_controller
-        if not base_query:
-            base_query = Run.query
-        self.base_query = base_query
-
-    @expose(generic=True, template='json')
-    def index(self):
-        return list(set([item[0] for item in self.base_query.values(self.field)
-                         if item[0]]))
+        return list(set([item[0] for item in Run.query.values(Run.suite) if
+                         item[0]]))
 
     @expose('json')
-    def _lookup(self, value, *remainder):
-        return (self.value_controller(
-            self.field_name,
-            value,
-            self.base_query),
-            remainder)
+    def _lookup(self, suite, *remainder):
+        return SuiteController(suite), remainder
 
 
-class RunsBySuiteController(RunsByFieldController):
-    def __init__(self, base_query=None):
-        self.field_name = 'suite'
-        supercls = super(RunsBySuiteController, self)
-        supercls.__init__(self.field_name, RunsByFieldValueController,
-                          base_query)
+class SuiteController(object):
+    def __init__(self, suite):
+        self.suite = suite
+
+    @expose('json')
+    def index(self):
+        return Run.query.filter(Run.suite == self.suite).all()
 
 
-class RunsByBranchValueController(RunsByFieldValueController):
-    @property
-    def suite(self):
-        return RunsBySuiteController(self.base_query)
+class BranchesController(object):
+    @expose('json')
+    def index(self):
+        return list(set([item[0] for item in Run.query.values(Run.branch) if
+                         item[0]]))
+
+    @expose('json')
+    def _lookup(self, branch, *remainder):
+        return BranchController(branch), remainder
 
 
-class RunsByBranchController(RunsByFieldController):
-    def __init__(self, base_query=None):
-        self.field_name = 'branch'
-        supercls = super(RunsByBranchController, self)
-        supercls.__init__(self.field_name, RunsByBranchValueController,
-                          base_query)
+class BranchController(object):
+    def __init__(self, branch):
+        self.branch = branch
+
+    @expose('json')
+    def index(self):
+        return Run.query.filter(Run.branch == self.branch).all()
 
 
 class RunsController(object):
@@ -156,9 +134,9 @@ class RunsController(object):
 
     latest = LatestRunsController()
 
-    branch = RunsByBranchController()
+    branch = BranchesController()
 
-    suite = RunsBySuiteController()
+    suite = SuitesController()
 
     @expose('json')
     def _lookup(self, name, *remainder):
