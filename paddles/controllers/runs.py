@@ -16,7 +16,6 @@ def latest_runs(count, fields=None):
 
 
 class RunController(object):
-
     def __init__(self, name):
         self.name = name
         try:
@@ -47,7 +46,6 @@ class RunController(object):
 
 
 class LatestRunsByCountController(object):
-
     def __init__(self, count):
         if count == '':
             count = conf.default_latest_runs_count
@@ -64,7 +62,6 @@ class LatestRunsByCountController(object):
 
 
 class LatestRunsController(object):
-
     @expose(generic=True, template='json')
     def index(self, fields=''):
         count = conf.default_latest_runs_count
@@ -75,8 +72,57 @@ class LatestRunsController(object):
         return LatestRunsByCountController(count), remainder
 
 
-class RunsController(object):
+class SuitesController(object):
+    @expose('json')
+    def index(self):
+        query = request.context.get('query', Run.query)
+        return list(set([item[0] for item in query.values(Run.suite) if
+                         item[0]]))
 
+    @expose('json')
+    def _lookup(self, suite, *remainder):
+        return SuiteController(suite), remainder
+
+
+class BranchesController(object):
+    @expose('json')
+    def index(self):
+        query = request.context.get('query', Run.query)
+        return list(set([item[0] for item in query.values(Run.branch) if
+                         item[0]]))
+
+    @expose('json')
+    def _lookup(self, branch, *remainder):
+        return BranchController(branch), remainder
+
+
+class SuiteController(object):
+    def __init__(self, suite):
+        self.suite = suite
+        base_query = request.context.get('query', Run.query)
+        request.context['query'] = base_query.filter(Run.suite == self.suite)
+
+    @expose('json')
+    def index(self):
+        return request.context['query'].all()
+
+    branch = BranchesController()
+
+
+class BranchController(object):
+    def __init__(self, branch):
+        self.branch = branch
+        base_query = request.context.get('query', Run.query)
+        request.context['query'] = base_query.filter(Run.branch == self.branch)
+
+    @expose('json')
+    def index(self):
+        return request.context['query'].all()
+
+    suite = SuitesController()
+
+
+class RunsController(object):
     @expose(generic=True, template='json')
     def index(self, fields=''):
         return latest_runs(conf.default_latest_runs_count, fields)
@@ -97,6 +143,10 @@ class RunsController(object):
             error('/errors/invalid/', "run with name %s already exists" % name)
 
     latest = LatestRunsController()
+
+    branch = BranchesController()
+
+    suite = SuitesController()
 
     @expose('json')
     def _lookup(self, name, *remainder):

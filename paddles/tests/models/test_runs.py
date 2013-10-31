@@ -84,10 +84,22 @@ class TestRunModel(TestApp):
         new_run = Run(run_name)
         assert new_run.suite == 'big'
 
+    def test_run_suite_hyphenated(self):
+        run_name = \
+            'teuthology-2013-10-22_03:00:02-ceph-deploy-next-testing-basic-plana'
+        new_run = Run(run_name)
+        assert new_run.suite == 'ceph-deploy'
+
     def test_run_suite_weird(self):
         run_name = 'teuthology-2013-10-23_00:30:38-rgw-next---basic-saya'
         new_run = Run(run_name)
         assert new_run.suite == 'rgw'
+
+    def test_run_suite_unlisted(self):
+        run_name = \
+            'teuthology-2013-10-22_03:00:02-kittens-next-testing-basic-plana'
+        new_run = Run(run_name)
+        assert new_run.suite == 'kittens'
 
     def test_run_suite_nosuite(self):
         run_name = 'whatup'
@@ -99,3 +111,15 @@ class TestRunModel(TestApp):
             'teuthology-2013-10-22_03:00:02-big-next-testing-basic-plana'
         new_run = Run(run_name)
         assert new_run.branch == 'next'
+
+    def test_run_branch_hyphenated(self):
+        run_name = \
+            'teuthology-2013-10-22_03:00:02-big-wip-9999-testing-basic-plana'
+        new_run = Run(run_name)
+        assert new_run.branch == 'wip-9999'
+
+    def test_run_hyphenated_suite_and_branch(self):
+        run_name = \
+            'teuthology-2013-10-22_03:00:02-ceph-deploy-wip-9999-testing-basic-plana'
+        new_run = Run(run_name)
+        assert (new_run.suite, new_run.branch) == ('ceph-deploy', 'wip-9999')
