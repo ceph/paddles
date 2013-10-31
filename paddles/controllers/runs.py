@@ -104,7 +104,8 @@ class SuiteController(object):
 
     @expose('json')
     def index(self):
-        return request.context['query'].all()
+        return request.context['query'].limit(
+            conf.default_latest_runs_count).all()
 
     branch = BranchesController()
 
@@ -117,7 +118,8 @@ class BranchController(object):
 
     @expose('json')
     def index(self):
-        return request.context['query'].all()
+        return request.context['query'].limit(
+            conf.default_latest_runs_count).all()
 
     suite = SuitesController()
 
