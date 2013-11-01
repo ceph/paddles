@@ -94,7 +94,9 @@ class Job(Base):
             return '<Job detached>'
 
     def __json__(self):
-        json_ = dict()
+        json_ = dict(
+            log_href=self.log_href
+        )
         for key in self.allowed_keys:
             json_[key] = getattr(self, key)
 
