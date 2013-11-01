@@ -103,9 +103,9 @@ class SuiteController(object):
         request.context['query'] = base_query.filter(Run.suite == self.suite)
 
     @expose('json')
-    def index(self):
-        return request.context['query'].order_by(Run.scheduled.desc()).limit(
-            conf.default_latest_runs_count).all()
+    def index(self, count=conf.default_latest_runs_count):
+        return request.context['query'].order_by(
+            Run.scheduled.desc()).limit(count).all()
 
     branch = BranchesController()
 
@@ -117,9 +117,9 @@ class BranchController(object):
         request.context['query'] = base_query.filter(Run.branch == self.branch)
 
     @expose('json')
-    def index(self):
-        return request.context['query'].order_by(Run.scheduled.desc()).limit(
-            conf.default_latest_runs_count).all()
+    def index(self, count=conf.default_latest_runs_count):
+        return request.context['query'].order_by(
+            Run.scheduled.desc()).limit(count).all()
 
     suite = SuitesController()
 
