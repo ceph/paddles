@@ -82,6 +82,11 @@ class Job(Base):
     def href(self):
         return "%s/runs/%s/jobs/%s/" % (conf.address, self.run.name, self.job_id),
 
+    @property
+    def log_href(self):
+        return conf.job_log_href_templ.format(run_name=self.run.name,
+                                              job_id=self.job_id)
+
     def __repr__(self):
         try:
             return '<Job %r>' % self.job_id
