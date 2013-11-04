@@ -32,6 +32,7 @@ class Job(Base):
     owner = Column(String(128))
     pid = Column(String(32))
     roles = Column(JSONType())
+    sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
     targets = Column(JSONType())
     tasks = Column(JSONType())
@@ -56,6 +57,7 @@ class Job(Base):
         "owner",
         "pid",
         "roles",
+        "sentry_event",
         "success",
         "targets",
         "tasks",
@@ -71,6 +73,10 @@ class Job(Base):
     def set_or_update(self, json_data):
         for k, v in json_data.items():
             key = k.replace('-', '_')
+            # Handle teuthology transition from sentry_events -> sentry_event
+            if key == 'sentry_events' and v != []:
+                key = 'sentry_event'
+                v = v[0]
             if key in self.allowed_keys:
                 setattr(self, key, v)
         self.updated = datetime.utcnow()
