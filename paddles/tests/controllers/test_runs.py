@@ -1,3 +1,6 @@
+from pytest import skip
+from pecan import conf
+
 from paddles.models import Run, Job
 from paddles.tests import TestApp
 
@@ -143,3 +146,27 @@ class TestRunController(TestApp):
         self.app.post_json('/runs/', dict(name=run_b_name))
         response = self.app.get('/runs/branch/master/suite/')
         assert response.json == ['big']
+
+    def test_runs_by_date(self):
+        if 'sqlite' in conf['sqlalchemy']['url']:
+            skip("sqlite does not support DATE")
+        day1_runs = [
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana',
+            'teuthology-2013-01-01_00:00:01-rados-next-testing-basic-plana',
+            'teuthology-2013-01-01_00:00:02-rados-next-testing-basic-plana',
+            'teuthology-2013-01-01_00:00:03-rados-next-testing-basic-plana',
+        ]
+        day2_runs = [
+            'teuthology-2013-01-02_00:00:00-rados-next-testing-basic-plana',
+            'teuthology-2013-01-02_00:00:01-rados-next-testing-basic-plana',
+            'teuthology-2013-01-02_00:00:02-rados-next-testing-basic-plana',
+            'teuthology-2013-01-02_00:00:03-rados-next-testing-basic-plana',
+        ]
+        for run in (day1_runs + day2_runs):
+            self.app.post_json('/runs/', dict(name=run))
+
+        response = self.app.get('/runs/date/2013-01-02/')
+        got_names = [run['name'] for run in response.json]
+        assert got_names == day2_runs
+
+

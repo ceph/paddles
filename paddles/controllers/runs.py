@@ -1,3 +1,6 @@
+from datetime import datetime
+from sqlalchemy import Date, cast
+
 from pecan import conf, expose, redirect, request
 from paddles.models import Run
 from paddles.controllers.jobs import JobsController
@@ -124,6 +127,39 @@ class BranchController(object):
     suite = SuitesController()
 
 
+class DatesController(object):
+    @expose('json')
+    def index(self):
+        query = request.context.get('query', Run.query)
+        return list(set(
+            [item[0] for item in query.values(cast(Run.scheduled, Date))
+             if item[0]]))
+
+    @expose('json')
+    def _lookup(self, date, *remainder):
+        return DateController(date), remainder
+
+
+class DateController(object):
+    date_format = '%Y-%m-%d'
+
+    def __init__(self, date):
+        try:
+            self.date = datetime.strptime(date, self.date_format)
+            self.date_str = date
+        except ValueError:
+            error('/errors/invalid/', 'date format must match %s' %
+                  self.date_format)
+        base_query = request.context.get('query', Run.query)
+        request.context['query'] = base_query.filter(
+            cast(Run.scheduled, Date) == self.date_str)
+
+    @expose('json')
+    def index(self, count=conf.default_latest_runs_count):
+        return request.context['query'].order_by(
+            Run.scheduled.desc()).limit(count).all()
+
+
 class RunsController(object):
     @expose(generic=True, template='json')
     def index(self, fields=''):
@@ -149,6 +185,8 @@ class RunsController(object):
     branch = BranchesController()
 
     suite = SuitesController()
+
+    date = DatesController()
 
     @expose('json')
     def _lookup(self, name, *remainder):
