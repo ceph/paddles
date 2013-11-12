@@ -91,8 +91,8 @@ class Run(Base):
                                           self.timestamp_format)
             return dict(
                 scheduled=scheduled,
-                suite=match_dict['suite'],
-                branch=match_dict['branch'],
+                suite=match_dict['suite'].strip(' -'),
+                branch=match_dict['branch'].strip(' -'),
                 )
         return dict()
 
