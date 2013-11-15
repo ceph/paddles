@@ -145,6 +145,13 @@ class DateController(object):
 
     def __init__(self, date):
         try:
+            if date == 'today':
+                date = datetime.utcnow().strftime(self.date_format)
+            elif date == 'yesterday':
+                date = datetime.utcnow()
+                date = date.replace(day=date.day - 1).strftime(
+                    self.date_format)
+
             self.date = datetime.strptime(date, self.date_format)
             self.date_str = date
         except ValueError:
