@@ -7,6 +7,10 @@ from paddles.controllers.jobs import JobsController
 from paddles.controllers import error
 
 
+date_format = '%Y-%m-%d'
+datetime_format = '%Y-%m-%d_%H:%M:%S'
+
+
 def latest_runs(count, fields=None):
     runs = Run.query.order_by(Run.posted.desc()).limit(count).all()
     if fields:
@@ -16,6 +20,23 @@ def latest_runs(count, fields=None):
             error('/errors/invalid/',
                   'an invalid field was specified')
     return [run for run in runs]
+
+
+def date_from_string(string, fmt=date_format):
+        try:
+            if string == 'today':
+                date_str = datetime.utcnow()
+                date = date_str.strftime(fmt)
+            elif string == 'yesterday':
+                date = datetime.utcnow().replace(day=date.day - 1)
+                date_str = date.strftime(fmt)
+            else:
+                date_str = string
+                date = datetime.strptime(date_str, fmt)
+            return (date, date_str)
+        except ValueError:
+            error('/errors/invalid/', 'date format must match %s' %
+                  date_format)
 
 
 class RunController(object):
@@ -127,6 +148,27 @@ class BranchController(object):
     suite = SuitesController()
 
 
+class DateRangeController(object):
+    def __init__(self, from_date):
+        from_date += '_00:00:00'
+        (self.from_date, self.from_date_str) = \
+            date_from_string(from_date, fmt=datetime_format)
+
+    @expose('json')
+    def index(self):
+        return []
+
+    @expose('json')
+    def to(self, to_date):
+        to_date += '_23:59:59'
+        (self.to_date, self.to_date_str) = \
+            date_from_string(to_date, fmt=datetime_format)
+        base_query = request.context.get('query', Run.query)
+        request.context['query'] = base_query.filter(
+            Run.scheduled.between(self.from_date, self.to_date))
+        return request.context['query'].all()
+
+
 class DatesController(object):
     @expose('json')
     def index(self):
@@ -137,26 +179,15 @@ class DatesController(object):
 
     @expose('json')
     def _lookup(self, date, *remainder):
+        if date == 'from':
+            return DateRangeController(remainder[0]), remainder[1:]
         return DateController(date), remainder
 
 
 class DateController(object):
-    date_format = '%Y-%m-%d'
 
     def __init__(self, date):
-        try:
-            if date == 'today':
-                date = datetime.utcnow().strftime(self.date_format)
-            elif date == 'yesterday':
-                date = datetime.utcnow()
-                date = date.replace(day=date.day - 1).strftime(
-                    self.date_format)
-
-            self.date = datetime.strptime(date, self.date_format)
-            self.date_str = date
-        except ValueError:
-            error('/errors/invalid/', 'date format must match %s' %
-                  self.date_format)
+        (self.date, self.date_str) = date_from_string(date)
         base_query = request.context.get('query', Run.query)
         request.context['query'] = base_query.filter(
             cast(Run.scheduled, Date) == self.date_str)
