@@ -35,7 +35,6 @@ def date_from_string(string, fmt=date_format):
                 date = datetime.strptime(date_str, fmt)
             return (date, date_str)
         except ValueError:
-            raise
             error('/errors/invalid/', 'date format must match %s' %
                   date_format)
 
