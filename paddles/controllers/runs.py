@@ -22,7 +22,7 @@ def latest_runs(count, fields=None):
     return [run for run in runs]
 
 
-def date_from_string(string, fmt=date_format):
+def date_from_string(string, fmt=datetime_format):
         try:
             if string == 'today':
                 date_str = datetime.utcnow()
@@ -127,9 +127,12 @@ class SuiteController(object):
         request.context['query'] = base_query.filter(Run.suite == self.suite)
 
     @expose('json')
-    def index(self, count=conf.default_latest_runs_count):
-        return request.context['query'].order_by(
-            Run.scheduled.desc()).limit(count).all()
+    def index(self, count=conf.default_latest_runs_count, since=None):
+        query = request.context['query']
+        if since:
+            since_date = date_from_string(since, fmt=date_format)
+            query = query.filter(Run.scheduled > since)
+        return query.order_by(Run.scheduled.desc()).limit(count).all()
 
     branch = BranchesController()
 
@@ -141,9 +144,12 @@ class BranchController(object):
         request.context['query'] = base_query.filter(Run.branch == self.branch)
 
     @expose('json')
-    def index(self, count=conf.default_latest_runs_count):
-        return request.context['query'].order_by(
-            Run.scheduled.desc()).limit(count).all()
+    def index(self, count=conf.default_latest_runs_count, since=None):
+        query = request.context['query']
+        if since:
+            since_date = date_from_string(since, fmt=date_format)
+            query = query.filter(Run.scheduled > since)
+        return query.order_by(Run.scheduled.desc()).limit(count).all()
 
     suite = SuitesController()
 
@@ -152,7 +158,7 @@ class DateRangeController(object):
     def __init__(self, from_date):
         from_date += '_00:00:00'
         (self.from_date, self.from_date_str) = \
-            date_from_string(from_date, fmt=datetime_format)
+            date_from_string(from_date)
 
     @expose('json')
     def index(self):
@@ -162,7 +168,7 @@ class DateRangeController(object):
     def to(self, to_date):
         to_date += '_23:59:59'
         (self.to_date, self.to_date_str) = \
-            date_from_string(to_date, fmt=datetime_format)
+            date_from_string(to_date)
         base_query = request.context.get('query', Run.query)
         request.context['query'] = base_query.filter(
             Run.scheduled.between(self.from_date, self.to_date))

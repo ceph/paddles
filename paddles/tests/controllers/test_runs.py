@@ -137,7 +137,7 @@ class TestRunController(TestApp):
         response = self.app.get('/runs/suite/')
         assert sorted(response.json) == ['big', 'rados']
 
-    def test_get_suites_after_runs_by_branch(self):
+    def test_get_suites_since_runs_by_branch(self):
         run_a_name = \
             'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
         run_b_name = \
@@ -154,23 +154,27 @@ class TestRunControllerDateFilters(TestApp):
         TestApp.setup(self)
         self.day1_runs = [
             'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana',
-            'teuthology-2013-01-01_00:00:01-rados-next-testing-basic-plana',
-            'teuthology-2013-01-01_00:00:02-rados-next-testing-basic-plana',
-            'teuthology-2013-01-01_00:00:03-rados-next-testing-basic-plana',
+            'teuthology-2013-01-01_00:00:01-nfs-next-testing-basic-plana',
+            'teuthology-2013-01-01_00:00:02-rados-master-testing-basic-plana',
+            'teuthology-2013-01-01_00:00:03-nfs-master-testing-basic-plana',
         ]
         self.day2_runs = [
             'teuthology-2013-01-02_00:00:00-rados-next-testing-basic-plana',
-            'teuthology-2013-01-02_00:00:01-rados-next-testing-basic-plana',
-            'teuthology-2013-01-02_00:00:02-rados-next-testing-basic-plana',
-            'teuthology-2013-01-02_00:00:03-rados-next-testing-basic-plana',
+            'teuthology-2013-01-02_00:00:01-nfs-next-testing-basic-plana',
+            'teuthology-2013-01-02_00:00:02-rados-master-testing-basic-plana',
+            'teuthology-2013-01-02_00:00:03-nfs-master-testing-basic-plana',
         ]
         self.day3_runs = [
             'teuthology-2013-01-03_00:00:00-rados-next-testing-basic-plana',
-            'teuthology-2013-01-03_09:00:00-rados-next-testing-basic-plana',
+            'teuthology-2013-01-03_00:00:01-nfs-next-testing-basic-plana',
+            'teuthology-2013-01-03_00:00:02-rados-master-testing-basic-plana',
+            'teuthology-2013-01-03_00:00:03-nfs-master-testing-basic-plana',
         ]
         self.day4_runs = [
             'teuthology-2013-01-04_00:00:00-rados-next-testing-basic-plana',
-            'teuthology-2013-01-04_09:00:00-rados-next-testing-basic-plana',
+            'teuthology-2013-01-04_00:00:01-nfs-next-testing-basic-plana',
+            'teuthology-2013-01-04_00:00:02-rados-master-testing-basic-plana',
+            'teuthology-2013-01-04_00:00:03-nfs-master-testing-basic-plana',
         ]
         for run in (self.day1_runs + self.day2_runs + self.day3_runs +
                     self.day4_runs):
@@ -199,5 +203,21 @@ class TestRunControllerDateFilters(TestApp):
                                 expect_errors=True)
         assert response.json.get('message').startswith(
             'date format must match')
+
+    def test_branch_and_since(self):
+        response = self.app.get('/runs/branch/next/?since=2013-01-03')
+        got_names = sorted(run['name'] for run in response.json)
+        assert got_names == self.day3_runs[0:2] + self.day4_runs[0:2]
+
+    def test_suite_and_since(self):
+        response = self.app.get('/runs/suite/nfs/?since=2013-01-03')
+        got_names = sorted(run['name'] for run in response.json)
+        assert got_names == (self.day3_runs + self.day4_runs)[1::2]
+
+    def test_suite_and_branch_and_since(self):
+        response = self.app.get(
+            '/runs/suite/nfs/branch/next/?since=2013-01-03')
+        got_names = sorted(run['name'] for run in response.json)
+        assert got_names == [self.day3_runs[1], self.day4_runs[1]]
 
 
