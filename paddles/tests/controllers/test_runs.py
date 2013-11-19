@@ -169,4 +169,28 @@ class TestRunController(TestApp):
         got_names = [run['name'] for run in response.json]
         assert got_names == day2_runs
 
+    def test_runs_by_date_range(self):
+        day1_runs = [
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana',
+            'teuthology-2013-01-01_09:00:00-rados-next-testing-basic-plana',
+        ]
+        day2_runs = [
+            'teuthology-2013-01-02_00:00:00-rados-next-testing-basic-plana',
+            'teuthology-2013-01-02_09:00:00-rados-next-testing-basic-plana',
+        ]
+        day3_runs = [
+            'teuthology-2013-01-03_00:00:00-rados-next-testing-basic-plana',
+            'teuthology-2013-01-03_09:00:00-rados-next-testing-basic-plana',
+        ]
+        day4_runs = [
+            'teuthology-2013-01-04_00:00:00-rados-next-testing-basic-plana',
+            'teuthology-2013-01-04_09:00:00-rados-next-testing-basic-plana',
+        ]
+        for run in (day1_runs + day2_runs + day3_runs + day4_runs):
+            self.app.post_json('/runs/', dict(name=run))
+
+        response = self.app.get('/runs/date/from/2013-01-02/to/2013-01-03/')
+        got_names = [run['name'] for run in response.json]
+        assert sorted(got_names) == sorted(day2_runs + day3_runs)
+
 
