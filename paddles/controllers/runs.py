@@ -193,7 +193,7 @@ class DatesController(object):
 class DateController(object):
 
     def __init__(self, date):
-        (self.date, self.date_str) = date_from_string(date)
+        (self.date, self.date_str) = date_from_string(date, fmt=date_format)
         base_query = request.context.get('query', Run.query)
         request.context['query'] = base_query.filter(
             cast(Run.scheduled, Date) == self.date_str)
