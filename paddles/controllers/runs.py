@@ -134,7 +134,12 @@ class SuiteController(object):
             query = query.filter(Run.scheduled > since)
         return query.order_by(Run.scheduled.desc()).limit(count).all()
 
-    branch = BranchesController()
+    @expose('json')
+    def _lookup(self, value, *remainder):
+        if value == 'branch':
+            return BranchesController(), remainder
+        if value == 'date':
+            return DatesController(), remainder
 
 
 class BranchController(object):
@@ -151,7 +156,12 @@ class BranchController(object):
             query = query.filter(Run.scheduled > since)
         return query.order_by(Run.scheduled.desc()).limit(count).all()
 
-    suite = SuitesController()
+    @expose('json')
+    def _lookup(self, value, *remainder):
+        if value == 'date':
+            return DatesController(), remainder
+        if value == 'suite':
+            return SuitesController(), remainder
 
 
 class DateRangeController(object):
@@ -202,6 +212,13 @@ class DateController(object):
     def index(self, count=conf.default_latest_runs_count):
         return request.context['query'].order_by(
             Run.scheduled.desc()).limit(count).all()
+
+    @expose('json')
+    def _lookup(self, value, *remainder):
+        if value == 'branch':
+            return BranchesController(), remainder
+        if value == 'suite':
+            return SuitesController(), remainder
 
 
 class RunsController(object):
