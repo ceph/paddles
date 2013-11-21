@@ -28,7 +28,8 @@ def date_from_string(string, fmt=datetime_format):
                 date_str = datetime.utcnow()
                 date = date_str.strftime(fmt)
             elif string == 'yesterday':
-                date = datetime.utcnow().replace(day=date.day - 1)
+                date = datetime.utcnow()
+                date = date.replace(day=date.day - 1)
                 date_str = date.strftime(fmt)
             else:
                 date_str = string
