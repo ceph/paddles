@@ -25,8 +25,8 @@ def latest_runs(count, fields=None):
 def date_from_string(string, fmt=datetime_format):
         try:
             if string == 'today':
-                date_str = datetime.utcnow()
-                date = date_str.strftime(fmt)
+                date = datetime.utcnow()
+                date_str = date.strftime(fmt)
             elif string == 'yesterday':
                 date = datetime.utcnow()
                 date = date.replace(day=date.day - 1)
