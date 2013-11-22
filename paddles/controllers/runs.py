@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from sqlalchemy import Date, cast
 
 from pecan import conf, expose, redirect, request
@@ -22,18 +22,22 @@ def latest_runs(count, fields=None):
     return [run for run in runs]
 
 
-def date_from_string(string, fmt=datetime_format):
+def date_from_string(date_str, out_fmt=datetime_format, hours='00:00:00'):
         try:
-            if string == 'today':
-                date = datetime.utcnow()
-                date_str = date.strftime(fmt)
-            elif string == 'yesterday':
-                date = datetime.utcnow()
+            if date_str == 'today':
+                date = datetime.date.today()
+                date_str = date.strftime(date_format)
+            elif date_str == 'yesterday':
+                date = datetime.date.today()
                 date = date.replace(day=date.day - 1)
-                date_str = date.strftime(fmt)
+                date_str = date.strftime(date_format)
             else:
-                date_str = string
-                date = datetime.strptime(date_str, fmt)
+                date = datetime.datetime.strptime(date_str, date_format)
+
+            if out_fmt == datetime_format:
+                date_str = '{date}_{time}'.format(date=date_str, time=hours)
+                date = datetime.datetime.strptime(date_str, out_fmt)
+
             return (date, date_str)
         except ValueError:
             error('/errors/invalid/', 'date format must match %s' %
@@ -131,7 +135,7 @@ class SuiteController(object):
     def index(self, count=conf.default_latest_runs_count, since=None):
         query = request.context['query']
         if since:
-            since_date = date_from_string(since, fmt=date_format)
+            since_date = date_from_string(since, out_fmt=date_format)
             query = query.filter(Run.scheduled > since)
         return query.order_by(Run.scheduled.desc()).limit(count).all()
 
@@ -153,7 +157,7 @@ class BranchController(object):
     def index(self, count=conf.default_latest_runs_count, since=None):
         query = request.context['query']
         if since:
-            since_date = date_from_string(since, fmt=date_format)
+            since_date = date_from_string(since, out_fmt=date_format)
             query = query.filter(Run.scheduled > since)
         return query.order_by(Run.scheduled.desc()).limit(count).all()
 
@@ -167,7 +171,6 @@ class BranchController(object):
 
 class DateRangeController(object):
     def __init__(self, from_date):
-        from_date += '_00:00:00'
         (self.from_date, self.from_date_str) = \
             date_from_string(from_date)
 
@@ -177,9 +180,8 @@ class DateRangeController(object):
 
     @expose('json')
     def to(self, to_date):
-        to_date += '_23:59:59'
         (self.to_date, self.to_date_str) = \
-            date_from_string(to_date)
+            date_from_string(to_date, hours='23:59:59')
         base_query = request.context.get('query', Run.query)
         request.context['query'] = base_query.filter(
             Run.scheduled.between(self.from_date, self.to_date))
@@ -204,7 +206,8 @@ class DatesController(object):
 class DateController(object):
 
     def __init__(self, date):
-        (self.date, self.date_str) = date_from_string(date, fmt=date_format)
+        (self.date, self.date_str) = \
+            date_from_string(date, out_fmt=date_format)
         base_query = request.context.get('query', Run.query)
         request.context['query'] = base_query.filter(
             cast(Run.scheduled, Date) == self.date_str)
