@@ -8,12 +8,40 @@ from pecan import conf
 from paddles.models import Base
 from paddles.models.jobs import Job
 
-
-suite_names = ['big', 'ceph-deploy', 'dummy', 'experimental', 'fs', 'hadoop',
-               'iozone', 'kcephfs', 'krbd', 'marginal', 'mixed-clients', 'nfs',
-               'powercycle', 'rados', 'rbd', 'rgw', 'smoke', 'stress',
-               'upgrade-cuttlefish', 'upgrade-dumpling', 'upgrade-fs',
-               'upgrade-parallel', 'upgrade-small', 'upgrade']
+suite_names = ['big',
+               'ceph-deploy',
+               'dummy',
+               'experimental',
+               'fs',
+               'hadoop',
+               'iozone',
+               'kcephfs',
+               'krbd',
+               'marginal',
+               'mixed-clients',
+               'nfs',
+               'powercycle',
+               'rados',
+               'rbd',
+               'rgw',
+               'smoke',
+               'stress',
+               'tgt',
+               'upgrade-cuttlefish',
+               'upgrade-dumpling',
+               'upgrade-fs',
+               'upgrade-mixed-cluster',
+               'upgrade-mixed-mons',
+               'upgrade-parallel',
+               'upgrade-rados-double',
+               'upgrade-rados',
+               'upgrade-rbd-double',
+               'upgrade-rbd',
+               'upgrade-rgw-double',
+               'upgrade-rgw',
+               'upgrade-small',
+               'upgrade',
+               ]
 
 
 def get_name_regex(timestamp_regex, suite_names):
