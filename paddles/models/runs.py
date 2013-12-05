@@ -44,10 +44,10 @@ suite_names = ['big',
                ]
 
 
-def get_name_regex(timestamp_regex, suite_names):
+def get_name_regexes(timestamp_regex, suite_names):
     """
-    Build a regex used for getting timestamp, suite and branch info out of a test name.
-    Typical run names are of the format:
+    Build a regex used for getting timestamp, suite and branch info out of a
+    test name.  Typical run names are of the format:
         user-timestamp-suite-branch-flavor-machine_type
 
     But sometimes suite, or branch, or both, are hyphenated. Unfortunately the
@@ -55,17 +55,20 @@ def get_name_regex(timestamp_regex, suite_names):
     list of current suites. If this regex doesn't match, Run._parse_name() uses
     a backup regex.
     """
-    regex_templ = '.*-(?P<scheduled>{time})-(?P<suite>{suites})-(?P<branch>.*)-.*?-.*?-.*?'
+    regex_templ_no_mtype = \
+        '.*-(?P<scheduled>{time})-(?P<suite>{suites})-(?P<branch>.*)-.*?-.*?'  # noqa
+    regex_templ = regex_templ_no_mtype + '-.*?'
     suites_str = '(%s)' % '|'.join(suite_names)
-    return regex_templ.format(time=timestamp_regex, suites=suites_str)
+    return [templ.format(time=timestamp_regex, suites=suites_str)
+            for templ in (regex_templ, regex_templ_no_mtype)]
 
 
 class Run(Base):
     timestamp_regex = \
         '[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}'
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
-    name_regex = get_name_regex(timestamp_regex, suite_names)
-    backup_name_regex = '.*-(?P<scheduled>%s)-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-.*?' % timestamp_regex
+    name_regexes = get_name_regexes(timestamp_regex, suite_names)
+    backup_name_regex = '.*-(?P<scheduled>%s)-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-.*?' % timestamp_regex  # noqa
 
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
@@ -111,8 +114,9 @@ class Run(Base):
         )
 
     def _parse_name(self):
-        name_match = re.match(self.name_regex, self.name) or \
-                re.match(self.backup_name_regex, self.name)
+        name_match = re.match(self.name_regexes[0], self.name) or \
+            re.match(self.name_regexes[1], self.name) or \
+            re.match(self.backup_name_regex, self.name)
         if name_match:
             match_dict = name_match.groupdict()
             scheduled = datetime.strptime(match_dict['scheduled'],
