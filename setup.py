@@ -22,5 +22,6 @@ setup(
     entry_points="""
         [pecan.command]
         populate=paddles.commands.populate:PopulateCommand
+        reparse=paddles.commands.reparse:ReparseCommand
         """
 )
