@@ -14,6 +14,7 @@ class Job(Base):
     posted = Column(DateTime, index=True)
     updated = Column(DateTime, index=True)
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
+    status = Column(String(32), index=True)
 
     archive_path = Column(String(512))
     description = Column(String(512))
@@ -58,6 +59,7 @@ class Job(Base):
         "pid",
         "roles",
         "sentry_event",
+        "status",
         "success",
         "targets",
         "tasks",
@@ -71,6 +73,10 @@ class Job(Base):
         self.set_or_update(json_data)
 
     def set_or_update(self, json_data):
+        if 'success' in json_data and json_data.get('status', None) is None:
+            status_map = {True: 'pass', False: 'fail'}
+            json_data['status'] = status_map.get(json_data['success'], None)
+
         for k, v in json_data.items():
             key = k.replace('-', '_')
             # Handle teuthology transition from sentry_events -> sentry_event
