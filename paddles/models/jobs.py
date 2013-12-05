@@ -73,9 +73,27 @@ class Job(Base):
         self.set_or_update(json_data)
 
     def set_or_update(self, json_data):
-        if 'success' in json_data and json_data.get('status', None) is None:
-            status_map = {True: 'pass', False: 'fail'}
-            json_data['status'] = status_map.get(json_data['success'], None)
+        status_map = {True: 'pass',
+                      False: 'fail',
+                      None: 'running',
+                      }
+        success_map = {'pass': True,
+                       'fail': False,
+                       'dead': False,
+                       'running': None,
+                       }
+
+        if 'status' in json_data:
+            status = json_data.pop('status')
+            if status == 'dead' and self.success is not None:
+                self.status = status_map.get(self.success)
+            else:
+                self.status = status
+                json_data['success'] = success_map.get(status)
+        elif 'success' in json_data:
+            success = json_data.pop('success')
+            self.status = status_map[success]
+            self.success = success
 
         for k, v in json_data.items():
             key = k.replace('-', '_')
@@ -92,7 +110,8 @@ class Job(Base):
 
     @property
     def href(self):
-        return "%s/runs/%s/jobs/%s/" % (conf.address, self.run.name, self.job_id),
+        return "%s/runs/%s/jobs/%s/" % (conf.address, self.run.name,
+                                        self.job_id),
 
     @property
     def log_href(self):
