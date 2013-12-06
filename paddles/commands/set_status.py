@@ -23,7 +23,7 @@ class SetStatusCommand(BaseCommand):
             models.start()
             jobs = Job.query.filter(Job.status.is_(None))
             out("Updating {count} jobs...".format(count=jobs.count()))
-            for job in jobs:
+            for job in jobs.yield_per(5):
                 self._set_status(job)
                 # Be slightly polite to the db
                 sleep(0.01)
