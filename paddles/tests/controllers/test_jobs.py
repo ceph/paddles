@@ -75,3 +75,35 @@ class TestJobsController(TestApp):
         assert response.json == [dict(
             job_id='314',
         )]
+
+    def test_status_dead_ignored_by_completed_job(self):
+        self.app.post_json('/runs/RUN/jobs/', dict(job_id='42', success=False))
+        self.app.put_json('/runs/RUN/jobs/42/', dict(status='dead'))
+        response = self.app.get('/runs/RUN/jobs/42/')
+        assert response.json.get('status') == 'fail'
+
+    def test_status_dead_not_ignored_by_running_job(self):
+        self.app.post_json('/runs/RUN/jobs/', dict(job_id='42'))
+        self.app.put_json('/runs/RUN/jobs/42/', dict(status='dead'))
+        response = self.app.get('/runs/RUN/jobs/42/')
+        assert response.json.get('status') == 'dead'
+
+    def test_null_success_means_null_status(self):
+        self.app.post_json('/runs/RUN/jobs/', dict(job_id='42'))
+        response = self.app.get('/runs/RUN/jobs/42/')
+        assert response.json.get('status') is None
+
+    def test_success_true_means_status_pass(self):
+        self.app.post_json('/runs/RUN/jobs/', dict(job_id='42', success=True))
+        response = self.app.get('/runs/RUN/jobs/42/')
+        assert response.json.get('status') == 'pass'
+
+    def test_success_false_means_status_fail(self):
+        self.app.post_json('/runs/RUN/jobs/', dict(job_id='42', success=False))
+        response = self.app.get('/runs/RUN/jobs/42/')
+        assert response.json.get('status') == 'fail'
+
+    def test_status_dead_means_success_false(self):
+        self.app.post_json('/runs/RUN/jobs/', dict(job_id='42', status='dead'))
+        response = self.app.get('/runs/RUN/jobs/42/')
+        assert response.json.get('success') == False
