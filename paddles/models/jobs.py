@@ -14,6 +14,7 @@ class Job(Base):
     posted = Column(DateTime, index=True)
     updated = Column(DateTime, index=True)
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
+    status = Column(String(32), index=True)
 
     archive_path = Column(String(512))
     description = Column(String(512))
@@ -58,6 +59,7 @@ class Job(Base):
         "pid",
         "roles",
         "sentry_event",
+        "status",
         "success",
         "targets",
         "tasks",
@@ -71,6 +73,28 @@ class Job(Base):
         self.set_or_update(json_data)
 
     def set_or_update(self, json_data):
+        status_map = {True: 'pass',
+                      False: 'fail',
+                      None: 'running',
+                      }
+        success_map = {'pass': True,
+                       'fail': False,
+                       'dead': False,
+                       'running': None,
+                       }
+
+        if 'status' in json_data:
+            status = json_data.pop('status')
+            if status == 'dead' and self.success is not None:
+                self.status = status_map.get(self.success)
+            else:
+                self.status = status
+                json_data['success'] = success_map.get(status)
+        elif 'success' in json_data:
+            success = json_data.pop('success')
+            self.status = status_map[success]
+            self.success = success
+
         for k, v in json_data.items():
             key = k.replace('-', '_')
             # Handle teuthology transition from sentry_events -> sentry_event
@@ -86,7 +110,8 @@ class Job(Base):
 
     @property
     def href(self):
-        return "%s/runs/%s/jobs/%s/" % (conf.address, self.run.name, self.job_id),
+        return "%s/runs/%s/jobs/%s/" % (conf.address, self.run.name,
+                                        self.job_id),
 
     @property
     def log_href(self):
