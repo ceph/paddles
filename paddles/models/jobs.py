@@ -75,7 +75,7 @@ class Job(Base):
     def set_or_update(self, json_data):
         status_map = {True: 'pass',
                       False: 'fail',
-                      None: 'running',
+                      None: 'unknown',
                       }
         success_map = {'pass': True,
                        'fail': False,
