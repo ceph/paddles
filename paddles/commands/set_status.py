@@ -39,7 +39,7 @@ class SetStatusCommand(BaseCommand):
     def _set_status(self, job):
         success = job.success
         if success is None:
-            return
+            job.status = 'unknown'
         elif success is False:
             job.status = 'fail'
         elif success is True:
