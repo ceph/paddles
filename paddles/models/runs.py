@@ -151,7 +151,7 @@ class Run(Base):
         return "%s/runs/%s/" % (conf.address, self.name),
 
     def get_results(self):
-        jobs_status = [job.status for job in self.jobs]
+        jobs_status = [value[0] for value in self.jobs.values(Job.status)]
         passing = jobs_status.count('pass')
         running = jobs_status.count('running')
         fail = jobs_status.count('fail')
