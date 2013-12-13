@@ -58,7 +58,11 @@ def get_name_regexes(timestamp_regex, suite_names):
     regex_templ_no_mtype = \
         '.*-(?P<scheduled>{time})-(?P<suite>{suites})-(?P<branch>.*)-.*?-.*?'  # noqa
     regex_templ = regex_templ_no_mtype + '-.*?'
-    suites_str = '(%s)' % '|'.join(suite_names)
+
+    # Append '[^-]*' to each suite name to handle suite slices like
+    # 'rados:thrash'
+    modded_names = [name + '[^-]*' for name in suite_names]
+    suites_str = '({names_str})'.format(names_str='|'.join(modded_names))
     return [templ.format(time=timestamp_regex, suites=suites_str)
             for templ in (regex_templ, regex_templ_no_mtype)]
 
