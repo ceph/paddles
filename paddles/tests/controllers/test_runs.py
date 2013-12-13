@@ -70,11 +70,12 @@ class TestRunController(TestApp):
         assert response.status_int == 404
 
     def test_slice_valid(self):
-        self.app.post_json('/runs/', dict(name='foo'))
+        self.app.post_json('/runs/', dict(name='slice_valid'))
+        print self.app.get('/runs/slice_valid/').json
         response = self.app.get('/runs/?fields=name,status')
         assert response.json == [dict(
-            name='foo',
-            status='finished',
+            name='slice_valid',
+            status='empty',
         )]
 
     def test_runs_by_branch(self):

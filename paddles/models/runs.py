@@ -104,7 +104,7 @@ class Run(Base):
 
     def __json__(self):
         results = self.get_results()
-        status = 'running' if results['running'] else 'finished'
+        status = self.status
         return dict(
             name=self.name,
             href=self.href,
@@ -173,7 +173,28 @@ class Run(Base):
 
     @property
     def status(self):
-        running = self.jobs.filter_by(success=None).count()
-        if running:
-            return "running"
-        return "finished"
+        if not self.jobs.count():
+            return 'empty'
+
+        results = self.get_results()
+        total = results['total']
+
+        # any running => running
+        if results['running'] > 0:
+            return 'running'
+
+        # all dead => dead
+        if results['dead'] == total:
+            return 'finished dead'
+        # any fail => fail
+        if results['fail'] > 0:
+            return 'finished fail'
+        # any dead => fail
+        if results['dead'] > 0:
+            return 'finished fail'
+        # all passing => pass
+        if results['pass'] == total:
+            return 'finished pass'
+
+        # this should not happen
+        return 'unknown'
