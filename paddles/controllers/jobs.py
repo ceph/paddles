@@ -8,7 +8,19 @@ class JobController(object):
 
     def __init__(self, job_id):
         self.job_id = str(job_id)
-        self.run = request.context['run']
+        run_name = request.context.get('run_name')
+        if not run_name:
+            self.run = None
+        else:
+            run_q = models.Run.query.filter(
+                models.Run.name == run_name)
+            if run_q.count() == 1:
+                self.run = run_q.one()
+            elif run_q.count() > 1:
+                error('/errors/invalid/',
+                    'there are %s runs with that name!' % run_q.count())
+            else:
+                self.run = None
         try:
             self.job = Job.filter_by(job_id=job_id, run=self.run).first()
         except ValueError:
@@ -47,14 +59,19 @@ class JobsController(object):
 
     @property
     def run(self):
-        run = request.context.get('run')
         run_name = request.context.get('run_name')
-        if not run and not run_name:
-            error('/errors/notfound', 'associated run was not found and no name was provided to create one')
-        elif not run:
+        if not run_name:
+            error('/errors/notfound', 'associated run was not found and no name was provided to create one')  # noqa
+        run_q = models.Run.query.filter(models.Run.name == run_name)
+        if run_q.count() == 1:
+            run = run_q.one()
+            return run
+        elif run_q.count() > 1:
+            error('/errors/invalid/',
+                  'there are %s runs with that name!' % run_q.count())
+        elif run_q.count() == 0:
             run = models.Run(run_name)
             return run
-        return run
 
     @expose(generic=True, template='json')
     def index(self, fields=''):
@@ -65,7 +82,7 @@ class JobsController(object):
                 return [job.slice(fields) for job in jobs]
             except AttributeError:
                 error('/errors/invalid/',
-                    'an invalid field was specified')
+                      'an invalid field was specified')
         else:
             return jobs
 
@@ -82,21 +99,13 @@ class JobsController(object):
         # we allow empty data to be pushed
         if not job_id:
             error('/errors/invalid/', "could not find required key: 'job_id'")
+        job_id = data['job_id'] = str(job_id)
 
-        job_id = str(job_id)
-
-        run = request.context.get('run')
-        if not run:
-            #Job(data, models.Run(run_name))
-            Job(data, self.run)
-            return dict()
-
-        # Make sure this doesn't exist already
-        if not Job.filter_by(job_id=job_id, run=run).first():
-            new_job = Job(data, run)
-            return dict()
-        else:
-            error('/errors/invalid/', "job with job_id %s already exists" % job_id)
+        if Job.filter_by(job_id=job_id, run=self.run).first():
+            error('/errors/invalid/',
+                  "job with job_id %s already exists" % job_id)
+        self.job = Job(data, self.run)
+        return dict()
 
     @expose('json')
     def _lookup(self, job_id, *remainder):

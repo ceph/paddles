@@ -48,10 +48,9 @@ class RunController(object):
     def __init__(self, name):
         self.name = name
         try:
-            self.run = Run.filter_by(name=name).first()
+            self.run = Run.query.filter_by(name=name).first()
         except ValueError:
             self.run = None
-        request.context['run'] = self.run
         request.context['run_name'] = self.name
 
     @expose(generic=True, template='json')
@@ -239,8 +238,8 @@ class RunsController(object):
             error('/errors/invalid/', 'could not decode JSON body')
         if not name:
             error('/errors/invalid/', "could not find required key: 'name'")
-        if not Run.filter_by(name=name).first():
-            new_run = Run(name)
+        if not Run.query.filter_by(name=name).first():
+            Run(name)
             return dict()
         else:
             error('/errors/invalid/', "run with name %s already exists" % name)
