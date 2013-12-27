@@ -81,6 +81,7 @@ class Run(Base):
     branch = Column(String(64), index=True)
     posted = Column(DateTime, index=True)
     scheduled = Column(DateTime, index=True)
+    status = Column(String(16), index=True)
     jobs = relationship('Job',
                         backref=backref('run'),
                         cascade='all,delete',
@@ -95,6 +96,7 @@ class Run(Base):
         self.scheduled = parsed_name.get('scheduled', self.posted)
         self.suite = parsed_name.get('suite', '')
         self.branch = parsed_name.get('branch', '')
+        self.set_status()
 
     def __repr__(self):
         try:
@@ -171,30 +173,39 @@ class Run(Base):
             'total': total
         }
 
-    @property
-    def status(self):
+    def set_status(self):
+        # Possible values for Run.status are:
+        #
+        # 'empty', 'running', 'finished dead', 'finished fail',
+        # 'finished pass', 'unknown'
         if not self.jobs.count():
-            return 'empty'
+            self.status = 'empty'
+            return self.status
+
+        old_status = self.status
 
         results = self.get_results()
         total = results['total']
 
         # any running => running
         if results['running'] > 0:
-            return 'running'
-
+            new_status = 'running'
         # all dead => dead
-        if results['dead'] == total:
-            return 'finished dead'
+        elif results['dead'] == total:
+            new_status = 'finished dead'
         # any fail => fail
-        if results['fail'] > 0:
-            return 'finished fail'
+        elif results['fail'] > 0:
+            new_status = 'finished fail'
         # any dead => fail
-        if results['dead'] > 0:
-            return 'finished fail'
+        elif results['dead'] > 0:
+            new_status = 'finished fail'
         # all passing => pass
-        if results['pass'] == total:
-            return 'finished pass'
-
+        elif results['pass'] == total:
+            new_status = 'finished pass'
         # this should not happen
-        return 'unknown'
+        else:
+            new_status = 'unknown'
+
+        if not old_status == new_status:
+            self.status = new_status
+        return new_status

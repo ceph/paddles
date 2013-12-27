@@ -86,7 +86,7 @@ class TestRunModel(TestApp):
 
     def test_run_suite_hyphenated(self):
         run_name = \
-            'teuthology-2013-10-22_03:00:02-ceph-deploy-next-testing-basic-plana'
+            'teuthology-2013-10-22_03:00:02-ceph-deploy-next-testing-basic-plana'  # noqa
         new_run = Run(run_name)
         assert new_run.suite == 'ceph-deploy'
 
@@ -120,6 +120,46 @@ class TestRunModel(TestApp):
 
     def test_run_hyphenated_suite_and_branch(self):
         run_name = \
-            'teuthology-2013-10-22_03:00:02-ceph-deploy-wip-9999-testing-basic-plana'
+            'teuthology-2013-10-22_03:00:02-ceph-deploy-wip-9999-testing-basic-plana'  # noqa
         new_run = Run(run_name)
         assert (new_run.suite, new_run.branch) == ('ceph-deploy', 'wip-9999')
+
+    def test_run_status_empty(self):
+        run_name = "run_status_empty"
+        new_run = Run(run_name)
+        assert new_run.status == 'empty'
+
+    def test_run_status_running(self):
+        run_name = "run_status_running"
+        new_run = Run(run_name)
+        Job(dict(job_id=1, status='running'), new_run)
+        Job(dict(job_id=1, status='pass'), new_run)
+        assert new_run.status == 'running'
+
+    def test_run_status_fail(self):
+        run_name = "run_status_fail"
+        new_run = Run(run_name)
+        Job(dict(job_id=1, status='fail'), new_run)
+        Job(dict(job_id=1, status='pass'), new_run)
+        assert new_run.status == 'finished fail'
+
+    def test_run_status_pass(self):
+        run_name = "run_status_pass"
+        new_run = Run(run_name)
+        Job(dict(job_id=1, status='pass'), new_run)
+        Job(dict(job_id=1, status='pass'), new_run)
+        assert new_run.status == 'finished pass'
+
+    def test_run_status_one_dead(self):
+        run_name = "run_status_one_dead"
+        new_run = Run(run_name)
+        Job(dict(job_id=1, status='dead'), new_run)
+        Job(dict(job_id=1, status='pass'), new_run)
+        assert new_run.status == 'finished fail'
+
+    def test_run_status_all_dead(self):
+        run_name = "run_status_all_dead"
+        new_run = Run(run_name)
+        Job(dict(job_id=1, status='dead'), new_run)
+        Job(dict(job_id=1, status='dead'), new_run)
+        assert new_run.status == 'finished dead'

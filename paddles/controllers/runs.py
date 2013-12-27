@@ -124,6 +124,42 @@ class BranchesController(object):
         return BranchController(branch), remainder
 
 
+class StatusesController(object):
+    @expose('json')
+    def index(self):
+        query = request.context.get('query', Run.query)
+        return list(set([item[0] for item in query.values(Run.status) if
+                         item[0]]))
+
+    @expose('json')
+    def _lookup(self, status, *remainder):
+        return StatusController(status), remainder
+
+
+class StatusController(object):
+    def __init__(self, status):
+        self.status = status
+        base_query = request.context.get('query', Run.query)
+        request.context['query'] = base_query.filter(Run.status == self.status)
+
+    @expose('json')
+    def index(self, count=conf.default_latest_runs_count, since=None):
+        query = request.context['query']
+        if since:
+            since_date = date_from_string(since, out_fmt=date_format)
+            query = query.filter(Run.scheduled > since)
+        return query.order_by(Run.scheduled.desc()).limit(count).all()
+
+    @expose('json')
+    def _lookup(self, value, *remainder):
+        if value == 'branch':
+            return BranchesController(), remainder
+        if value == 'date':
+            return DatesController(), remainder
+        if value == 'suite':
+            return SuitesController(), remainder
+
+
 class SuiteController(object):
     def __init__(self, suite):
         self.suite = suite
@@ -144,6 +180,8 @@ class SuiteController(object):
             return BranchesController(), remainder
         if value == 'date':
             return DatesController(), remainder
+        if value == 'status':
+            return SuitesController(), remainder
 
 
 class BranchController(object):
@@ -164,6 +202,8 @@ class BranchController(object):
     def _lookup(self, value, *remainder):
         if value == 'date':
             return DatesController(), remainder
+        if value == 'status':
+            return SuitesController(), remainder
         if value == 'suite':
             return SuitesController(), remainder
 
@@ -251,6 +291,8 @@ class RunsController(object):
     suite = SuitesController()
 
     date = DatesController()
+
+    status = StatusesController()
 
     @expose('json')
     def _lookup(self, name, *remainder):

@@ -71,6 +71,8 @@ class Job(Base):
         self.run = run
         self.posted = datetime.utcnow()
         self.set_or_update(json_data)
+        if 'status' in json_data or 'success' in json_data:
+            self.run.set_status()
 
     def set_or_update(self, json_data):
         status_map = {True: 'pass',
