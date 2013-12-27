@@ -56,8 +56,8 @@ def get_name_regexes(timestamp_regex, suite_names):
     a backup regex.
     """
     regex_templ_no_mtype = \
-        '.*-(?P<scheduled>{time})-(?P<suite>{suites})-(?P<branch>.*)-.*?-.*?'  # noqa
-    regex_templ = regex_templ_no_mtype + '-.*?'
+        '(?P<user>.*)-(?P<scheduled>{time})-(?P<suite>{suites})-(?P<branch>.*)-.*?-.*?'  # noqa
+    regex_templ = regex_templ_no_mtype + '-(?P<machine_type>.+)'
 
     # Append '[^-]*' to each suite name to handle suite slices like
     # 'rados:thrash'
@@ -72,16 +72,18 @@ class Run(Base):
         '[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}'
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
     name_regexes = get_name_regexes(timestamp_regex, suite_names)
-    backup_name_regex = '.*-(?P<scheduled>%s)-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-.*?' % timestamp_regex  # noqa
+    backup_name_regex = '(?P<user>.*)-(?P<scheduled>%s)-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-(?P<machine_type>.*?)' % timestamp_regex  # noqa
 
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
     name = Column(String(512))
+    status = Column(String(16), index=True)
+    user = Column(String(32), index=True)
+    scheduled = Column(DateTime, index=True)
     suite = Column(String(64), index=True)
     branch = Column(String(64), index=True)
+    machine_type = Column(String(32), index=True)
     posted = Column(DateTime, index=True)
-    scheduled = Column(DateTime, index=True)
-    status = Column(String(16), index=True)
     jobs = relationship('Job',
                         backref=backref('run'),
                         cascade='all,delete',
@@ -93,9 +95,11 @@ class Run(Base):
         self.name = name
         self.posted = datetime.utcnow()
         parsed_name = self._parse_name()
+        self.user = parsed_name.get('user', '')
         self.scheduled = parsed_name.get('scheduled', self.posted)
         self.suite = parsed_name.get('suite', '')
         self.branch = parsed_name.get('branch', '')
+        self.machine_type = parsed_name.get('machine_type', '')
         self.set_status()
 
     def __repr__(self):
@@ -110,6 +114,7 @@ class Run(Base):
         return dict(
             name=self.name,
             href=self.href,
+            user=self.user,
             status=status,
             results=results,
             jobs_count=results['total'],
@@ -117,6 +122,7 @@ class Run(Base):
             scheduled=self.scheduled,
             branch=self.branch,
             suite=self.suite,
+            machine_type=self.machine_type,
         )
 
     def _parse_name(self):
@@ -128,9 +134,11 @@ class Run(Base):
             scheduled = datetime.strptime(match_dict['scheduled'],
                                           self.timestamp_format)
             return dict(
+                user=match_dict['user'].strip(' -'),
                 scheduled=scheduled,
                 suite=match_dict['suite'].strip(' -'),
                 branch=match_dict['branch'].strip(' -'),
+                machine_type=match_dict.get('machine_type', '').strip(' -'),
                 )
         return dict()
 

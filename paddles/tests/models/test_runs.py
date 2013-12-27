@@ -163,3 +163,13 @@ class TestRunModel(TestApp):
         Job(dict(job_id=1, status='dead'), new_run)
         Job(dict(job_id=1, status='dead'), new_run)
         assert new_run.status == 'finished dead'
+
+    def test_run_user(self):
+        run_name = "teuthology-2013-12-22_01:00:02-x-x-x-x-x"
+        new_run = Run(run_name)
+        assert new_run.user == "teuthology"
+
+    def test_run_machine_type(self):
+        run_name = "x-2013-12-22_01:00:02-big-x-x-x-plana"
+        new_run = Run(run_name)
+        assert new_run.machine_type == "plana"

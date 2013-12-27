@@ -33,18 +33,24 @@ class ReparseCommand(BaseCommand):
 
     def _reparse(self, run):
         old_values = dict(
+            user=run.user,
             scheduled=run.scheduled,
             suite=run.suite,
             branch=run.branch,
+            machine_type=run.machine_type,
         )
         parsed_name = run._parse_name()
+        user = parsed_name.get('user', '')
         scheduled = parsed_name.get('scheduled', run.posted)
         suite = parsed_name.get('suite', '')
         branch = parsed_name.get('branch', '')
+        machine_type = parsed_name.get('machine_type', '')
         new_values = dict(
+            user=user,
             scheduled=scheduled,
             suite=suite,
             branch=branch,
+            machine_type=machine_type
         )
 
         if old_values != new_values:
