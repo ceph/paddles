@@ -76,7 +76,7 @@ class Run(Base):
 
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
-    name = Column(String(512))
+    name = Column(String(512), unique=True)
     status = Column(String(16), index=True)
     user = Column(String(32), index=True)
     scheduled = Column(DateTime, index=True)
