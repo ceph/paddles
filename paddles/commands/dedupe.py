@@ -1,5 +1,4 @@
 from pecan.commands.base import BaseCommand
-from pecan import conf
 
 from paddles import models
 from paddles.models import Run, Job
@@ -14,6 +13,11 @@ class DedupeCommand(BaseCommand):
     Fix runs with duplicate names
     """
 
+    arguments = BaseCommand.arguments + (dict(
+        name="pattern",
+        help="The pattern to use to match run names for deduping. Use '%%' to match all runs.",  # noqa
+    ),)
+
     def run(self, args):
         super(DedupeCommand, self).run(args)
         out("LOADING ENVIRONMENT")
@@ -21,9 +25,10 @@ class DedupeCommand(BaseCommand):
         try:
             out("STARTING A TRANSACTION...")
             models.start()
-            names = Run.query.values(Run.name)
+            query = Run.query.filter(Run.name.like(args.pattern))
+            names = [val[0] for val in query.values(Run.name)]
+            out("Found {count} runs to process".format(count=len(names)))
             for name in names:
-                name = name[0]  # query.values() returns a tuple, oddly
                 self._fix_dupe_runs(name)
                 self._fix_dupe_jobs(name)
         except:
