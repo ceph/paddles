@@ -104,7 +104,8 @@ class JobsController(object):
         if Job.filter_by(job_id=job_id, run=self.run).first():
             error('/errors/invalid/',
                   "job with job_id %s already exists" % job_id)
-        self.job = Job(data, self.run)
+        else:
+            self.job = Job(data, self.run)
         return dict()
 
     @expose('json')
