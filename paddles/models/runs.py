@@ -89,7 +89,7 @@ class Run(Base):
                         backref=backref('run'),
                         cascade='all,delete',
                         lazy='dynamic',
-                        order_by='Job.id',
+                        order_by='Job.job_id',
                         )
 
     def __init__(self, name):
