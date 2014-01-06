@@ -22,8 +22,6 @@ class TestRunController(TestApp):
     def test_get_invalid_url_on_run(self):
         response = self.app.get('/runs/suck/', expect_errors=True)
         assert response.status_int == 404
-        assert response.json == {'message':
-                                 'requested run resource does not exist'}
 
     def test_post_valid_body(self):
         response = self.app.post_json('/runs/', dict(name="foo"))

@@ -1,7 +1,7 @@
 import datetime
 from sqlalchemy import Date, cast
 
-from pecan import conf, expose, redirect, request
+from pecan import abort, conf, expose, redirect, request
 from paddles.models import Run
 from paddles.controllers.jobs import JobsController
 from paddles.controllers import error
@@ -56,8 +56,7 @@ class RunController(object):
     @expose(generic=True, template='json')
     def index(self):
         if not self.run:
-            error('/errors/not_found/',
-                  'requested run resource does not exist')
+            abort(404)
         json_run = self.run.__json__()
         json_run['jobs'] = self.run.get_jobs()
         return json_run
