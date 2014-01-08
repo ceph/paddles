@@ -94,6 +94,8 @@ class Job(Base):
             success = json_data.pop('success')
             self.status = status_map[success]
             self.success = success
+        else:
+            self.status = 'unknown'
 
         for k, v in json_data.items():
             key = k.replace('-', '_')
