@@ -1,7 +1,7 @@
 import datetime
 from sqlalchemy import Date, cast
 
-from pecan import abort, conf, expose, redirect, request
+from pecan import abort, conf, expose, request
 from paddles.models import Run
 from paddles.controllers.jobs import JobsController
 from paddles.controllers import error
@@ -99,47 +99,71 @@ class LatestRunsController(object):
         return LatestRunsByCountController(count), remainder
 
 
-class SuitesController(object):
+class RunFilterIndexController(object):
+    """
+    Base class for index controllers
+    FIXME what is that
+    Must be subclassed.
+    """
+    def get_subquery(self, query):
+        return query
+
+    def get_lookup_controller(self):
+        raise NotImplementedError
+
     @expose('json')
     def index(self):
         query = request.context.get('query', Run.query)
-        return list(set([item[0] for item in query.values(Run.suite) if
+        subquery = self.get_subquery(query)
+        return list(set([item[0] for item in subquery if
                          item[0]]))
 
     @expose('json')
-    def _lookup(self, suite, *remainder):
-        return SuiteController(suite), remainder
+    def _lookup(self, value, *remainder):
+        return self.get_lookup_controller()(value), remainder
 
 
-class BranchesController(object):
-    @expose('json')
-    def index(self):
-        query = request.context.get('query', Run.query)
-        return list(set([item[0] for item in query.values(Run.branch) if
-                         item[0]]))
+class BranchesController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.values(Run.branch)
 
-    @expose('json')
-    def _lookup(self, branch, *remainder):
-        return BranchController(branch), remainder
+    def get_lookup_controller(self):
+        return BranchController
 
 
-class StatusesController(object):
-    @expose('json')
-    def index(self):
-        query = request.context.get('query', Run.query)
-        return list(set([item[0] for item in query.values(Run.status) if
-                         item[0]]))
+class DatesController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.values(cast(Run.scheduled, Date))
 
     @expose('json')
-    def _lookup(self, status, *remainder):
-        return StatusController(status), remainder
+    def _lookup(self, date, *remainder):
+        if date == 'from':
+            return DateRangeController(remainder[0]), remainder[1:]
+        return DateController(date), remainder
 
 
-class StatusController(object):
-    def __init__(self, status):
-        self.status = status
+class SuitesController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.values(Run.suite)
+
+    def get_lookup_controller(self):
+        return SuiteController
+
+
+class StatusesController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.values(Run.status)
+
+    def get_lookup_controller(self):
+        return StatusController
+
+
+class RunFilterController(RunFilterIndexController):
+    def __init__(self, value):
+        self.value = value
         base_query = request.context.get('query', Run.query)
-        request.context['query'] = base_query.filter(Run.status == self.status)
+        subquery = self.get_subquery(base_query)
+        request.context['query'] = subquery
 
     @expose('json')
     def index(self, count=conf.default_latest_runs_count, since=None):
@@ -150,61 +174,67 @@ class StatusController(object):
         return query.order_by(Run.scheduled.desc()).limit(count).all()
 
     @expose('json')
-    def _lookup(self, value, *remainder):
-        if value == 'branch':
-            return BranchesController(), remainder
-        if value == 'date':
-            return DatesController(), remainder
-        if value == 'suite':
-            return SuitesController(), remainder
+    def _lookup(self, field, *remainder):
+        return self.get_lookup_controller(field), remainder
 
 
-class SuiteController(object):
-    def __init__(self, suite):
-        self.suite = suite
-        base_query = request.context.get('query', Run.query)
-        request.context['query'] = base_query.filter(Run.suite == self.suite)
+class StatusController(RunFilterController):
+    def get_subquery(self, query):
+        return query.filter(Run.status == self.value)
+
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'date':
+            return DatesController()
+        if field == 'suite':
+            return SuitesController()
+
+
+class SuiteController(RunFilterController):
+    def get_subquery(self, query):
+        return query.filter(Run.suite == self.value)
+
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'date':
+            return DatesController()
+        if field == 'status':
+            return StatusController()
+
+
+class BranchController(RunFilterController):
+    def get_subquery(self, query):
+        return query.filter(Run.branch == self.value)
+
+    def get_lookup_controller(self, field):
+        if field == 'date':
+            return DatesController()
+        if field == 'status':
+            return StatusController()
+        if field == 'suite':
+            return SuitesController()
+
+
+class DateController(RunFilterController):
+    def get_subquery(self, query):
+        (self.date, self.date_str) = \
+            date_from_string(self.value, out_fmt=date_format)
+        return query.filter(cast(Run.scheduled, Date) == self.date_str)
 
     @expose('json')
-    def index(self, count=conf.default_latest_runs_count, since=None):
-        query = request.context['query']
-        if since:
-            since_date = date_from_string(since, out_fmt=date_format)
-            query = query.filter(Run.scheduled > since)
-        return query.order_by(Run.scheduled.desc()).limit(count).all()
+    def index(self, count=conf.default_latest_runs_count):
+        return request.context['query'].order_by(
+            Run.scheduled.desc()).limit(count).all()
 
-    @expose('json')
-    def _lookup(self, value, *remainder):
-        if value == 'branch':
-            return BranchesController(), remainder
-        if value == 'date':
-            return DatesController(), remainder
-        if value == 'status':
-            return SuitesController(), remainder
-
-
-class BranchController(object):
-    def __init__(self, branch):
-        self.branch = branch
-        base_query = request.context.get('query', Run.query)
-        request.context['query'] = base_query.filter(Run.branch == self.branch)
-
-    @expose('json')
-    def index(self, count=conf.default_latest_runs_count, since=None):
-        query = request.context['query']
-        if since:
-            since_date = date_from_string(since, out_fmt=date_format)
-            query = query.filter(Run.scheduled > since)
-        return query.order_by(Run.scheduled.desc()).limit(count).all()
-
-    @expose('json')
-    def _lookup(self, value, *remainder):
-        if value == 'date':
-            return DatesController(), remainder
-        if value == 'status':
-            return SuitesController(), remainder
-        if value == 'suite':
-            return SuitesController(), remainder
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'status':
+            return StatusController()
+        if field == 'suite':
+            return SuitesController()
 
 
 class DateRangeController(object):
@@ -224,43 +254,6 @@ class DateRangeController(object):
         request.context['query'] = base_query.filter(
             Run.scheduled.between(self.from_date, self.to_date))
         return request.context['query'].all()
-
-
-class DatesController(object):
-    @expose('json')
-    def index(self):
-        query = request.context.get('query', Run.query)
-        return list(set(
-            [item[0] for item in query.values(cast(Run.scheduled, Date))
-             if item[0]]))
-
-    @expose('json')
-    def _lookup(self, date, *remainder):
-        if date == 'from':
-            return DateRangeController(remainder[0]), remainder[1:]
-        return DateController(date), remainder
-
-
-class DateController(object):
-
-    def __init__(self, date):
-        (self.date, self.date_str) = \
-            date_from_string(date, out_fmt=date_format)
-        base_query = request.context.get('query', Run.query)
-        request.context['query'] = base_query.filter(
-            cast(Run.scheduled, Date) == self.date_str)
-
-    @expose('json')
-    def index(self, count=conf.default_latest_runs_count):
-        return request.context['query'].order_by(
-            Run.scheduled.desc()).limit(count).all()
-
-    @expose('json')
-    def _lookup(self, value, *remainder):
-        if value == 'branch':
-            return BranchesController(), remainder
-        if value == 'suite':
-            return SuitesController(), remainder
 
 
 class RunsController(object):
