@@ -92,7 +92,7 @@ class TestJobsController(TestApp):
     def test_null_success_means_null_status(self):
         self.app.post_json('/runs/RUN/jobs/', dict(job_id='42'))
         response = self.app.get('/runs/RUN/jobs/42/')
-        assert response.json.get('status') is None
+        assert response.json.get('status') == 'unknown'
 
     def test_success_true_means_status_pass(self):
         self.app.post_json('/runs/RUN/jobs/', dict(job_id='42', success=True))
