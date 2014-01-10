@@ -115,8 +115,7 @@ class RunFilterIndexController(object):
     def index(self):
         query = request.context.get('query', Run.query)
         subquery = self.get_subquery(query)
-        return list(set([item[0] for item in subquery if
-                         item[0]]))
+        return sorted(list(set([item[0] for item in subquery if item[0]])))
 
     @expose('json')
     def _lookup(self, value, *remainder):
@@ -140,6 +139,14 @@ class DatesController(RunFilterIndexController):
         if date == 'from':
             return DateRangeController(remainder[0]), remainder[1:]
         return DateController(date), remainder
+
+
+class MachineTypesController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.values(Run.machine_type)
+
+    def get_lookup_controller(self):
+        return MachineTypeController
 
 
 class SuitesController(RunFilterIndexController):
@@ -178,32 +185,6 @@ class RunFilterController(RunFilterIndexController):
         return self.get_lookup_controller(field), remainder
 
 
-class StatusController(RunFilterController):
-    def get_subquery(self, query):
-        return query.filter(Run.status == self.value)
-
-    def get_lookup_controller(self, field):
-        if field == 'branch':
-            return BranchesController()
-        if field == 'date':
-            return DatesController()
-        if field == 'suite':
-            return SuitesController()
-
-
-class SuiteController(RunFilterController):
-    def get_subquery(self, query):
-        return query.filter(Run.suite == self.value)
-
-    def get_lookup_controller(self, field):
-        if field == 'branch':
-            return BranchesController()
-        if field == 'date':
-            return DatesController()
-        if field == 'status':
-            return StatusController()
-
-
 class BranchController(RunFilterController):
     def get_subquery(self, query):
         return query.filter(Run.branch == self.value)
@@ -211,6 +192,8 @@ class BranchController(RunFilterController):
     def get_lookup_controller(self, field):
         if field == 'date':
             return DatesController()
+        if field == 'machine_type':
+            return MachineTypesController()
         if field == 'status':
             return StatusController()
         if field == 'suite':
@@ -231,10 +214,57 @@ class DateController(RunFilterController):
     def get_lookup_controller(self, field):
         if field == 'branch':
             return BranchesController()
+        if field == 'machine_type':
+            return MachineTypesController()
         if field == 'status':
             return StatusController()
         if field == 'suite':
             return SuitesController()
+
+
+class MachineTypeController(RunFilterController):
+    def get_subquery(self, query):
+        return query.filter(Run.machine_type == self.value)
+
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'date':
+            return DatesController()
+        if field == 'status':
+            return StatusController()
+        if field == 'suite':
+            return SuitesController()
+
+
+class StatusController(RunFilterController):
+    def get_subquery(self, query):
+        return query.filter(Run.status == self.value)
+
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'date':
+            return DatesController()
+        if field == 'machine_type':
+            return MachineTypesController()
+        if field == 'suite':
+            return SuitesController()
+
+
+class SuiteController(RunFilterController):
+    def get_subquery(self, query):
+        return query.filter(Run.suite == self.value)
+
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'date':
+            return DatesController()
+        if field == 'machine_type':
+            return MachineTypesController()
+        if field == 'status':
+            return StatusController()
 
 
 class DateRangeController(object):
@@ -280,11 +310,13 @@ class RunsController(object):
 
     branch = BranchesController()
 
-    suite = SuitesController()
-
     date = DatesController()
 
+    machine_type = MachineTypesController()
+
     status = StatusesController()
+
+    suite = SuitesController()
 
     @expose('json')
     def _lookup(self, name, *remainder):
