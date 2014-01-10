@@ -147,6 +147,26 @@ class TestRunController(TestApp):
         response = self.app.get('/runs/branch/master/suite/')
         assert response.json == ['big']
 
+    def test_get_machine_types(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-vps'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        response = self.app.get('/runs/machine_type/')
+        assert response.json == ['plana', 'vps']
+
+    def test_get_runs_by_machine_types(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-vps'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        response = self.app.get('/runs/machine_type/vps/')
+        assert response.json[0]['name'] == run_b_name
+
 
 class TestRunControllerDateFilters(TestApp):
 
