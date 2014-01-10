@@ -96,6 +96,7 @@ class Job(Base):
             self.success = success
         else:
             self.status = 'unknown'
+            self.success = None
 
         for k, v in json_data.items():
             key = k.replace('-', '_')
