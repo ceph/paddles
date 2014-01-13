@@ -97,6 +97,17 @@ class TestRunController(TestApp):
         response = self.app.get('/runs/suite/rados/')
         assert response.json[0]['name'] == run_a_name
 
+    def test_runs_by_branch_then_status(self):
+        run_a_name = \
+            'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'
+        run_b_name = \
+            'teuthology-2013-01-02_00:00:00-big-master-testing-basic-plana'
+        self.app.post_json('/runs/', dict(name=run_a_name))
+        self.app.post_json('/runs/', dict(name=run_b_name))
+        response = self.app.get('/runs/branch/master/status/empty/')
+        print response.json
+        assert response.json[0]['name'] == run_b_name
+
     def test_runs_by_branch_then_suite(self):
         run_a_name = \
             'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana'

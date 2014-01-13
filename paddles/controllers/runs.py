@@ -195,7 +195,7 @@ class BranchController(RunFilterController):
         if field == 'machine_type':
             return MachineTypesController()
         if field == 'status':
-            return StatusController()
+            return StatusesController()
         if field == 'suite':
             return SuitesController()
 
@@ -217,7 +217,7 @@ class DateController(RunFilterController):
         if field == 'machine_type':
             return MachineTypesController()
         if field == 'status':
-            return StatusController()
+            return StatusesController()
         if field == 'suite':
             return SuitesController()
 
@@ -232,7 +232,7 @@ class MachineTypeController(RunFilterController):
         if field == 'date':
             return DatesController()
         if field == 'status':
-            return StatusController()
+            return StatusesController()
         if field == 'suite':
             return SuitesController()
 
@@ -264,7 +264,7 @@ class SuiteController(RunFilterController):
         if field == 'machine_type':
             return MachineTypesController()
         if field == 'status':
-            return StatusController()
+            return StatusesController()
 
 
 class DateRangeController(object):
