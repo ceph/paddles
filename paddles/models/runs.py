@@ -45,7 +45,10 @@ suite_names = ['big',
                ]
 
 
-def get_name_regexes(timestamp_regex, suite_names):
+distros = ['centos', 'debian', 'fedora', 'opensuse', 'rhel', 'suse', 'ubuntu']
+
+
+def get_name_regexes(timestamp_regex, suite_names, distros):
     """
     Build a regex used for getting timestamp, suite and branch info out of a
     test name.  Typical run names are of the format:
@@ -56,23 +59,26 @@ def get_name_regexes(timestamp_regex, suite_names):
     list of current suites. If this regex doesn't match, Run._parse_name() uses
     a backup regex.
     """
-    regex_templ_no_mtype = \
+    regex_templ_base = \
         '(?P<user>.*)-(?P<scheduled>{time})-(?P<suite>{suites})-(?P<branch>.*)-.*?-.*?'  # noqa
-    regex_templ = regex_templ_no_mtype + '-(?P<machine_type>.+)'
+    regex_templ_mtype = regex_templ_base + '-(?P<machine_type>.+)'
+    regex_templ_distro = regex_templ_mtype + '-(?P<distro>({distros}))'.format(
+        distros='|'.join(distros))
 
     # Append '[^-]*' to each suite name to handle suite slices like
     # 'rados:thrash'
     modded_names = [name + '[^-]*' for name in suite_names]
     suites_str = '({names_str})'.format(names_str='|'.join(modded_names))
     return [templ.format(time=timestamp_regex, suites=suites_str)
-            for templ in (regex_templ, regex_templ_no_mtype)]
+            for templ in (regex_templ_distro, regex_templ_mtype,
+                          regex_templ_base)]
 
 
 class Run(Base):
     timestamp_regex = \
         '[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}'
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
-    name_regexes = get_name_regexes(timestamp_regex, suite_names)
+    name_regexes = get_name_regexes(timestamp_regex, suite_names, distros)
     backup_name_regex = '(?P<user>.*)-(?P<scheduled>%s)-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-(?P<machine_type>.*?)' % timestamp_regex  # noqa
 
     __tablename__ = 'runs'
@@ -129,6 +135,7 @@ class Run(Base):
     def _parse_name(self):
         name_match = re.match(self.name_regexes[0], self.name) or \
             re.match(self.name_regexes[1], self.name) or \
+            re.match(self.name_regexes[2], self.name) or \
             re.match(self.backup_name_regex, self.name)
         if name_match:
             match_dict = name_match.groupdict()
