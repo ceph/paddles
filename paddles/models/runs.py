@@ -45,14 +45,17 @@ suite_names = ['big',
                ]
 
 
+machine_types = ['burnupi', 'mira', 'plana', 'saya', 'tala', 'vps']
+
+
 distros = ['centos', 'debian', 'fedora', 'opensuse', 'rhel', 'suse', 'ubuntu']
 
 
-def get_name_regexes(timestamp_regex, suite_names, distros):
+def get_name_regexes(timestamp_regex, suite_names, distros, machine_types):
     """
     Build a regex used for getting timestamp, suite and branch info out of a
     test name.  Typical run names are of the format:
-        user-timestamp-suite-branch-flavor-machine_type
+        user-timestamp-suite-branch-kernel_branch-flavor-machine_type
 
     But sometimes suite, or branch, or both, are hyphenated. Unfortunately the
     delimiter is the same character, so for now we build this regex using the
@@ -60,8 +63,10 @@ def get_name_regexes(timestamp_regex, suite_names, distros):
     a backup regex.
     """
     regex_templ_base = \
-        '(?P<user>.*)-(?P<scheduled>{time})-(?P<suite>{suites})-(?P<branch>.*)-.*?-.*?'  # noqa
-    regex_templ_mtype = regex_templ_base + '-(?P<machine_type>.+)'
+        '(?P<user>.*)-(?P<scheduled>{time})-(?P<suite>{suites})-(?P<branch>.+)-(?P<kernel_branch>.+)-(?P<flavor>[^-]+)'  # noqa
+    regex_templ_mtype = \
+        regex_templ_base + '-(?P<machine_type>{mtypes})'.format(
+            mtypes='|'.join(machine_types))
     regex_templ_distro = regex_templ_mtype + '-(?P<distro>({distros}))'.format(
         distros='|'.join(distros))
 
@@ -70,15 +75,19 @@ def get_name_regexes(timestamp_regex, suite_names, distros):
     modded_names = [name + '[^-]*' for name in suite_names]
     suites_str = '({names_str})'.format(names_str='|'.join(modded_names))
     return [templ.format(time=timestamp_regex, suites=suites_str)
-            for templ in (regex_templ_distro, regex_templ_mtype,
-                          regex_templ_base)]
+            for templ in (
+                regex_templ_distro + '$',
+                regex_templ_mtype + '$',
+                regex_templ_base + '$',
+            )]
 
 
 class Run(Base):
     timestamp_regex = \
         '[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}'
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
-    name_regexes = get_name_regexes(timestamp_regex, suite_names, distros)
+    name_regexes = get_name_regexes(timestamp_regex, suite_names, distros,
+                                    machine_types)
     backup_name_regex = '(?P<user>.*)-(?P<scheduled>%s)-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-(?P<machine_type>.*?)' % timestamp_regex  # noqa
 
     __tablename__ = 'runs'
@@ -101,7 +110,7 @@ class Run(Base):
     def __init__(self, name):
         self.name = name
         self.posted = datetime.utcnow()
-        parsed_name = self._parse_name()
+        parsed_name = self.parse_name()
         self.user = parsed_name.get('user', '')
         self.scheduled = parsed_name.get('scheduled', self.posted)
         self.suite = parsed_name.get('suite', '')
@@ -132,23 +141,24 @@ class Run(Base):
             machine_type=self.machine_type,
         )
 
-    def _parse_name(self):
-        name_match = re.match(self.name_regexes[0], self.name) or \
-            re.match(self.name_regexes[1], self.name) or \
-            re.match(self.name_regexes[2], self.name) or \
-            re.match(self.backup_name_regex, self.name)
+    @classmethod
+    def _parse_name(cls, name):
+        name_match = re.match(cls.name_regexes[0], name) or \
+            re.match(cls.name_regexes[1], name) or \
+            re.match(cls.name_regexes[2], name) or \
+            re.match(cls.backup_name_regex, name)
         if name_match:
             match_dict = name_match.groupdict()
-            scheduled = datetime.strptime(match_dict['scheduled'],
-                                          self.timestamp_format)
-            return dict(
-                user=match_dict['user'].strip(' -'),
-                scheduled=scheduled,
-                suite=match_dict['suite'].strip(' -'),
-                branch=match_dict['branch'].strip(' -'),
-                machine_type=match_dict.get('machine_type', '').strip(' -'),
-                )
+            for (key, value) in match_dict.iteritems():
+                match_dict[key] = value.strip(' -')
+
+            match_dict['scheduled'] = datetime.strptime(
+                match_dict['scheduled'], cls.timestamp_format)
+            return match_dict
         return dict()
+
+    def parse_name(self):
+        return self._parse_name(self.name)
 
     def get_jobs(self):
         return [job for job in self.jobs]

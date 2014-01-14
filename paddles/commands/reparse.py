@@ -39,7 +39,7 @@ class ReparseCommand(BaseCommand):
             branch=run.branch,
             machine_type=run.machine_type,
         )
-        parsed_name = run._parse_name()
+        parsed_name = run.parse_name()
         user = parsed_name.get('user', '')
         scheduled = parsed_name.get('scheduled', run.posted)
         suite = parsed_name.get('suite', '')
