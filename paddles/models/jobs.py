@@ -132,7 +132,7 @@ class Job(Base):
         json_ = dict(
             log_href=self.log_href
         )
-        for key in self.allowed_keys:
+        for key in self.allowed_keys + ('posted', 'updated'):
             json_[key] = getattr(self, key)
 
         return json_
