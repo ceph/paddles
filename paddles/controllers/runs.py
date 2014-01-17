@@ -4,6 +4,7 @@ from sqlalchemy import Date, cast
 from pecan import abort, conf, expose, request
 from paddles.models import Run
 from paddles.controllers.jobs import JobsController
+from paddles.controllers.util import offset_query
 from paddles.controllers import error
 
 
@@ -11,8 +12,10 @@ date_format = '%Y-%m-%d'
 datetime_format = '%Y-%m-%d_%H:%M:%S'
 
 
-def latest_runs(count, fields=None):
-    runs = Run.query.order_by(Run.posted.desc()).limit(count).all()
+def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1):
+    query = Run.query.order_by(Run.posted.desc())
+    query = offset_query(query, page_size=count, page=page)
+    runs = query.all()
     if fields:
         try:
             return [run.slice(fields) for run in runs]
@@ -70,33 +73,6 @@ class RunController(object):
         return dict()
 
     jobs = JobsController()
-
-
-class LatestRunsByCountController(object):
-    def __init__(self, count):
-        if count == '':
-            count = conf.default_latest_runs_count
-
-        try:
-            self.count = int(count)
-        except ValueError:
-            error('/errors/invalid/',
-                  "must specify an integer")
-
-    @expose('json')
-    def index(self, fields=''):
-        return latest_runs(self.count, fields)
-
-
-class LatestRunsController(object):
-    @expose(generic=True, template='json')
-    def index(self, fields=''):
-        count = conf.default_latest_runs_count
-        return latest_runs(count, fields)
-
-    @expose('json')
-    def _lookup(self, count, *remainder):
-        return LatestRunsByCountController(count), remainder
 
 
 class RunFilterIndexController(object):
@@ -173,12 +149,13 @@ class RunFilterController(RunFilterIndexController):
         request.context['query'] = subquery
 
     @expose('json')
-    def index(self, count=conf.default_latest_runs_count, since=None):
+    def index(self, count=conf.default_latest_runs_count, page=1, since=None):
         query = request.context['query']
         if since:
             since_date = date_from_string(since, out_fmt=date_format)
             query = query.filter(Run.scheduled > since)
-        return query.order_by(Run.scheduled.desc()).limit(count).all()
+        query = query.order_by(Run.scheduled.desc())
+        return offset_query(query, count, page).all()
 
     @expose('json')
     def _lookup(self, field, *remainder):
@@ -207,9 +184,9 @@ class DateController(RunFilterController):
         return query.filter(cast(Run.scheduled, Date) == self.date_str)
 
     @expose('json')
-    def index(self, count=conf.default_latest_runs_count):
-        return request.context['query'].order_by(
-            Run.scheduled.desc()).limit(count).all()
+    def index(self, count=conf.default_latest_runs_count, page=1):
+        query = request.context['query'].order_by(Run.scheduled.desc())
+        return offset_query(query, count, page).all()
 
     def get_lookup_controller(self, field):
         if field == 'branch':
@@ -288,8 +265,8 @@ class DateRangeController(object):
 
 class RunsController(object):
     @expose(generic=True, template='json')
-    def index(self, fields=''):
-        return latest_runs(conf.default_latest_runs_count, fields)
+    def index(self, fields='', count=conf.default_latest_runs_count, page=1):
+        return latest_runs(fields=fields, count=count, page=page)
 
     @index.when(method='POST', template='json')
     def index_post(self):
@@ -305,8 +282,6 @@ class RunsController(object):
             return dict()
         else:
             error('/errors/invalid/', "run with name %s already exists" % name)
-
-    latest = LatestRunsController()
 
     branch = BranchesController()
 

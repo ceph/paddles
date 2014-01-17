@@ -1,6 +1,18 @@
 from datetime import datetime, timedelta
 
 
+def offset_query(query, page_size, page):
+    count = int(page_size)
+    page = int(page)
+    if page > 1:
+        offset = count * (page - 1)
+        if offset > query.count():
+            return []
+        query = query.offset(offset)
+    query = query.limit(count)
+    return query
+
+
 def last_seen(model_obj):
     now = datetime.utcnow()
     try:
