@@ -107,21 +107,18 @@ class Job(Base):
             if key in self.allowed_keys:
                 setattr(self, key, v)
         self.updated = datetime.utcnow()
-        if self.job_status_will_change_run_status(self.status):
+        if self.job_status_will_change_run_status():
             self.run.set_status()
 
-    def job_status_will_change_run_status(self, new_job_status):
-        # Attempt to determine if a job status will require an updated run
+    def job_status_will_change_run_status(self):
+        # Attempt to determine if the job status will require an updated run
         # status
-        old_job_status = self.status
-        if new_job_status == old_job_status:
+        if self.status is None:
             return False
-
-        run_status = self.run.status
-        if new_job_status in run_status:
+        elif self.status in self.run.status:
             return False
-
-        return True
+        else:
+            return True
 
     def update(self, json_data):
         self.set_or_update(json_data)
