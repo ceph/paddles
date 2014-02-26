@@ -204,13 +204,13 @@ class Run(Base):
         #
         # 'empty', 'running', 'finished dead', 'finished fail',
         # 'finished pass', 'unknown'
-        if not self.jobs.count():
+        results = self.get_results()
+        if results['total'] == 0:
             self.status = 'empty'
             return self.status
 
         old_status = self.status
 
-        results = self.get_results()
         total = results['total']
 
         # any running => running
