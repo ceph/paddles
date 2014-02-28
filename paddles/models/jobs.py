@@ -73,6 +73,7 @@ class Job(Base):
         self.set_or_update(json_data)
 
     def set_or_update(self, json_data):
+        self.__changed = False
         status_map = {True: 'pass',
                       False: 'fail',
                       None: 'unknown',
@@ -86,17 +87,17 @@ class Job(Base):
         if 'status' in json_data:
             status = json_data.pop('status')
             if status == 'dead' and self.success is not None:
-                self.status = status_map.get(self.success)
+                self.update_attr('status', status_map.get(self.success))
             else:
-                self.status = status
+                self.update_attr('status', status)
                 json_data['success'] = success_map.get(status)
         elif 'success' in json_data:
             success = json_data.pop('success')
-            self.status = status_map[success]
-            self.success = success
+            self.update_attr('status', status_map.get(success))
+            self.update_attr('success', success)
         else:
-            self.status = 'unknown'
-            self.success = None
+            self.update_attr('status', 'unknown')
+            self.update_attr('success', None)
 
         for k, v in json_data.items():
             key = k.replace('-', '_')
@@ -105,10 +106,23 @@ class Job(Base):
                 key = 'sentry_event'
                 v = v[0]
             if key in self.allowed_keys:
-                setattr(self, key, v)
-        self.updated = datetime.utcnow()
+                self.update_attr(key, v)
+        if self.__changed:
+            self.updated = datetime.utcnow()
         if self.job_status_will_change_run_status():
             self.run.set_status()
+
+    def update_attr(self, attr_name, new_value):
+        """
+        Compare getattr(self, attr_name) with new_value. If equal, do nothing.
+        Else, set self.__changed to True and update the value.
+
+        This is used by set_or_update() to determine whethor or not
+        self.updated should be... updated.
+        """
+        if getattr(self, attr_name) != new_value:
+            setattr(self, attr_name, new_value)
+            self.__changed = True
 
     def job_status_will_change_run_status(self):
         # Attempt to determine if the job status will require an updated run
