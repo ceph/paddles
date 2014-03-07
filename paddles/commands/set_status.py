@@ -11,7 +11,7 @@ def out(string):
 
 class SetStatusCommand(BaseCommand):
     """
-    Fills in Job.status for jobs that were added before that field existed
+    Corrects Run.status
     """
 
     def run(self, args):
@@ -20,31 +20,15 @@ class SetStatusCommand(BaseCommand):
         self.load_app()
         models.start()
         try:
-            out("SETTING JOB STATUSES...")
-            jobs = Job.query.filter(Job.status.is_(None))
-            out("Updating {count} jobs...".format(count=jobs.count()))
-            for job in jobs.yield_per(5):
-                self._set_job_status(job)
-                # Be slightly polite to the db
-                sleep(0.01)
-            print ""
-        except:
-            models.rollback()
-            out("ROLLING BACK... ")
-            raise
-        else:
-            out("COMMITING... ")
-            models.commit()
-
-        try:
             out("SETTING RUN STATUSES...")
-            runs = Run.query.filter(Run.status.is_(None))
-            out("Updating {count} runs...".format(count=runs.count()))
-            for run in runs.yield_per(5):
-                self._set_run_status(run)
-                # Be slightly polite to the db
-                sleep(0.01)
+            running = Run.query.filter(Run.status == 'running')
+            to_fix = []
+            for run in running:
+                if run.jobs.filter(Job.status == 'running').count() == 0:
+                    to_fix.append(run)
+                    self._set_run_status(run)
             print ""
+            out("Updated {count} runs...".format(count=len(to_fix)))
         except:
             models.rollback()
             out("ROLLING BACK...")
@@ -52,16 +36,6 @@ class SetStatusCommand(BaseCommand):
         else:
             out("COMMITTING...")
             models.commit()
-
-    def _set_job_status(self, job):
-        success = job.success
-        if success is None:
-            job.status = 'unknown'
-        elif success is False:
-            job.status = 'fail'
-        elif success is True:
-            job.status = 'pass'
-        print ".",
 
     def _set_run_status(self, run):
         run.set_status()
