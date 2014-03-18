@@ -2,6 +2,7 @@ from pecan.commands.base import BaseCommand
 from pecan import conf
 
 from paddles import models
+from paddles.models.runs import local_datetime_to_utc
 
 
 def out(string):
@@ -41,7 +42,8 @@ class ReparseCommand(BaseCommand):
         )
         parsed_name = run.parse_name()
         user = parsed_name.get('user', '')
-        scheduled = parsed_name.get('scheduled', run.posted)
+        scheduled_local = parsed_name.get('scheduled', run.posted)
+        scheduled = local_datetime_to_utc(scheduled_local)
         suite = parsed_name.get('suite', '')
         branch = parsed_name.get('branch', '')
         machine_type = parsed_name.get('machine_type', '')
