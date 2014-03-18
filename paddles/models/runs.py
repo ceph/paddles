@@ -1,6 +1,6 @@
-import time
-import calendar
-from datetime import datetime, timedelta
+import tzlocal
+import pytz
+from datetime import datetime
 import re
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship, backref
@@ -66,9 +66,11 @@ def local_datetime_to_utc(local_dt):
     """
     Given a datetime object in the local timezone, convert it to UTC.
     """
-    time_tuple = local_dt.timetuple()
-    offset = calendar.timegm(time_tuple) - time.mktime(time_tuple)
-    return local_dt - timedelta(seconds=offset)
+    localtz = tzlocal.get_localzone()
+    local_dt_aware = localtz.localize(local_dt)
+    utc_dt_aware = local_dt_aware.astimezone(pytz.utc)
+    utc_dt_naive = utc_dt_aware.replace(tzinfo=None)
+    return utc_dt_naive
 
 
 def get_name_regexes(timestamp_regex, suite_names, distros, machine_types):
