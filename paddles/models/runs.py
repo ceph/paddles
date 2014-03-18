@@ -1,3 +1,5 @@
+import tzlocal
+import pytz
 from datetime import datetime
 import re
 from sqlalchemy import Column, Integer, String
@@ -7,6 +9,8 @@ from sqlalchemy import DateTime
 from pecan import conf
 from paddles.models import Base
 from paddles.models.jobs import Job
+
+localtz = tzlocal.get_localzone()
 
 suite_names = ['big',
                'ceph-deploy',
@@ -58,6 +62,16 @@ machine_types = ['burnupi', 'mira', 'plana', 'saya', 'tala', 'vps']
 
 
 distros = ['centos', 'debian', 'fedora', 'opensuse', 'rhel', 'suse', 'ubuntu']
+
+
+def local_datetime_to_utc(local_dt):
+    """
+    Given a datetime object in the local timezone, convert it to UTC.
+    """
+    local_dt_aware = localtz.localize(local_dt)
+    utc_dt_aware = local_dt_aware.astimezone(pytz.utc)
+    utc_dt_naive = utc_dt_aware.replace(tzinfo=None)
+    return utc_dt_naive
 
 
 def get_name_regexes(timestamp_regex, suite_names, distros, machine_types):
@@ -121,7 +135,11 @@ class Run(Base):
         self.posted = datetime.utcnow()
         parsed_name = self.parse_name()
         self.user = parsed_name.get('user', '')
-        self.scheduled = parsed_name.get('scheduled', self.posted)
+        if 'scheduled' in parsed_name:
+            scheduled_local = parsed_name['scheduled']
+            self.scheduled = local_datetime_to_utc(scheduled_local)
+        else:
+            self.scheduled = self.posted
         self.suite = parsed_name.get('suite', '')
         self.branch = parsed_name.get('branch', '')
         self.machine_type = parsed_name.get('machine_type', '')
