@@ -1,6 +1,10 @@
 from paddles.models import Job, Run
 from paddles.tests import TestApp
 from paddles import models
+from paddles.models.runs import local_datetime_to_utc
+from datetime import datetime
+import pytz
+import tzlocal
 
 import pytest
 
@@ -49,7 +53,11 @@ class TestRunModel(TestApp):
     def test_scheduled(self):
         run_name = 'teuthology-2013-10-23_01:35:02-upgrade-small-next-testing-basic-vps'  # noqa
         new_run = Run(run_name)
-        assert str(new_run.scheduled) == '2013-10-23 01:35:02'
+        scheduled_aware = pytz.utc.localize(new_run.scheduled)
+        localtz = tzlocal.get_localzone()
+        scheduled_local = scheduled_aware.astimezone(localtz)
+        scheduled_local_naive = scheduled_local.replace(tzinfo=None)
+        assert str(scheduled_local_naive) == '2013-10-23 01:35:02'
 
     def test_updated(self):
         run_name = 'test_updated'
