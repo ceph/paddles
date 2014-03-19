@@ -1,10 +1,19 @@
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
-                        Text)
+                        Table, Text)
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 from pecan import conf
 from paddles.models import Base
+from paddles.models.nodes import Node
 from paddles.models.types import JSONType
+
+job_nodes_table = Table(
+    'job_nodes',
+    Base.metadata,
+    Column('node_id', Integer, ForeignKey('nodes.id')),
+    Column('job_id', Integer, ForeignKey('jobs.id'))
+)
 
 
 class Job(Base):
@@ -36,6 +45,7 @@ class Job(Base):
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
     targets = Column(JSONType())
+    target_nodes = relationship("Node", secondary=job_nodes_table)
     tasks = Column(JSONType())
     teuthology_branch = Column(String(32))
     verbose = Column(Boolean())
@@ -98,6 +108,16 @@ class Job(Base):
         else:
             self.update_attr('status', 'unknown')
             self.update_attr('success', None)
+
+        if 'targets' in json_data:
+            targets = json_data['targets']
+            for target_key in targets.keys():
+                hostname = target_key.split('@')[1]
+                node_q = Node.query.filter(Node.name == hostname)
+                if node_q.count():
+                    node = node_q.one()
+                    if node not in self.target_nodes:
+                        self.target_nodes.append(node)
 
         for k, v in json_data.items():
             key = k.replace('-', '_')
