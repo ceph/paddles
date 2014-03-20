@@ -22,7 +22,7 @@ class NodeController(object):
         try:
             self.node = Node.query.filter_by(name=name).first()
         except ValueError:
-            self.node = None
+            abort(404)
         request.context['node_name'] = self.name
 
     @expose(generic=True, template='json')
@@ -34,6 +34,8 @@ class NodeController(object):
 
     @expose('json')
     def jobs(self, name='', status='', count=0):
+        if not self.node:
+            abort(404)
         jobs = Job.query.filter(Job.target_nodes.contains(self.node))
         if name:
             jobs = jobs.filter(Job.name == name)
@@ -45,6 +47,8 @@ class NodeController(object):
 
     @expose('json')
     def job_stats(self):
+        if not self.node:
+            abort(404)
         all_jobs = Job.query.filter(Job.target_nodes.contains(self.node))
         stats = dict()
         for status in Job.allowed_statuses:
