@@ -33,10 +33,20 @@ class NodeController(object):
         return json_node
 
     @expose('json')
-    def jobs(self, name='', count=0):
+    def jobs(self, name='', status='', count=0):
         jobs = Job.query.filter(Job.target_nodes.contains(self.node))
         if name:
             jobs = jobs.filter(Job.name == name)
+        if status:
+            jobs = jobs.filter(Job.status == status)
         if count:
             jobs = jobs.limit(count)
         return [job.__json__() for job in jobs]
+
+    @expose('json')
+    def job_stats(self):
+        all_jobs = Job.query.filter(Job.target_nodes.contains(self.node))
+        stats = dict()
+        for status in Job.allowed_statuses:
+            stats[status] = all_jobs.filter(Job.status == status).count()
+        return stats
