@@ -77,6 +77,14 @@ class Job(Base):
         "verbose",
     )
 
+    allowed_statuses = (
+        "pass",
+        "fail",
+        "running",
+        "dead",
+        "unknown",
+    )
+
     def __init__(self, json_data, run):
         self.run = run
         self.posted = datetime.utcnow()
@@ -96,6 +104,9 @@ class Job(Base):
 
         if 'status' in json_data:
             status = json_data.pop('status')
+            if status not in self.allowed_statuses:
+                raise ValueError("Job status must be one of: %s" %
+                                 self.allowed_statuses)
             if status == 'dead' and self.success is not None:
                 self.update_attr('status', status_map.get(self.success))
             else:
