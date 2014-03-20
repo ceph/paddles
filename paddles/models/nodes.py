@@ -50,3 +50,20 @@ class Node(Base):
         self.description = description
         self.mac_address = mac_address
         self.ssh_pub_key = ssh_pub_key
+
+    def __json__(self):
+        return dict(
+            name=self.name,
+            description=self.description,
+            up=self.up,
+            machine_type=self.machine_type,
+            is_vm=self.is_vm,
+            vm_host=self.vm_host,
+            distro=self.distro,
+            arch=self.arch,
+            locked=self.locked,
+            locked_since=self.locked_since,
+            locked_by=self.locked_by,
+            mac_address=self.mac_address,
+            ssh_pub_key=self.ssh_pub_key,
+        )
