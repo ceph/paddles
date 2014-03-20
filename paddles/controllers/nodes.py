@@ -5,8 +5,11 @@ from paddles.models import Job, Node
 
 class NodesController(object):
     @expose('json')
-    def index(self):
-        return [node.name for node in Node.query.all()]
+    def index(self, locked=None):
+        query = Node.query
+        if locked is not None:
+            query = query.filter(Node.locked == locked)
+        return [node.name for node in query.all()]
 
     @expose('json')
     def _lookup(self, name, *remainder):
