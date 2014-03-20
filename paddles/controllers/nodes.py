@@ -1,6 +1,6 @@
 from pecan import abort, conf, expose, request
 from paddles.controllers import error
-from paddles.models import Node
+from paddles.models import Job, Node
 
 
 class NodesController(object):
@@ -28,3 +28,12 @@ class NodeController(object):
             abort(404)
         json_node = self.node.__json__()
         return json_node
+
+    @expose('json')
+    def jobs(self, name='', count=0):
+        jobs = Job.query.filter(Job.target_nodes.contains(self.node))
+        if name:
+            jobs = jobs.filter(Job.name == name)
+        if count:
+            jobs = jobs.limit(count)
+        return [job.__json__() for job in jobs]
