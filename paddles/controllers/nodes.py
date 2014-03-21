@@ -12,6 +12,26 @@ class NodesController(object):
         return [node.name for node in query.all()]
 
     @expose('json')
+    def job_stats(self, machine_type=''):
+        all_stats = {}
+        query = Node.query
+        if machine_type:
+            if machine_type not in Node.machine_types:
+                abort(400)
+            query = query.filter(Node.machine_type == machine_type)
+        nodes = query.order_by(Node.name).all()
+        for node in nodes:
+            jobs = Job.query.filter(Job.target_nodes.contains(node))
+            stats = dict()
+            for status in Job.allowed_statuses:
+                count = jobs.filter(Job.status == status).count()
+                if count:
+                    stats[status] = count
+            if stats:
+                all_stats[node.name] = stats
+        return all_stats
+
+    @expose('json')
     def _lookup(self, name, *remainder):
         return NodeController(name), remainder
 
