@@ -37,6 +37,7 @@ def upgrade():
         sa.ForeignKeyConstraint(['vm_host_id'], ['nodes.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
+    op.create_unique_constraint("uq_node_name", "nodes", ["name"])
     op.create_table(
         'job_nodes',
         sa.Column('node_id', sa.Integer(), nullable=True),
@@ -49,5 +50,6 @@ def upgrade():
 
 def downgrade():
     op.drop_table('job_nodes')
+    op.drop_constraint("uq_node_name", "nodes")
     op.drop_table('nodes')
     machine_type_enum.drop(op.get_bind(), checkfirst=False)
