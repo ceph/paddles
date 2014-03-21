@@ -5,12 +5,11 @@ from sqlalchemy.orm import relationship, backref
 from paddles.models import Base
 
 
-machine_types = ('plana', 'mira', 'vps', 'burnupi', 'tala', 'saya', 'dubia')
-
-
 class Node(Base):
 
     __tablename__ = 'nodes'
+    machine_types = ('plana', 'mira', 'vps', 'burnupi', 'tala', 'saya',
+                     'dubia')
 
     id = Column(Integer, primary_key=True)
     name = Column(String(256), nullable=False, unique=True)

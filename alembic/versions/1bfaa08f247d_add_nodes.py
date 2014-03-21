@@ -40,8 +40,8 @@ def upgrade():
     op.create_unique_constraint("uq_node_name", "nodes", ["name"])
     op.create_table(
         'job_nodes',
-        sa.Column('node_id', sa.Integer(), nullable=True),
-        sa.Column('job_id', sa.Integer(), nullable=True),
+        sa.Column('node_id', sa.Integer(), nullable=False),
+        sa.Column('job_id', sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(['job_id'], ['jobs.id'], ),
         sa.ForeignKeyConstraint(['node_id'], ['nodes.id'], ),
         sa.PrimaryKeyConstraint()
