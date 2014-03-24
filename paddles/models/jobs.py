@@ -11,8 +11,8 @@ from paddles.models.types import JSONType
 job_nodes_table = Table(
     'job_nodes',
     Base.metadata,
-    Column('node_id', Integer, ForeignKey('nodes.id')),
-    Column('job_id', Integer, ForeignKey('jobs.id'))
+    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True),
+    Column('job_id', Integer, ForeignKey('jobs.id'), primary_key=True)
 )
 
 
