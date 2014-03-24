@@ -1,3 +1,4 @@
+from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import (Boolean, Column, DateTime, Enum, ForeignKey, Integer,
                         String, Text)
 from sqlalchemy.orm import relationship, backref
@@ -14,11 +15,11 @@ class Node(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(256), nullable=False, unique=True)
     description = Column(Text)
-    up = Column(Boolean(), nullable=False, index=True)
+    up = Column(Boolean(), index=True)
 
     machine_type = Column(Enum(*machine_types, name="machine_type"),
-                          nullable=False, index=True)
-    arch = Column(String(16), nullable=False, index=True)
+                          index=True)
+    arch = Column(String(16), index=True)
     is_vm = Column(Boolean(), nullable=False, default=False)
 
     distro = Column(String(32), index=True)
@@ -36,9 +37,9 @@ class Node(Base):
     mac_address = Column(String(17))
     ssh_pub_key = Column(Text)
 
-    def __init__(self, name, machine_type, arch, distro, up, is_vm=False,
-                 vm_host=None, description=None, mac_address=None,
-                 ssh_pub_key=None):
+    def __init__(self, name, machine_type=None, arch=None, distro=None,
+                 up=None, is_vm=False, vm_host=None, description=None,
+                 mac_address=None, ssh_pub_key=None):
         self.name = name
         self.machine_type = machine_type
         self.arch = arch
@@ -66,3 +67,9 @@ class Node(Base):
             mac_address=self.mac_address,
             ssh_pub_key=self.ssh_pub_key,
         )
+
+    def __repr__(self):
+        try:
+            return '<Node %s>' % self.name
+        except DetachedInstanceError:
+            return '<Node detached>'
