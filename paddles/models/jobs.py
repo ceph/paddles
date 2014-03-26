@@ -121,14 +121,20 @@ class Job(Base):
             self.update_attr('success', None)
 
         if 'targets' in json_data:
+            # Populate self.target_nodes, creating Node objects if necessary
             targets = json_data['targets']
             for target_key in targets.keys():
                 hostname = target_key.split('@')[1]
                 node_q = Node.query.filter(Node.name == hostname)
                 if node_q.count():
                     node = node_q.one()
-                    if node not in self.target_nodes:
-                        self.target_nodes.append(node)
+                else:
+                    node = Node(name=hostname)
+                    mtype = json_data.get('machine_type', '')
+                    if mtype and mtype in Node.machine_types:
+                        node.machine_type = mtype
+                if node not in self.target_nodes:
+                    self.target_nodes.append(node)
 
         for k, v in json_data.items():
             key = k.replace('-', '_')

@@ -1,4 +1,4 @@
-from paddles.models import Job, Run
+from paddles.models import Job, Run, Node
 from paddles.tests import TestApp
 from paddles import models
 from datetime import datetime
@@ -57,3 +57,11 @@ class TestJobModel(TestApp):
         new_job = Job({}, new_run)
         with pytest.raises(AttributeError):
             new_job.slice('bullcrap')
+
+    def test_job_creates_node(self):
+        run_name = 'test_job_creates_node'
+        node_name = 'node.name'
+        targets = {'foo@' + node_name: ''}
+        new_run = Run(run_name)
+        Job(dict(targets=targets), new_run)
+        assert Node.get(1).name == node_name
