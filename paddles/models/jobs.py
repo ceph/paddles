@@ -120,7 +120,7 @@ class Job(Base):
             self.update_attr('status', 'unknown')
             self.update_attr('success', None)
 
-        if 'targets' in json_data:
+        if len(json_data.get('targets', {})) > len(self.target_nodes):
             # Populate self.target_nodes, creating Node objects if necessary
             targets = json_data['targets']
             for target_key in targets.keys():

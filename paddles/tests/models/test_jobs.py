@@ -65,3 +65,13 @@ class TestJobModel(TestApp):
         new_run = Run(run_name)
         Job(dict(targets=targets), new_run)
         assert Node.get(1).name == node_name
+
+    def test_job_creates_many_nodes(self):
+        run_name = 'test_job_creates_many_nodes'
+        node_names = ['node1.name', 'node2.name', 'node3.name']
+        targets = {}
+        for name in node_names:
+            targets['foo@' + name] = ''
+        new_run = Run(run_name)
+        Job(dict(targets=targets), new_run)
+        assert sorted([node.name for node in Node.query.all()]) == node_names
