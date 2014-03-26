@@ -1,6 +1,7 @@
 from pecan import abort, conf, expose, request
 from paddles.controllers import error
-from paddles.models import Job, Node
+from paddles.models import Job, Node, Session
+from sqlalchemy import func
 
 
 class NodesController(object):
@@ -13,22 +14,28 @@ class NodesController(object):
 
     @expose('json')
     def job_stats(self, machine_type=''):
-        all_stats = {}
-        query = Node.query
-        if machine_type:
-            if machine_type not in Node.machine_types:
-                abort(400)
-            query = query.filter(Node.machine_type == machine_type)
-        nodes = query.order_by(Node.name).all()
-        for node in nodes:
-            jobs = Job.query.filter(Job.target_nodes.contains(node))
-            stats = dict()
-            for status in Job.allowed_statuses:
-                count = jobs.filter(Job.status == status).count()
-                if count:
-                    stats[status] = count
-            if stats:
-                all_stats[node.name] = stats
+        def build_query(status=None, machine_type=None):
+            query = Session.query(Node, func.count(Job.id).label('total'))
+            if machine_type:
+                if machine_type not in Node.machine_types:
+                    abort(400)
+                query = query.filter(Node.machine_type == machine_type)
+            if status:
+                query = query.filter(Job.status == status)
+            query = query.join(Job.target_nodes)\
+                .group_by(Node).order_by('total DESC')
+            return query
+
+        all_stats = dict()
+        for status in Job.allowed_statuses:
+            query = build_query(status, machine_type)
+            results = query.all()
+            for item in results:
+                node = item[0]
+                node_stats = all_stats.get(node.name, dict())
+                node_stats[status] = item[1]
+                if node_stats:
+                    all_stats[node.name] = node_stats
         return all_stats
 
     @expose('json')
