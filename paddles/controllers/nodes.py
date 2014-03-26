@@ -2,6 +2,7 @@ from pecan import abort, conf, expose, request
 from paddles.controllers import error
 from paddles.models import Job, Node, Session
 from sqlalchemy import func
+from collections import OrderedDict
 
 
 class NodesController(object):
@@ -36,7 +37,11 @@ class NodesController(object):
                 node_stats[status] = item[1]
                 if node_stats:
                     all_stats[node.name] = node_stats
-        return all_stats
+
+        stats_sorter = lambda t: t[1].get('dead', 0) + t[1].get('fail', 0)
+        ordered_stats = OrderedDict(sorted(all_stats.items(),
+                                           key=stats_sorter))
+        return ordered_stats
 
     @expose('json')
     def _lookup(self, name, *remainder):
