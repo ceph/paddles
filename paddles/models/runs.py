@@ -216,7 +216,7 @@ class Run(Base):
         fail = jobs_status.count('fail')
         dead = jobs_status.count('dead')
         unknown = jobs_status.count(None) + jobs_status.count('unknown')
-        total = self.jobs.count()
+        total = len(jobs_status)
         return {
             'pass': passing,
             'running': running,

@@ -181,3 +181,21 @@ class TestRunModel(TestApp):
         run_name = "x-2013-12-22_01:00:02-big-x-x-x-plana"
         new_run = Run(run_name)
         assert new_run.machine_type == "plana"
+
+    def test_run_results(self):
+        run_name = 'teuthology-2014-03-27_00:00:00-x-x-x-x-x'
+        new_run = Run(run_name)
+        stats_in = {'pass': 9, 'fail': 1, 'dead': 6, 'running': 5,
+                    'unknown': 1}
+        statuses = stats_in.keys()
+        stats_in['total'] = sum(stats_in.values())
+        stats_out = {}
+        for i in range(stats_in['total']):
+            for status in statuses:
+                count = stats_out.get(status, 0)
+                count += 1
+                if count <= stats_in[status]:
+                    break
+            Job(dict(job_id=i, status=status), new_run)
+            stats_out[status] = count
+        assert new_run.get_results() == stats_in
