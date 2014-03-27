@@ -19,3 +19,20 @@ class TestNodesController(TestApp):
             name=run_name, id=job_id))
         response = self.app.get('/nodes/')
         assert sorted(response.json) == sorted(target_names)
+
+    def test_job_stats(self):
+        run_name = 'job_stats'
+        job_ids = [1, 2, 3]
+        target_names = ['t1', 't2']
+        targets = {}
+        for name in target_names:
+            targets['u@' + name] = ''
+        for job_id in job_ids:
+            self.app.post_json('/runs/{name}/jobs/'.format(name=run_name),
+                               dict(job_id=job_id, targets=targets,
+                                    status='fail'))
+        result = {}
+        for name in target_names:
+            result[name] = dict(fail=len(job_ids))
+        response = self.app.get('/nodes/job_stats/')
+        assert response.json == result
