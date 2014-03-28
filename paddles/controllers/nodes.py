@@ -11,7 +11,7 @@ class NodesController(object):
         query = Node.query
         if locked is not None:
             query = query.filter(Node.locked == locked)
-        return [node.name for node in query.all()]
+        return [node.__json__() for node in query.all()]
 
     @expose('json')
     def job_stats(self, machine_type=''):
