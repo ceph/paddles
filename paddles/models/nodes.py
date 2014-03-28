@@ -37,6 +37,21 @@ class Node(Base):
     mac_address = Column(String(17))
     ssh_pub_key = Column(Text)
 
+    allowed_update_keys = [
+        'arch',
+        'description',
+        'distro',
+        'is_vm',
+        'locked',
+        'locked_by',
+        'locked_since',
+        'mac_address',
+        'machine_type',
+        'ssh_pub_key',
+        'up',
+        'vm_host',
+    ]
+
     def __init__(self, name, machine_type=None, arch=None, distro=None,
                  up=None, is_vm=False, vm_host=None, description=None,
                  mac_address=None, ssh_pub_key=None):
@@ -50,6 +65,18 @@ class Node(Base):
         self.description = description
         self.mac_address = mac_address
         self.ssh_pub_key = ssh_pub_key
+
+    def update(self, values):
+        """
+        :param values: a dict.
+        """
+        for k, v in values.items():
+            if k in self.allowed_update_keys:
+                if k == 'vm_host':
+                    vm_host_name = v
+                    query = self.query.filter(Node.name == vm_host_name)
+                    v = query.one()
+                setattr(self, k, v)
 
     def __json__(self):
         return dict(

@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 
 class NodesController(object):
-    @expose('json')
+    @expose(generic=True, template='json')
     def index(self, locked=None, machine_type=''):
         query = Node.query
         if locked is not None:
@@ -16,6 +16,29 @@ class NodesController(object):
                 abort(400)
             query = query.filter(Node.machine_type == machine_type)
         return [node.__json__() for node in query.all()]
+
+    @index.when(method='POST', template='json')
+    def index_post(self):
+        """
+        Create a new node
+        """
+        try:
+            data = request.json
+            name = data.get('name')
+        except ValueError:
+            error('/errors/invalid/', 'could not decode JSON body')
+        # we allow empty data to be pushed
+        if not name:
+            error('/errors/invalid/', "could not find required key: 'name'")
+
+        if Node.filter_by(name=name).first():
+            error('/errors/invalid/',
+                  "Node with name %s already exists" % name)
+        else:
+            self.node = Node(name=name)
+            self.node.update(data)
+        return dict()
+
 
     @expose('json')
     def job_stats(self, machine_type=''):
@@ -67,6 +90,19 @@ class NodeController(object):
             abort(404)
         json_node = self.node.__json__()
         return json_node
+
+    @index.when(method='PUT', template='json')
+    def index_post(self):
+        """
+        Update the Node object here
+        """
+        if not self.node:
+            error(
+                '/errors/not_found/',
+                'attempted to update a non-existent job'
+            )
+        self.node.update(request.json)
+        return dict()
 
     @expose('json')
     def jobs(self, name='', status='', count=0):

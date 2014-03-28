@@ -38,6 +38,13 @@ class TestNodesController(TestApp):
         response = self.app.get('/nodes/job_stats/')
         assert response.json == result
 
+    def test_post(self):
+        node_name = 'puppies'
+        node_data = dict(name=node_name, locked=False)
+        self.app.post_json('/nodes/', node_data)
+        response = self.app.get('/nodes/{name}/'.format(name=node_name))
+        assert response.json['name'] == node_name
+
 
 class TestNodeController(TestApp):
 
@@ -56,3 +63,11 @@ class TestNodeController(TestApp):
         response = self.app.get('/nodes/{node}/job_stats/'.format(
             node=target_name))
         assert response.json == result
+
+    def test_update(self):
+        node_name = 'kittens'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=False))
+        self.app.put_json('/nodes/{name}/'.format(name=node_name),
+                          dict(name=node_name, locked=True))
+        response = self.app.get('/nodes/{name}/'.format(name=node_name))
+        assert response.json['locked'] is True
