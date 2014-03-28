@@ -7,10 +7,14 @@ from collections import OrderedDict
 
 class NodesController(object):
     @expose('json')
-    def index(self, locked=None):
+    def index(self, locked=None, machine_type=''):
         query = Node.query
         if locked is not None:
             query = query.filter(Node.locked == locked)
+        if machine_type:
+            if machine_type not in Node.machine_types:
+                abort(400)
+            query = query.filter(Node.machine_type == machine_type)
         return [node.__json__() for node in query.all()]
 
     @expose('json')
