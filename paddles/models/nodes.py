@@ -1,6 +1,6 @@
 from sqlalchemy.orm.exc import DetachedInstanceError
-from sqlalchemy import (Boolean, Column, DateTime, Enum, ForeignKey, Integer,
-                        String, Text)
+from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
+                        Text)
 from sqlalchemy.orm import relationship, backref
 
 from paddles.models import Base
@@ -9,16 +9,13 @@ from paddles.models import Base
 class Node(Base):
 
     __tablename__ = 'nodes'
-    machine_types = ('plana', 'mira', 'vps', 'burnupi', 'tala', 'saya',
-                     'dubia')
 
     id = Column(Integer, primary_key=True)
     name = Column(String(256), nullable=False, unique=True)
     description = Column(Text)
     up = Column(Boolean(), index=True)
 
-    machine_type = Column(Enum(*machine_types, name="machine_type"),
-                          index=True)
+    machine_type = Column(String(32), index=True)
     arch = Column(String(16), index=True)
     is_vm = Column(Boolean(), nullable=False, default=False)
 

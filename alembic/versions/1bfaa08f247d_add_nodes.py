@@ -24,7 +24,7 @@ def upgrade():
         sa.Column('name', sa.String(length=256), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('up', sa.Boolean(), nullable=True),
-        sa.Column('machine_type', machine_type_enum, nullable=True),
+        sa.Column('machine_type', sa.String(length=32), nullable=True),
         sa.Column('arch', sa.String(length=16), nullable=True),
         sa.Column('is_vm', sa.Boolean(), nullable=False),
         sa.Column('distro', sa.String(length=32), nullable=True),
@@ -52,4 +52,3 @@ def downgrade():
     op.drop_table('job_nodes')
     op.drop_constraint("uq_node_name", "nodes")
     op.drop_table('nodes')
-    machine_type_enum.drop(op.get_bind(), checkfirst=False)
