@@ -50,10 +50,7 @@ def date_from_string(date_str, out_fmt=datetime_format, hours='00:00:00'):
 class RunController(object):
     def __init__(self, name):
         self.name = name
-        try:
-            self.run = Run.query.filter_by(name=name).first()
-        except ValueError:
-            self.run = None
+        self.run = Run.query.filter_by(name=name).first()
         request.context['run_name'] = self.name
 
     @expose(generic=True, template='json')

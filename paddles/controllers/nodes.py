@@ -77,10 +77,7 @@ class NodesController(object):
 class NodeController(object):
     def __init__(self, name):
         self.name = name
-        try:
-            self.node = Node.query.filter_by(name=name).first()
-        except ValueError:
-            abort(404)
+        self.node = Node.query.filter_by(name=name).first()
         request.context['node_name'] = self.name
 
     @expose(generic=True, template='json')
