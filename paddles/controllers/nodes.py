@@ -39,7 +39,6 @@ class NodesController(object):
             self.node.update(data)
         return dict()
 
-
     @expose('json')
     def job_stats(self, machine_type=''):
         def build_query(status=None, machine_type=None):
@@ -99,7 +98,7 @@ class NodeController(object):
         if not self.node:
             error(
                 '/errors/not_found/',
-                'attempted to update a non-existent job'
+                'attempted to update a non-existent node'
             )
         self.node.update(request.json)
         return dict()
