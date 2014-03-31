@@ -13,7 +13,7 @@ class NodesController(object):
             query = query.filter(Node.locked == locked)
         if machine_type:
             if machine_type not in Node.machine_types:
-                abort(400)
+                abort(404)
             query = query.filter(Node.machine_type == machine_type)
         return [node.__json__() for node in query.all()]
 
@@ -45,7 +45,7 @@ class NodesController(object):
             query = Session.query(Node, func.count(Job.id).label('total'))
             if machine_type:
                 if machine_type not in Node.machine_types:
-                    abort(400)
+                    abort(404)
                 query = query.filter(Node.machine_type == machine_type)
             if status:
                 query = query.filter(Job.status == status)
