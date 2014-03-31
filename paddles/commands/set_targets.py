@@ -21,8 +21,13 @@ class SetTargetsCommand(BaseCommand):
             out("STARTING A TRANSACTION...")
             start()
             jobs = Job.query.filter(~Job.target_nodes.any()).all()
-            for job in jobs:
+            count = len(jobs)
+            for i in range(count):
+                job = jobs[i]
                 self._populate(job)
+                print "Processing Job {n}/{total}\r".format(n=i+1,
+                                                            total=count),
+            print
 
             nodes = Node.query.filter(Node.machine_type.is_(None)).all()
             for node in nodes:
@@ -36,7 +41,7 @@ class SetTargetsCommand(BaseCommand):
             commit()
 
     def _populate(self, job):
-        print "Job: %s/%s" % (job.name, job.job_id)
+        #print "Job: %s/%s" % (job.name, job.job_id)
         if not job.targets:
             return
 
@@ -44,12 +49,12 @@ class SetTargetsCommand(BaseCommand):
             name = key.split('@')[1]
             mtype = self.parse_machine_type(name)
             node_q = Node.query.filter(Node.name == name)
-            print " node: exists={count}, name={name}".format(
-                count=node_q.count(),
-                name=name,
-            )
+            #print " node: exists={count}, name={name}".format(
+            #    count=node_q.count(),
+            #    name=name,
+            #)
             if node_q.count() == 0:
-                print "  Creating Node with name: %s" % name
+                #print "  Creating Node with name: %s" % name
                 node = Node(name=name)
             else:
                 node = node_q.one()
@@ -60,7 +65,7 @@ class SetTargetsCommand(BaseCommand):
 
     @staticmethod
     def parse_machine_type(node_name):
-        types = Node.machine_types
+        types = 'plana', 'mira', 'vps', 'burnupi', 'tala', 'saya', 'dubia'
         if node_name.startswith('vpm') and 'vps' in types:
             return 'vps'
         for mtype in types:
