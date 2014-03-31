@@ -9,3 +9,4 @@ wsgiref==0.1.2
 psycopg2==2.5.1
 pytz
 tzlocal
+requests

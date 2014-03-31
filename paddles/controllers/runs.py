@@ -50,10 +50,7 @@ def date_from_string(date_str, out_fmt=datetime_format, hours='00:00:00'):
 class RunController(object):
     def __init__(self, name):
         self.name = name
-        try:
-            self.run = Run.query.filter_by(name=name).first()
-        except ValueError:
-            self.run = None
+        self.run = Run.query.filter_by(name=name).first()
         request.context['run_name'] = self.name
 
     @expose(generic=True, template='json')
@@ -152,7 +149,7 @@ class RunFilterController(RunFilterIndexController):
     def index(self, count=conf.default_latest_runs_count, page=1, since=None):
         query = request.context['query']
         if since:
-            since_date = date_from_string(since, out_fmt=date_format)
+            since = date_from_string(since, out_fmt=date_format)[1]
             query = query.filter(Run.scheduled > since)
         query = query.order_by(Run.scheduled.desc())
         return offset_query(query, count, page).all()

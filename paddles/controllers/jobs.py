@@ -17,14 +17,11 @@ class JobController(object):
             if run_q.count() == 1:
                 self.run = run_q.one()
             elif run_q.count() > 1:
-                error('/errors/invalid/',
-                    'there are %s runs with that name!' % run_q.count())
+                error('/errors/invalid/', 'there are %s runs with that name!' %
+                      run_q.count())
             else:
                 self.run = None
-        try:
-            self.job = Job.filter_by(job_id=job_id, run=self.run).first()
-        except ValueError:
-            self.job = None
+        self.job = Job.filter_by(job_id=job_id, run=self.run).first()
 
     @expose(generic=True, template='json')
     def index(self):

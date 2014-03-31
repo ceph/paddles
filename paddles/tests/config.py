@@ -1,7 +1,3 @@
-from pecan.hooks import TransactionHook, RequestViewerHook
-from paddles import models
-
-
 # Server Specific Configurations
 server = {
     'port': '8080',
@@ -26,11 +22,10 @@ app = {
     }
 }
 
-
 sqlalchemy = {
-    'url': 'sqlite://',
-    'echo'          : True,
-    'echo_pool'     : True,
-    'pool_recycle'  : 3600,
-    'encoding'      : 'utf-8'
+    'url':          'sqlite://',
+    'echo':         True,
+    'echo_pool':    True,
+    'pool_recycle': 3600,
+    'encoding':     'utf-8'
 }

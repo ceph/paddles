@@ -1,10 +1,19 @@
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
-                        Text)
+                        Table, Text)
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 from pecan import conf
 from paddles.models import Base
+from paddles.models.nodes import Node
 from paddles.models.types import JSONType
+
+job_nodes_table = Table(
+    'job_nodes',
+    Base.metadata,
+    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True),
+    Column('job_id', Integer, ForeignKey('jobs.id'), primary_key=True)
+)
 
 
 class Job(Base):
@@ -36,6 +45,7 @@ class Job(Base):
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
     targets = Column(JSONType())
+    target_nodes = relationship("Node", secondary=job_nodes_table)
     tasks = Column(JSONType())
     teuthology_branch = Column(String(32))
     verbose = Column(Boolean())
@@ -67,6 +77,14 @@ class Job(Base):
         "verbose",
     )
 
+    allowed_statuses = (
+        "pass",
+        "fail",
+        "running",
+        "dead",
+        "unknown",
+    )
+
     def __init__(self, json_data, run):
         self.run = run
         self.posted = datetime.utcnow()
@@ -86,6 +104,9 @@ class Job(Base):
 
         if 'status' in json_data:
             status = json_data.pop('status')
+            if status not in self.allowed_statuses:
+                raise ValueError("Job status must be one of: %s" %
+                                 self.allowed_statuses)
             if status == 'dead' and self.success is not None:
                 self.update_attr('status', status_map.get(self.success))
             else:
@@ -98,6 +119,22 @@ class Job(Base):
         else:
             self.update_attr('status', 'unknown')
             self.update_attr('success', None)
+
+        if len(json_data.get('targets', {})) > len(self.target_nodes):
+            # Populate self.target_nodes, creating Node objects if necessary
+            targets = json_data['targets']
+            for target_key in targets.keys():
+                hostname = target_key.split('@')[1]
+                node_q = Node.query.filter(Node.name == hostname)
+                if node_q.count():
+                    node = node_q.one()
+                else:
+                    node = Node(name=hostname)
+                    mtype = json_data.get('machine_type', '')
+                    if mtype and mtype in Node.machine_types:
+                        node.machine_type = mtype
+                if node not in self.target_nodes:
+                    self.target_nodes.append(node)
 
         for k, v in json_data.items():
             key = k.replace('-', '_')

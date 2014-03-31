@@ -1,5 +1,4 @@
 from pecan.commands.base import BaseCommand
-from pecan import conf
 
 from paddles import models
 from paddles.models.runs import local_datetime_to_utc

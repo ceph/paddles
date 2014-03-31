@@ -1,5 +1,3 @@
-import tzlocal
-import pytz
 from datetime import datetime
 import re
 from sqlalchemy import Column, Integer, String
@@ -7,10 +5,9 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import DateTime
 from pecan import conf
+from paddles.util import local_datetime_to_utc
 from paddles.models import Base
 from paddles.models.jobs import Job
-
-localtz = tzlocal.get_localzone()
 
 suite_names = ['big',
                'ceph-deploy',
@@ -62,16 +59,6 @@ machine_types = ['burnupi', 'mira', 'plana', 'saya', 'tala', 'vps']
 
 
 distros = ['centos', 'debian', 'fedora', 'opensuse', 'rhel', 'suse', 'ubuntu']
-
-
-def local_datetime_to_utc(local_dt):
-    """
-    Given a datetime object in the local timezone, convert it to UTC.
-    """
-    local_dt_aware = localtz.localize(local_dt)
-    utc_dt_aware = local_dt_aware.astimezone(pytz.utc)
-    utc_dt_naive = utc_dt_aware.replace(tzinfo=None)
-    return utc_dt_naive
 
 
 def get_name_regexes(timestamp_regex, suite_names, distros, machine_types):
@@ -216,7 +203,7 @@ class Run(Base):
         fail = jobs_status.count('fail')
         dead = jobs_status.count('dead')
         unknown = jobs_status.count(None) + jobs_status.count('unknown')
-        total = self.jobs.count()
+        total = len(jobs_status)
         return {
             'pass': passing,
             'running': running,

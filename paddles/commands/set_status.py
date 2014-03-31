@@ -1,5 +1,4 @@
 from pecan.commands.base import BaseCommand
-from time import sleep
 
 from paddles import models
 from paddles.models import Job, Run
