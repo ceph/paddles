@@ -1,4 +1,4 @@
-from pecan import abort, conf, expose, request
+from pecan import abort, expose, request
 from paddles.controllers import error
 from paddles.models import Job, Node, Session
 from sqlalchemy import func

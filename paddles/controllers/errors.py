@@ -1,4 +1,4 @@
-from pecan import expose, request, response
+from pecan import expose, response
 
 
 class ErrorsController(object):

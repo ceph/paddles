@@ -149,7 +149,7 @@ class RunFilterController(RunFilterIndexController):
     def index(self, count=conf.default_latest_runs_count, page=1, since=None):
         query = request.context['query']
         if since:
-            since_date = date_from_string(since, out_fmt=date_format)
+            since = date_from_string(since, out_fmt=date_format)[1]
             query = query.filter(Run.scheduled > since)
         query = query.order_by(Run.scheduled.desc())
         return offset_query(query, count, page).all()

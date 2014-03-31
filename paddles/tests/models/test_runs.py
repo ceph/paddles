@@ -1,8 +1,6 @@
 from paddles.models import Job, Run
 from paddles.tests import TestApp
 from paddles import models
-from paddles.models.runs import local_datetime_to_utc
-from datetime import datetime
 import pytz
 import tzlocal
 
