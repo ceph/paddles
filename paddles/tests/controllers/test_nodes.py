@@ -49,16 +49,6 @@ class TestNodesController(TestApp):
         response = self.app.get('/nodes/{name}/'.format(name=node_name))
         assert response.json['name'] == node_name
 
-    def test_get_nodes_invalid_machine_type(self):
-        response = self.app.get('/nodes/?machine_type=not_a_thing',
-                                expect_errors=True)
-        assert response.status_int == 404
-
-    def test_job_stats_invalid_machine_type(self):
-        response = self.app.get('/nodes/job_stats?machine_type=not_a_thing',
-                                expect_errors=True)
-        assert response.status_int == 404
-
 
 class TestNodeController(TestApp):
 
