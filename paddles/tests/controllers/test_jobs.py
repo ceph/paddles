@@ -1,4 +1,6 @@
+from datetime import datetime
 from paddles.tests import TestApp
+from paddles.util import local_datetime_to_utc
 
 
 class TestJobsController(TestApp):
@@ -107,4 +109,18 @@ class TestJobsController(TestApp):
     def test_status_dead_means_success_false(self):
         self.app.post_json('/runs/RUN/jobs/', dict(job_id='42', status='dead'))
         response = self.app.get('/runs/RUN/jobs/42/')
-        assert response.json.get('success') == False
+        assert response.json.get('success') is False
+
+    def test_manual_updated_time(self):
+        time_stamp = '2014-03-31 21:25:43'
+        run_name = 'manual_update'
+        job_id = 1
+        self.app.post_json('/runs/', dict(name=run_name))
+        self.app.post_json('/runs/%s/jobs/' % run_name, dict(
+            job_id=job_id,
+            updated=time_stamp,
+        ))
+        local_dt = datetime.strptime(time_stamp, '%Y-%m-%d %H:%M:%S')
+        utc_dt = local_datetime_to_utc(local_dt)
+        response = self.app.get('/runs/%s/jobs/%s/' % (run_name, 1))
+        assert response.json['updated'] == str(utc_dt)

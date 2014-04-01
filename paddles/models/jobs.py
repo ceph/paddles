@@ -7,6 +7,7 @@ from pecan import conf
 from paddles.models import Base
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
+from paddles.util import local_datetime_to_utc
 
 job_nodes_table = Table(
     'job_nodes',
@@ -142,9 +143,12 @@ class Job(Base):
             if key == 'sentry_events' and v != []:
                 key = 'sentry_event'
                 v = v[0]
+            elif key == 'updated':
+                self.set_updated(v)
+                continue
             if key in self.allowed_keys:
                 self.update_attr(key, v)
-        if self.__changed:
+        if self.__changed and 'updated' not in json_data:
             self.updated = datetime.utcnow()
         if self.job_status_will_change_run_status():
             self.run.set_status()
@@ -160,6 +164,16 @@ class Job(Base):
         if getattr(self, attr_name) != new_value:
             setattr(self, attr_name, new_value)
             self.__changed = True
+
+    def set_updated(self, local_str):
+        """
+        Given a string in the format of '%Y-%m-%d %H:%M:%S', in the local
+        timezone, create a datetime object, convert it to UTC, and store it in
+        self.updated.
+        """
+        local_dt = datetime.strptime(local_str, '%Y-%m-%d %H:%M:%S')
+        utc_dt = local_datetime_to_utc(local_dt)
+        self.updated = utc_dt
 
     def job_status_will_change_run_status(self):
         # Attempt to determine if the job status will require an updated run

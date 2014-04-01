@@ -1,4 +1,5 @@
 from paddles.models import Job, Run, Node
+from paddles.util import local_datetime_to_utc
 from paddles.tests import TestApp
 from paddles import models
 from datetime import datetime
@@ -75,3 +76,14 @@ class TestJobModel(TestApp):
         new_run = Run(run_name)
         Job(dict(targets=targets), new_run)
         assert sorted([node.name for node in Node.query.all()]) == node_names
+
+    def test_force_updated_time(self):
+        run_name = 'test_force_updated_time'
+        run = Run(run_name)
+        time_stamp = '2014-03-31 21:25:43'
+        Job(dict(updated=time_stamp), run)
+        models.commit()
+        local_dt = datetime.strptime(time_stamp, '%Y-%m-%d %H:%M:%S')
+        utc_dt = local_datetime_to_utc(local_dt)
+        job = Run.query.filter(Run.name == run.name).one().jobs[0]
+        assert str(job.updated) == str(utc_dt)
