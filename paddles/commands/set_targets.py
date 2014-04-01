@@ -1,6 +1,6 @@
 from pecan.commands.base import BaseCommand
 
-from paddles.models import start, rollback, commit, Job
+from paddles.models import start, rollback, flush, commit, Job
 from paddles.models import Node
 
 
@@ -17,28 +17,29 @@ class SetTargetsCommand(BaseCommand):
         super(SetTargetsCommand, self).run(args)
         out("LOADING ENVIRONMENT")
         self.load_app()
-        try:
-            out("STARTING A TRANSACTION...")
-            start()
-            jobs = Job.query.filter(~Job.target_nodes.any()).all()
-            count = len(jobs)
-            for i in range(count):
-                job = jobs[i]
+        out("STARTING A TRANSACTION...")
+        start()
+        count = Job.query.filter(~Job.target_nodes.any()).count()
+        jobs_q = Job.query.filter(~Job.target_nodes.any())
+        n = 0
+        for job in jobs_q.yield_per(10):
+            try:
+                n += 1
+                print "Processing Job {n}/{t}\r".format(n=n, t=count),
                 self._populate(job)
-                print "Processing Job {n}/{total}\r".format(n=i+1,
-                                                            total=count),
-            print
+            except:
+                print
+                rollback()
+                out("ROLLING BACK... ")
+                raise
+            else:
+                flush()
+        print
 
-            nodes = Node.query.filter(Node.machine_type.is_(None)).all()
-            for node in nodes:
-                node.machine_type = self.parse_machine_type(node.name)
-        except:
-            rollback()
-            out("ROLLING BACK... ")
-            raise
-        else:
-            out("COMMITING... ")
-            commit()
+        nodes = Node.query.filter(Node.machine_type.is_(None)).all()
+        for node in nodes:
+            node.machine_type = self.parse_machine_type(node.name)
+        commit()
 
     def _populate(self, job):
         #print "Job: %s/%s" % (job.name, job.job_id)
