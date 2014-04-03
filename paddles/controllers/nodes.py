@@ -42,6 +42,8 @@ class NodesController(object):
     @expose('json')
     def job_stats(self, machine_type='', since_days=14):
         since_days = int(since_days)
+        if since_days < 1:
+            error('/errors/invalid/', "since_days must be a positive integer")
 
         now = datetime.utcnow()
         past = now - timedelta(days=since_days)
