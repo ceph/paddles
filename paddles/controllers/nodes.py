@@ -69,8 +69,12 @@ class NodesController(object):
     def job_stats2(self, machine_type=''):
         query = Session.query(Node.name,
                               Job.status,
-                              func.count('*'))\
-            .join(Job.target_nodes).group_by(Node).group_by(Job.status)
+                              func.count('*'))
+        if machine_type:
+            query = query.filter(Node.machine_type == machine_type)
+
+        query = query.join(Job.target_nodes).group_by(Node)\
+            .group_by(Job.status)
 
         all_stats = {}
         results = query.all()
