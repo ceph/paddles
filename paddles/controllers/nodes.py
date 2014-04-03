@@ -2,7 +2,9 @@ from pecan import abort, expose, request
 from paddles.controllers import error
 from paddles.models import Job, Node, Session
 from sqlalchemy import func
+from sqlalchemy.orm import aliased
 from collections import OrderedDict
+from datetime import datetime, timedelta
 
 
 class NodesController(object):
@@ -66,15 +68,31 @@ class NodesController(object):
         return ordered_stats
 
     @expose('json')
-    def job_stats2(self, machine_type=''):
+    def job_stats2(self, machine_type='', since_days=30):
+        since_days = int(since_days)
+
+        now = datetime.utcnow()
+        past = now - timedelta(days=since_days)
+        recent_jobs = Job.query.filter(Job.posted.between(past,
+                                                          now)).subquery()
+        RecentJob = aliased(Job, recent_jobs)
+
         query = Session.query(Node.name,
-                              Job.status,
+                              RecentJob.status,
                               func.count('*'))
+
         if machine_type:
+            # Note: filtering by Job.machine_type (as below) greatly improves
+            # performance but could lead slightly incorrect values if many jobs
+            # are being scheduled using mixed machine types. We work around
+            # this by including the 'multi' machine type (which is the name of
+            # the queue Inktank uses for such jobs.
+            query = query.filter(RecentJob.machine_type.in_((machine_type,
+                                                             'multi')))
             query = query.filter(Node.machine_type == machine_type)
 
-        query = query.join(Job.target_nodes).group_by(Node)\
-            .group_by(Job.status)
+        query = query.join(RecentJob.target_nodes).group_by(Node)\
+            .group_by(RecentJob.status)
 
         all_stats = {}
         results = query.all()
