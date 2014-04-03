@@ -2,7 +2,9 @@ from pecan import abort, expose, request
 from paddles.controllers import error
 from paddles.models import Job, Node, Session
 from sqlalchemy import func
+from sqlalchemy.orm import aliased
 from collections import OrderedDict
+from datetime import datetime, timedelta
 
 
 class NodesController(object):
@@ -38,27 +40,38 @@ class NodesController(object):
         return dict()
 
     @expose('json')
-    def job_stats(self, machine_type=''):
-        def build_query(status=None, machine_type=None):
-            query = Session.query(Node, func.count(Job.id).label('total'))
-            if machine_type:
-                query = query.filter(Node.machine_type == machine_type)
-            if status:
-                query = query.filter(Job.status == status)
-            query = query.join(Job.target_nodes)\
-                .group_by(Node).order_by('total DESC')
-            return query
+    def job_stats(self, machine_type='', since_days=14):
+        since_days = int(since_days)
 
-        all_stats = dict()
-        for status in Job.allowed_statuses:
-            query = build_query(status, machine_type)
-            results = query.all()
-            for item in results:
-                node = item[0]
-                node_stats = all_stats.get(node.name, dict())
-                node_stats[status] = item[1]
-                if node_stats:
-                    all_stats[node.name] = node_stats
+        now = datetime.utcnow()
+        past = now - timedelta(days=since_days)
+        recent_jobs = Job.query.filter(Job.posted.between(past,
+                                                          now)).subquery()
+        RecentJob = aliased(Job, recent_jobs)
+
+        query = Session.query(Node.name,
+                              RecentJob.status,
+                              func.count('*'))
+
+        if machine_type:
+            # Note: filtering by Job.machine_type (as below) greatly improves
+            # performance but could lead slightly incorrect values if many jobs
+            # are being scheduled using mixed machine types. We work around
+            # this by including the 'multi' machine type (which is the name of
+            # the queue Inktank uses for such jobs.
+            query = query.filter(RecentJob.machine_type.in_((machine_type,
+                                                             'multi')))
+            query = query.filter(Node.machine_type == machine_type)
+
+        query = query.join(RecentJob.target_nodes).group_by(Node)\
+            .group_by(RecentJob.status)
+
+        all_stats = {}
+        results = query.all()
+        for (name, status, count) in results:
+            node_stats = all_stats.get(name, {})
+            node_stats[status] = count
+            all_stats[name] = node_stats
 
         stats_sorter = lambda t: sum(t[1].values())
         ordered_stats = OrderedDict(sorted(all_stats.items(),
