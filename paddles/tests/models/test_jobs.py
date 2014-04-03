@@ -87,3 +87,27 @@ class TestJobModel(TestApp):
         utc_dt = local_datetime_to_utc(local_dt)
         job = Run.query.filter(Run.name == run.name).one().jobs[0]
         assert str(job.updated) == str(utc_dt)
+
+    def test_success_updates_status(self):
+        run_name = 'test_success_updates_status'
+        run = Run(run_name)
+        job_id = '27'
+        job = Job(dict(name=run_name, job_id=job_id, status='running'), run)
+        print job.status, job.success
+        models.commit()
+        job.update(dict(success=True))
+        print job.status, job.success
+        models.commit()
+        assert job.status == 'pass'
+
+    def test_status_dead_ignored_when_success_set(self):
+        run_name = 'test_status_dead_ignored_when_success_set'
+        run = Run(run_name)
+        job_id = '27'
+        job = Job(dict(name=run_name, job_id=job_id, status='running'), run)
+        models.commit()
+        job.update(dict(success=True))
+        models.commit()
+        job.update(dict(status='dead'))
+        models.commit()
+        assert job.status == 'pass'
