@@ -68,7 +68,7 @@ class NodesController(object):
         return ordered_stats
 
     @expose('json')
-    def job_stats2(self, machine_type='', since_days=30):
+    def job_stats2(self, machine_type='', since_days=14):
         since_days = int(since_days)
 
         now = datetime.utcnow()
