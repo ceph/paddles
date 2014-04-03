@@ -60,7 +60,7 @@ class NodesController(object):
                 if node_stats:
                     all_stats[node.name] = node_stats
 
-        stats_sorter = lambda t: t[1].get('dead', 0) + t[1].get('fail', 0)
+        stats_sorter = lambda t: sum(t[1].values())
         ordered_stats = OrderedDict(sorted(all_stats.items(),
                                            key=stats_sorter))
         return ordered_stats
