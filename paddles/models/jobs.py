@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
                         Table, Text)
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.exc import DetachedInstanceError
 from pecan import conf
 from paddles.models import Base
@@ -46,7 +46,8 @@ class Job(Base):
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
     targets = Column(JSONType())
-    target_nodes = relationship("Node", secondary=job_nodes_table)
+    target_nodes = relationship("Node", secondary=job_nodes_table,
+                                backref=backref('jobs'))
     tasks = Column(JSONType())
     teuthology_branch = Column(String(32))
     verbose = Column(Boolean())
