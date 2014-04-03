@@ -66,6 +66,25 @@ class NodesController(object):
         return ordered_stats
 
     @expose('json')
+    def job_stats2(self, machine_type=''):
+        query = Session.query(Node.name,
+                              Job.status,
+                              func.count('*'))\
+            .join(Job.target_nodes).group_by(Node).group_by(Job.status)
+
+        all_stats = {}
+        results = query.all()
+        for (name, status, count) in results:
+            node_stats = all_stats.get(name, {})
+            node_stats[status] = count
+            all_stats[name] = node_stats
+
+        stats_sorter = lambda t: sum(t[1].values())
+        ordered_stats = OrderedDict(sorted(all_stats.items(),
+                                           key=stats_sorter))
+        return ordered_stats
+
+    @expose('json')
     def _lookup(self, name, *remainder):
         return NodeController(name), remainder
 
