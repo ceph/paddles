@@ -104,6 +104,7 @@ class Job(Base):
                        'running': None,
                        }
 
+        old_status = self.status
         if 'status' in json_data:
             status = json_data.pop('status')
             if status not in self.allowed_statuses:
@@ -121,6 +122,10 @@ class Job(Base):
         else:
             self.update_attr('status', 'unknown')
             self.update_attr('success', None)
+
+        if (self.status is not None and self.status != old_status and
+                self.status not in self.run.status):
+            self.run.set_status()
 
         if len(json_data.get('targets', {})) > len(self.target_nodes):
             # Populate self.target_nodes, creating Node objects if necessary
@@ -151,8 +156,6 @@ class Job(Base):
                 self.update_attr(key, v)
         if self.__changed and 'updated' not in json_data:
             self.updated = datetime.utcnow()
-        if self.job_status_will_change_run_status():
-            self.run.set_status()
 
     def update_attr(self, attr_name, new_value):
         """
@@ -175,16 +178,6 @@ class Job(Base):
         local_dt = datetime.strptime(local_str, '%Y-%m-%d %H:%M:%S')
         utc_dt = local_datetime_to_utc(local_dt)
         self.updated = utc_dt
-
-    def job_status_will_change_run_status(self):
-        # Attempt to determine if the job status will require an updated run
-        # status
-        if self.status is None:
-            return False
-        elif self.status in self.run.status:
-            return False
-        else:
-            return True
 
     def update(self, json_data):
         self.set_or_update(json_data)

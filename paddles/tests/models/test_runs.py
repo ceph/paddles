@@ -142,6 +142,28 @@ class TestRunModel(TestApp):
         Job(dict(job_id=1, status='pass'), new_run)
         assert new_run.status == 'running'
 
+    def test_run_status_running_to_dead(self):
+        run_name = "run_status_running_to_dead"
+        new_run = Run(run_name)
+        jobs = []
+        job_count = 5
+        for i in range(job_count):
+            jobs.append(Job(dict(job_id=i+1, status='running'), new_run))
+        for job in jobs:
+            job.update(dict(status='dead'))
+        assert new_run.status == 'finished dead'
+
+    def test_run_status_dead_to_running(self):
+        run_name = "run_status_dead_to_running"
+        new_run = Run(run_name)
+        jobs = []
+        job_count = 5
+        for i in range(job_count):
+            jobs.append(Job(dict(job_id=i+1, status='dead'), new_run))
+        for job in jobs:
+            job.update(dict(status='running'))
+        assert new_run.status == 'running'
+
     def test_run_status_fail(self):
         run_name = "run_status_fail"
         new_run = Run(run_name)

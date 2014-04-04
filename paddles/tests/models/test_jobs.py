@@ -93,10 +93,8 @@ class TestJobModel(TestApp):
         run = Run(run_name)
         job_id = '27'
         job = Job(dict(name=run_name, job_id=job_id, status='running'), run)
-        print job.status, job.success
         models.commit()
         job.update(dict(success=True))
-        print job.status, job.success
         models.commit()
         assert job.status == 'pass'
 
