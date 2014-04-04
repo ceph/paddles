@@ -98,11 +98,6 @@ class Job(Base):
                       False: 'fail',
                       None: 'unknown',
                       }
-        success_map = {'pass': True,
-                       'fail': False,
-                       'dead': False,
-                       'running': None,
-                       }
 
         old_status = self.status
         if 'status' in json_data:
@@ -114,14 +109,12 @@ class Job(Base):
                 self.update_attr('status', status_map.get(self.success))
             else:
                 self.update_attr('status', status)
-                json_data['success'] = success_map.get(status)
         elif 'success' in json_data:
             success = json_data.pop('success')
             self.update_attr('status', status_map.get(success))
             self.update_attr('success', success)
-        else:
+        elif self.success is None and self.status is None:
             self.update_attr('status', 'unknown')
-            self.update_attr('success', None)
 
         if (self.status is not None and self.status != old_status and
                 self.status not in self.run.status):
