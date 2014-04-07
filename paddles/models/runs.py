@@ -118,6 +118,7 @@ class Run(Base):
                         )
 
     allowed_statuses = ('empty',
+                        'queued',
                         'running',
                         'unknown',
                         'finished pass',
