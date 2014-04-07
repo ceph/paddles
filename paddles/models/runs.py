@@ -110,6 +110,7 @@ class Run(Base):
     branch = Column(String(64), index=True)
     machine_type = Column(String(32), index=True)
     posted = Column(DateTime, index=True)
+    started = Column(DateTime, index=True)
     jobs = relationship('Job',
                         backref=backref('run'),
                         cascade='all,delete',
