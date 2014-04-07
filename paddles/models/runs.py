@@ -140,7 +140,7 @@ class Run(Base):
 
     def __json__(self):
         results = self.get_results()
-        status = self.status
+        status = self.set_status(results)
         return dict(
             name=self.name,
             href=self.href,
@@ -213,12 +213,17 @@ class Run(Base):
             'total': total
         }
 
-    def set_status(self):
+    def set_status(self, results=None):
+        """
+        Calculate the run's status based on the status of its jobs.
+
+        :param results: Not required. The return value from self.get_results().
+        """
         # Possible values for Run.status are:
         #
         # 'empty', 'running', 'finished dead', 'finished fail',
         # 'finished pass', 'unknown'
-        results = self.get_results()
+        results = results or self.get_results()
         if results['total'] == 0:
             self.status = 'empty'
             return self.status
