@@ -109,3 +109,20 @@ class TestJobModel(TestApp):
         job.update(dict(status='dead'))
         models.commit()
         assert job.status == 'pass'
+
+    def test_job_started(self):
+        run_name = 'test_job_started'
+        run = Run(run_name)
+        job_id = '42'
+        job = Job(dict(name=run_name, job_id=job_id, status='queued'), run)
+        job.update(dict(status='running'))
+        assert job.started is not None
+
+    def test_first_job_started_updates_run(self):
+        run_name = 'test_first_job_started_updates_run'
+        run = Run(run_name)
+        job_id = '42'
+        job = Job(dict(name=run_name, job_id=job_id, status='queued'), run)
+        job.update(dict(status='running'))
+        assert run.status == 'running'
+        assert run.started is not None

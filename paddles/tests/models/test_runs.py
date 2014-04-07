@@ -142,6 +142,21 @@ class TestRunModel(TestApp):
         Job(dict(job_id=1, status='pass'), new_run)
         assert new_run.status == 'running'
 
+    def test_run_status_queued(self):
+        run_name = "run_status_queued"
+        new_run = Run(run_name)
+        Job(dict(job_id=1, status='queued'), new_run)
+        Job(dict(job_id=2, status='queued'), new_run)
+        assert new_run.status == 'queued'
+
+    def test_run_status_queued_to_running(self):
+        run_name = "run_status_queued_to_running"
+        new_run = Run(run_name)
+        job = Job(dict(job_id=1, status='queued'), new_run)
+        Job(dict(job_id=2, status='queued'), new_run)
+        job.update(dict(status='running'))
+        assert new_run.status == 'running'
+
     def test_run_status_running_to_dead(self):
         run_name = "run_status_running_to_dead"
         new_run = Run(run_name)
