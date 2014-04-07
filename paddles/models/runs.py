@@ -110,11 +110,21 @@ class Run(Base):
     branch = Column(String(64), index=True)
     machine_type = Column(String(32), index=True)
     posted = Column(DateTime, index=True)
+    started = Column(DateTime, index=True)
     jobs = relationship('Job',
                         backref=backref('run'),
                         cascade='all,delete',
                         lazy='dynamic',
                         order_by='Job.job_id',
+                        )
+
+    allowed_statuses = ('empty',
+                        'queued',
+                        'running',
+                        'unknown',
+                        'finished pass',
+                        'finished dead',
+                        'finished fail',
                         )
 
     def __init__(self, name):
@@ -198,6 +208,7 @@ class Run(Base):
 
     def get_results(self):
         jobs_status = [value[0] for value in self.jobs.values(Job.status)]
+        queued = jobs_status.count('queued')
         passing = jobs_status.count('pass')
         running = jobs_status.count('running')
         fail = jobs_status.count('fail')
@@ -205,6 +216,7 @@ class Run(Base):
         unknown = jobs_status.count(None) + jobs_status.count('unknown')
         total = len(jobs_status)
         return {
+            'queued': queued,
             'pass': passing,
             'running': running,
             'fail': fail,
@@ -219,10 +231,6 @@ class Run(Base):
 
         :param results: Not required. The return value from self.get_results().
         """
-        # Possible values for Run.status are:
-        #
-        # 'empty', 'running', 'finished dead', 'finished fail',
-        # 'finished pass', 'unknown'
         results = results or self.get_results()
         if results['total'] == 0:
             self.status = 'empty'
@@ -232,8 +240,11 @@ class Run(Base):
 
         total = results['total']
 
+        # all queued => queued
+        if results['queued'] == total:
+            new_status = 'queued'
         # any running => running
-        if results['running'] > 0:
+        elif results['running'] > 0:
             new_status = 'running'
         # all dead => dead
         elif results['dead'] == total:
