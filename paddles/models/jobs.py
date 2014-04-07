@@ -82,6 +82,7 @@ class Job(Base):
     allowed_statuses = (
         "pass",
         "fail",
+        "queued",
         "running",
         "dead",
         "unknown",
