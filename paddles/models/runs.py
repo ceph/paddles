@@ -117,6 +117,14 @@ class Run(Base):
                         order_by='Job.job_id',
                         )
 
+    allowed_statuses = ('empty',
+                        'running',
+                        'unknown',
+                        'finished pass',
+                        'finished dead',
+                        'finished fail',
+                        )
+
     def __init__(self, name):
         self.name = name
         self.posted = datetime.utcnow()
@@ -219,10 +227,6 @@ class Run(Base):
 
         :param results: Not required. The return value from self.get_results().
         """
-        # Possible values for Run.status are:
-        #
-        # 'empty', 'running', 'finished dead', 'finished fail',
-        # 'finished pass', 'unknown'
         results = results or self.get_results()
         if results['total'] == 0:
             self.status = 'empty'
