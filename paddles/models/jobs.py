@@ -22,6 +22,7 @@ class Job(Base):
     __tablename__ = 'jobs'
     id = Column(Integer, primary_key=True)
     posted = Column(DateTime, index=True)
+    started = Column(DateTime, index=True)
     updated = Column(DateTime, index=True)
     run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
     status = Column(String(32), index=True)
@@ -101,6 +102,7 @@ class Job(Base):
                       }
 
         old_status = self.status
+        old_run_status = self.run.status
         if 'status' in json_data:
             status = json_data.pop('status')
             if status not in self.allowed_statuses:
@@ -116,6 +118,11 @@ class Job(Base):
             self.update_attr('success', success)
         elif self.success is None and self.status is None:
             self.update_attr('status', 'unknown')
+
+        if old_status == 'queued' and self.status == 'running':
+            self.started = datetime.utcnow()
+            if old_run_status == 'queued':
+                self.run.started = self.started
 
         if (self.status is not None and self.status != old_status and
                 self.status not in self.run.status):
