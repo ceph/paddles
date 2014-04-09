@@ -160,6 +160,7 @@ class Run(Base):
             jobs_count=results['total'],
             posted=self.posted,
             scheduled=self.scheduled,
+            started=self.started,
             branch=self.branch,
             suite=self.suite,
             machine_type=self.machine_type,
