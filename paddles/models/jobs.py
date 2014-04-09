@@ -126,7 +126,7 @@ class Job(Base):
                 self.status not in self.run.status):
             self.run.set_status()
 
-        if old_run_status == 'queued' and self.run.status == 'running':
+        if old_run_status != 'running' and self.run.status == 'running':
             self.run.started = self.started
 
         if len(json_data.get('targets', {})) > len(self.target_nodes):
