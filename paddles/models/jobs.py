@@ -119,14 +119,15 @@ class Job(Base):
         elif self.success is None and self.status is None:
             self.update_attr('status', 'unknown')
 
-        if old_status == 'queued' and self.status == 'running':
+        if old_status in (None, 'queued') and self.status == 'running':
             self.started = datetime.utcnow()
-            if old_run_status == 'queued':
-                self.run.started = self.started
 
         if (self.status is not None and self.status != old_status and
                 self.status not in self.run.status):
             self.run.set_status()
+
+        if old_run_status == 'queued' and self.run.status == 'running':
+            self.run.started = self.started
 
         if len(json_data.get('targets', {})) > len(self.target_nodes):
             # Populate self.target_nodes, creating Node objects if necessary
@@ -203,7 +204,7 @@ class Job(Base):
         json_ = dict(
             log_href=self.log_href
         )
-        for key in self.allowed_keys + ('posted', 'updated'):
+        for key in self.allowed_keys + ('posted', 'started', 'updated'):
             json_[key] = getattr(self, key)
 
         return json_
