@@ -161,6 +161,7 @@ class Run(Base):
             posted=self.posted,
             scheduled=self.scheduled,
             started=self.started,
+            updated=self.updated,
             branch=self.branch,
             suite=self.suite,
             machine_type=self.machine_type,
