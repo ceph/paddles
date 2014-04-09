@@ -153,11 +153,13 @@ class Job(Base):
                 v = v[0]
             elif key == 'updated':
                 self.set_updated(v)
+                self.run.updated = self.updated
                 continue
             if key in self.allowed_keys:
                 self.update_attr(key, v)
         if self.__changed and 'updated' not in json_data:
             self.updated = datetime.utcnow()
+            self.run.updated = self.updated
 
     def update_attr(self, attr_name, new_value):
         """

@@ -111,6 +111,7 @@ class Run(Base):
     machine_type = Column(String(32), index=True)
     posted = Column(DateTime, index=True)
     started = Column(DateTime, index=True)
+    updated = Column(DateTime, index=True)
     jobs = relationship('Job',
                         backref=backref('run'),
                         cascade='all,delete',
@@ -197,7 +198,7 @@ class Run(Base):
         return by_desc
 
     @property
-    def updated(self):
+    def _updated(self):
         if self.jobs.count():
             last_updated_job = self.jobs.order_by(Job.updated)[-1]
             return last_updated_job.updated
