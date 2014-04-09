@@ -110,8 +110,22 @@ class TestJobModel(TestApp):
         models.commit()
         assert job.status == 'pass'
 
-    def test_job_started(self):
-        run_name = 'test_job_started'
+    def test_job_not_started(self):
+        run_name = 'test_job_started_running'
+        run = Run(run_name)
+        job_id = '42'
+        job = Job(dict(name=run_name, job_id=job_id, status='queued'), run)
+        assert job.started is None
+
+    def test_job_started_running(self):
+        run_name = 'test_job_started_running'
+        run = Run(run_name)
+        job_id = '42'
+        job = Job(dict(name=run_name, job_id=job_id, status='running'), run)
+        assert job.started is not None
+
+    def test_job_started_queued(self):
+        run_name = 'test_job_started_queued'
         run = Run(run_name)
         job_id = '42'
         job = Job(dict(name=run_name, job_id=job_id, status='queued'), run)
