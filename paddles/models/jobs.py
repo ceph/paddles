@@ -28,7 +28,7 @@ class Job(Base):
     status = Column(String(32), index=True)
 
     archive_path = Column(String(512))
-    description = Column(String(512))
+    description = Column(Text)
     duration = Column(Integer)
     email = Column(String(128))
     failure_reason = Column(Text)
