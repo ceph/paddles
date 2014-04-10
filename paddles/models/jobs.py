@@ -172,6 +172,8 @@ class Job(Base):
         if getattr(self, attr_name) != new_value:
             setattr(self, attr_name, new_value)
             self.__changed = True
+        elif attr_name == 'status' and new_value == 'running':
+            self.__changed = True
 
     def set_updated(self, local_str):
         """
