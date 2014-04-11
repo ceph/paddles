@@ -68,6 +68,7 @@ class RunController(object):
         if not self.run:
             error('/errors/not_found/',
                   'attempted to delete a non-existent run')
+        log.info("Deleting run: %r", self.run)
         self.run.delete()
         return dict()
 

@@ -199,7 +199,7 @@ class Job(Base):
 
     def __repr__(self):
         try:
-            return '<Job %r>' % self.job_id
+            return '<Job %r %r>' % (self.name, self.job_id)
         except DetachedInstanceError:
             return '<Job detached>'
 
