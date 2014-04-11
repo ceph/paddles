@@ -1,3 +1,4 @@
+import logging
 import datetime
 from sqlalchemy import Date, cast
 
@@ -7,6 +8,7 @@ from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.controllers import error
 
+log = logging.getLogger(__name__)
 
 date_format = '%Y-%m-%d'
 datetime_format = '%Y-%m-%d_%H:%M:%S'
@@ -275,6 +277,7 @@ class RunsController(object):
         if not name:
             error('/errors/invalid/', "could not find required key: 'name'")
         if not Run.query.filter_by(name=name).first():
+            log.info("Creating run: %s", name)
             Run(name)
             return dict()
         else:

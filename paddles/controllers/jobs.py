@@ -1,7 +1,10 @@
+import logging
 from pecan import expose, abort, request
 from paddles import models
 from paddles.models import Job
 from paddles.controllers import error
+
+log = logging.getLogger(__name__)
 
 
 class JobController(object):
@@ -67,6 +70,7 @@ class JobsController(object):
             error('/errors/invalid/',
                   'there are %s runs with that name!' % run_q.count())
         elif run_q.count() == 0:
+            log.info("Creating run: %s", run_name)
             run = models.Run(run_name)
             return run
 
@@ -102,6 +106,8 @@ class JobsController(object):
             error('/errors/invalid/',
                   "job with job_id %s already exists" % job_id)
         else:
+            log.info("Creating job: %s %s", data.get('name', '<no name!>'),
+                     job_id)
             self.job = Job(data, self.run)
         return dict()
 
