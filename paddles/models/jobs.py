@@ -122,8 +122,7 @@ class Job(Base):
         if old_status in (None, 'queued') and self.status == 'running':
             self.started = datetime.utcnow()
 
-        if (self.status is not None and self.status != old_status and
-                self.status not in self.run.status):
+        if self.status != old_status:
             self.run.set_status()
 
         if old_run_status != 'running' and self.run.status == 'running':
