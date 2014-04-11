@@ -43,7 +43,11 @@ class JobController(object):
                 '/errors/not_found/',
                 'attempted to update a non-existent job'
             )
+        old_job_status = self.job.status
         self.job.update(request.json)
+        if self.job.status != old_job_status:
+            log.info("Job %s %s status changed from %s to %s", self.job.name,
+                     self.job.job_id, old_job_status, self.job.status)
         return dict()
 
     @index.when(method='DELETE', template='json')
