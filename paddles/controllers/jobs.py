@@ -56,7 +56,9 @@ class JobController(object):
             error('/errors/not_found/',
                   'attempted to delete a non-existent job')
         log.info("Deleting job %r", self.job)
+        run = self.job.run
         self.job.delete()
+        run.set_status()
         return dict()
 
 
