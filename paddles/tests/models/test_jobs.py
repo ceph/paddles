@@ -140,3 +140,13 @@ class TestJobModel(TestApp):
         job.update(dict(status='running'))
         assert run.status == 'running'
         assert run.started is not None
+
+    def test_delete_empties_run(self):
+        new_run = Run('test_delete_empties_run')
+        new_job = Job(dict(job_id='42', status='queued'), new_run)
+        models.commit()
+        assert new_run.status == 'queued'
+        new_job.delete()
+        models.commit()
+        new_run_copy = Run.query.filter(Run.name == new_run.name).one()
+        assert not new_run_copy.status == 'empty'

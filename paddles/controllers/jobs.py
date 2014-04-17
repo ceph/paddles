@@ -1,7 +1,7 @@
 import logging
 from pecan import expose, abort, request
 from paddles import models
-from paddles.models import Job
+from paddles.models import Job, rollback
 from paddles.controllers import error
 
 log = logging.getLogger(__name__)
@@ -89,6 +89,7 @@ class JobsController(object):
             try:
                 return [job.slice(fields) for job in jobs]
             except AttributeError:
+                rollback()
                 error('/errors/invalid/',
                       'an invalid field was specified')
         else:
@@ -103,6 +104,7 @@ class JobsController(object):
             data = request.json
             job_id = data.get('job_id')
         except ValueError:
+            rollback()
             error('/errors/invalid/', 'could not decode JSON body')
         # we allow empty data to be pushed
         if not job_id:

@@ -1,6 +1,6 @@
 from pecan import abort, expose, request
 from paddles.controllers import error
-from paddles.models import Job, Node, Session
+from paddles.models import Job, Node, Session, rollback
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 from collections import OrderedDict
@@ -26,6 +26,7 @@ class NodesController(object):
             data = request.json
             name = data.get('name')
         except ValueError:
+            rollback()
             error('/errors/invalid/', 'could not decode JSON body')
         # we allow empty data to be pushed
         if not name:

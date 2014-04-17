@@ -3,7 +3,7 @@ import datetime
 from sqlalchemy import Date, cast
 
 from pecan import abort, conf, expose, request
-from paddles.models import Run
+from paddles.models import Run, rollback
 from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.controllers import error
@@ -22,6 +22,7 @@ def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1):
         try:
             return [run.slice(fields) for run in runs]
         except AttributeError:
+            rollback()
             error('/errors/invalid/',
                   'an invalid field was specified')
     return [run for run in runs]
@@ -45,6 +46,7 @@ def date_from_string(date_str, out_fmt=datetime_format, hours='00:00:00'):
 
             return (date, date_str)
         except ValueError:
+            rollback()
             error('/errors/invalid/', 'date format must match %s' %
                   date_format)
 
@@ -274,6 +276,7 @@ class RunsController(object):
         try:
             name = request.json.get('name')
         except ValueError:
+            rollback()
             error('/errors/invalid/', 'could not decode JSON body')
         if not name:
             error('/errors/invalid/', "could not find required key: 'name'")
