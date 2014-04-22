@@ -117,7 +117,9 @@ class JobsController(object):
             error('/errors/invalid/', "could not find required key: 'job_id'")
         job_id = data['job_id'] = str(job_id)
 
-        if Job.filter_by(job_id=job_id, run=self.run).first():
+        query = Job.query.options(load_only('id', 'job_id'))
+        query = query.filter_by(job_id=job_id, run=self.run)
+        if query.first():
             error('/errors/invalid/',
                   "job with job_id %s already exists" % job_id)
         else:
