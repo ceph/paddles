@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
                         Table, Text)
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, deferred
 from sqlalchemy.orm.exc import DetachedInstanceError
 from pecan import conf
 from paddles.models import Base
@@ -28,28 +28,28 @@ class Job(Base):
     status = Column(String(32), index=True)
 
     archive_path = Column(String(512))
-    description = Column(Text)
+    description = deferred(Column(Text))
     duration = Column(Integer)
     email = Column(String(128))
-    failure_reason = Column(Text)
+    failure_reason = deferred(Column(Text))
     flavor = Column(String(128))
     job_id = Column(String(32), index=True)
-    kernel = Column(JSONType())
+    kernel = deferred(Column(JSONType()))
     last_in_suite = Column(Boolean())
     machine_type = Column(String(32))
     name = Column(String(512))
     nuke_on_error = Column(Boolean())
     os_type = Column(String(32))
-    overrides = Column(JSONType())
+    overrides = deferred(Column(JSONType()))
     owner = Column(String(128))
     pid = Column(String(32))
-    roles = Column(JSONType())
+    roles = deferred(Column(JSONType()))
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
-    targets = Column(JSONType())
+    targets = deferred(Column(JSONType()))
     target_nodes = relationship("Node", secondary=job_nodes_table,
                                 backref=backref('jobs'))
-    tasks = Column(JSONType())
+    tasks = deferred(Column(JSONType()))
     teuthology_branch = Column(String(32))
     verbose = Column(Boolean())
 
