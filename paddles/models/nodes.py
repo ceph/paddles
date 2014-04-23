@@ -11,7 +11,7 @@ class Node(Base):
     __tablename__ = 'nodes'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(256), nullable=False, unique=True)
+    name = Column(String(256), nullable=False, unique=True, index=True)
     description = Column(Text)
     up = Column(Boolean(), index=True)
 
