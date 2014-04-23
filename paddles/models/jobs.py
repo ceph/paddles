@@ -1,8 +1,8 @@
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
                         Table, Text)
-from sqlalchemy.orm import relationship, backref, deferred
-from sqlalchemy.orm.exc import DetachedInstanceError
+from sqlalchemy.orm import backref, deferred, load_only, relationship
+from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 from pecan import conf
 from paddles.models import Base
 from paddles.models.nodes import Node
@@ -133,10 +133,11 @@ class Job(Base):
             targets = json_data['targets']
             for target_key in targets.keys():
                 hostname = target_key.split('@')[1]
-                node_q = Node.query.filter(Node.name == hostname)
-                if node_q.count():
+                node_q = Node.query.options(load_only('id', 'name'))\
+                    .filter(Node.name == hostname)
+                try:
                     node = node_q.one()
-                else:
+                except NoResultFound:
                     node = Node(name=hostname)
                     mtype = json_data.get('machine_type', '')
                     if mtype and mtype in Node.machine_types:
