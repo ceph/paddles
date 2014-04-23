@@ -2,7 +2,7 @@ from pecan import abort, expose, request
 from paddles.controllers import error
 from paddles.models import Job, Node, Session, rollback
 from sqlalchemy import func
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, load_only
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
@@ -89,7 +89,9 @@ class NodesController(object):
 class NodeController(object):
     def __init__(self, name):
         self.name = name
-        self.node = Node.query.filter_by(name=name).first()
+        node_q = Node.query.options(load_only('id', 'name'))\
+            .filter(Node.name == name)
+        self.node = node_q.first()
         request.context['node_name'] = self.name
 
     @expose(generic=True, template='json')
