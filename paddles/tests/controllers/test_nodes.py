@@ -22,8 +22,8 @@ class TestNodesController(TestApp):
         response = self.app.get('/runs/{name}/jobs/{id}/'.format(
             name=run_name, id=job_id))
         response = self.app.get('/nodes/')
-        target_names = [node['name'] for node in response.json]
-        assert sorted(target_names) == sorted(target_names)
+        got_target_names = [node['name'] for node in response.json]
+        assert sorted(got_target_names) == sorted(target_names)
 
     def test_job_stats(self):
         run_name = 'job_stats'
