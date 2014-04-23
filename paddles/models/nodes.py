@@ -16,10 +16,10 @@ class Node(Base):
     up = Column(Boolean(), index=True)
 
     machine_type = Column(String(32), index=True)
-    arch = Column(String(16), index=True)
+    arch = Column(String(16))
     is_vm = Column(Boolean(), nullable=False, default=False)
 
-    distro = Column(String(32), index=True)
+    distro = Column(String(32))
     vm_host = relationship("Node",
                            backref=backref('vm_guests'),
                            remote_side='Node.id',
@@ -29,7 +29,7 @@ class Node(Base):
 
     locked = Column(Boolean(), nullable=False, default=False, index=True)
     locked_by = Column(String(64), index=True)
-    locked_since = Column(DateTime, index=True)
+    locked_since = Column(DateTime)
 
     mac_address = Column(String(17))
     ssh_pub_key = Column(Text)

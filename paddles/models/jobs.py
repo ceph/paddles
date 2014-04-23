@@ -24,7 +24,7 @@ class Job(Base):
     posted = Column(DateTime, index=True)
     started = Column(DateTime, index=True)
     updated = Column(DateTime, index=True)
-    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'), index=True)
     status = Column(String(32), index=True)
 
     archive_path = Column(String(512))
