@@ -81,11 +81,12 @@ class TestJobModel(TestApp):
         run_name = 'test_job_adds_node'
         node_name = 'added_node'
         assert Node.query.filter(Node.name == node_name).all() == []
-        Node(name=node_name)
+        node = Node(name=node_name)
         targets = {'foo@' + node_name: ''}
         new_run = Run(run_name)
-        Job(dict(targets=targets), new_run)
+        job = Job(dict(targets=targets), new_run)
         assert Node.query.filter(Node.name == node_name).one()
+        assert Job.query.filter(Job.target_nodes.contains(node)).one() == job
 
     def test_force_updated_time(self):
         run_name = 'test_force_updated_time'

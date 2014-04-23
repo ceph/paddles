@@ -24,7 +24,8 @@ class Job(Base):
     posted = Column(DateTime, index=True)
     started = Column(DateTime, index=True)
     updated = Column(DateTime, index=True)
-    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'), index=True)
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'),
+                    index=True)
     status = Column(String(32), index=True)
 
     archive_path = Column(String(512))
@@ -48,7 +49,7 @@ class Job(Base):
     success = Column(Boolean(), index=True)
     targets = deferred(Column(JSONType()))
     target_nodes = relationship("Node", secondary=job_nodes_table,
-                                backref=backref('jobs'))
+                                backref=backref('jobs'), lazy='dynamic')
     tasks = deferred(Column(JSONType()))
     teuthology_branch = Column(String(32))
     verbose = Column(Boolean())
@@ -128,7 +129,8 @@ class Job(Base):
         if old_run_status != 'running' and self.run.status == 'running':
             self.run.started = self.started
 
-        if len(json_data.get('targets', {})) > len(self.target_nodes):
+        target_nodes_q = self.target_nodes.options(load_only('id', 'name'))
+        if len(json_data.get('targets', {})) > len(target_nodes_q.all()):
             # Populate self.target_nodes, creating Node objects if necessary
             targets = json_data['targets']
             for target_key in targets.keys():
