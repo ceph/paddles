@@ -1,8 +1,8 @@
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
                         Table, Text)
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.orm.exc import DetachedInstanceError
+from sqlalchemy.orm import backref, deferred, load_only, relationship
+from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 from pecan import conf
 from paddles.models import Base
 from paddles.models.nodes import Node
@@ -12,8 +12,10 @@ from paddles.util import local_datetime_to_utc
 job_nodes_table = Table(
     'job_nodes',
     Base.metadata,
-    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True),
-    Column('job_id', Integer, ForeignKey('jobs.id'), primary_key=True)
+    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True,
+           index=True),
+    Column('job_id', Integer, ForeignKey('jobs.id'), primary_key=True,
+           index=True)
 )
 
 
@@ -24,32 +26,33 @@ class Job(Base):
     posted = Column(DateTime, index=True)
     started = Column(DateTime, index=True)
     updated = Column(DateTime, index=True)
-    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'))
+    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'),
+                    index=True)
     status = Column(String(32), index=True)
 
     archive_path = Column(String(512))
-    description = Column(Text)
+    description = deferred(Column(Text))
     duration = Column(Integer)
     email = Column(String(128))
-    failure_reason = Column(Text)
+    failure_reason = deferred(Column(Text))
     flavor = Column(String(128))
     job_id = Column(String(32), index=True)
-    kernel = Column(JSONType())
+    kernel = deferred(Column(JSONType()))
     last_in_suite = Column(Boolean())
     machine_type = Column(String(32))
     name = Column(String(512))
     nuke_on_error = Column(Boolean())
     os_type = Column(String(32))
-    overrides = Column(JSONType())
+    overrides = deferred(Column(JSONType()))
     owner = Column(String(128))
     pid = Column(String(32))
-    roles = Column(JSONType())
+    roles = deferred(Column(JSONType()))
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
-    targets = Column(JSONType())
+    targets = deferred(Column(JSONType()))
     target_nodes = relationship("Node", secondary=job_nodes_table,
-                                backref=backref('jobs'))
-    tasks = Column(JSONType())
+                                backref=backref('jobs'), lazy='dynamic')
+    tasks = deferred(Column(JSONType()))
     teuthology_branch = Column(String(32))
     verbose = Column(Boolean())
 
@@ -128,15 +131,17 @@ class Job(Base):
         if old_run_status != 'running' and self.run.status == 'running':
             self.run.started = self.started
 
-        if len(json_data.get('targets', {})) > len(self.target_nodes):
+        target_nodes_q = self.target_nodes.options(load_only('id', 'name'))
+        if len(json_data.get('targets', {})) > len(target_nodes_q.all()):
             # Populate self.target_nodes, creating Node objects if necessary
             targets = json_data['targets']
             for target_key in targets.keys():
                 hostname = target_key.split('@')[1]
-                node_q = Node.query.filter(Node.name == hostname)
-                if node_q.count():
+                node_q = Node.query.options(load_only('id', 'name'))\
+                    .filter(Node.name == hostname)
+                try:
                     node = node_q.one()
-                else:
+                except NoResultFound:
                     node = Node(name=hostname)
                     mtype = json_data.get('machine_type', '')
                     if mtype and mtype in Node.machine_types:

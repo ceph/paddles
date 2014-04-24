@@ -1,5 +1,8 @@
 import logging
+from sqlalchemy.orm import load_only
+
 from pecan import expose, abort, request
+
 from paddles import models
 from paddles.models import Job, rollback
 from paddles.controllers import error
@@ -24,7 +27,10 @@ class JobController(object):
                       run_q.count())
             else:
                 self.run = None
-        self.job = Job.filter_by(job_id=job_id, run=self.run).first()
+
+        query = Job.query.options(load_only('id', 'job_id', 'name', 'status'))
+        query = query.filter_by(job_id=job_id, run=self.run)
+        self.job = query.first()
 
     @expose(generic=True, template='json')
     def index(self):
@@ -111,7 +117,9 @@ class JobsController(object):
             error('/errors/invalid/', "could not find required key: 'job_id'")
         job_id = data['job_id'] = str(job_id)
 
-        if Job.filter_by(job_id=job_id, run=self.run).first():
+        query = Job.query.options(load_only('id', 'job_id'))
+        query = query.filter_by(job_id=job_id, run=self.run)
+        if query.first():
             error('/errors/invalid/',
                   "job with job_id %s already exists" % job_id)
         else:
