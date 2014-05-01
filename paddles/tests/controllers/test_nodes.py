@@ -59,6 +59,16 @@ class TestNodesController(TestApp):
         got_types = sorted([n['machine_type'] for n in response.json])
         assert got_types == wanted_types
 
+    def test_query_locked_by(self):
+        self.app.post_json('/nodes/',
+                           dict(name='node1', locked=True, locked_by='gal'))
+        self.app.post_json('/nodes/',
+                           dict(name='node2', locked=True, locked_by='gal'))
+        self.app.put_json('/nodes/node1/',
+                          dict(locked=True, locked_by='guy'))
+        response = self.app.get('/nodes/?locked_by=guy')
+        assert response.json[-1]['name'] == 'node1'
+
 
 class TestNodeController(TestApp):
 

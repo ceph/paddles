@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 class NodesController(object):
     @expose(generic=True, template='json')
-    def index(self, locked=None, machine_type=''):
+    def index(self, locked=None, machine_type='', locked_by=None):
         query = Node.query
         if locked is not None:
             query = query.filter(Node.locked == locked)
@@ -19,6 +19,8 @@ class NodesController(object):
                 query = query.filter(Node.machine_type.in_(machine_types))
             else:
                 query = query.filter(Node.machine_type == machine_type)
+        if locked_by:
+            query = query.filter(Node.locked_by == locked_by)
         return [node.__json__() for node in query.all()]
 
     @index.when(method='POST', template='json')
