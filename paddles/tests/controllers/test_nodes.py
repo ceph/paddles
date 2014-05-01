@@ -49,6 +49,16 @@ class TestNodesController(TestApp):
         response = self.app.get('/nodes/{name}/'.format(name=node_name))
         assert response.json['name'] == node_name
 
+    def test_multiple_machine_types(self):
+        self.app.post_json('/nodes/', dict(name='node1', machine_type='type1'))
+        self.app.post_json('/nodes/', dict(name='node2', machine_type='type2'))
+        self.app.post_json('/nodes/', dict(name='node3', machine_type='type3'))
+        self.app.post_json('/nodes/', dict(name='node4', machine_type='type4'))
+        response = self.app.get('/nodes/?machine_type=type1|type2|type4')
+        wanted_types = ['type1', 'type2', 'type4']
+        got_types = sorted([n['machine_type'] for n in response.json])
+        assert got_types == wanted_types
+
 
 class TestNodeController(TestApp):
 

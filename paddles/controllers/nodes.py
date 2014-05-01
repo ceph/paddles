@@ -14,7 +14,11 @@ class NodesController(object):
         if locked is not None:
             query = query.filter(Node.locked == locked)
         if machine_type:
-            query = query.filter(Node.machine_type == machine_type)
+            if '|' in machine_type:
+                machine_types = machine_type.split('|')
+                query = query.filter(Node.machine_type.in_(machine_types))
+            else:
+                query = query.filter(Node.machine_type == machine_type)
         return [node.__json__() for node in query.all()]
 
     @index.when(method='POST', template='json')
