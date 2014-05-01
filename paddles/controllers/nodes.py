@@ -108,7 +108,7 @@ class NodeController(object):
         return json_node
 
     @index.when(method='PUT', template='json')
-    def index_post(self):
+    def index_put(self):
         """
         Update the Node object here
         """
