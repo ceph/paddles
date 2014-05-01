@@ -161,3 +161,13 @@ class TestJobModel(TestApp):
         models.commit()
         new_run_copy = Run.query.filter(Run.name == new_run.name).one()
         assert not new_run_copy.status == 'empty'
+
+    def test_run_suite_gets_corrected(self):
+        run_name = 'teuthology-2014-05-01_07:54:18-new-suite-name:new-subsuite:new-subsub-new-branch-testing-basic-plana'  # noqa
+        suite_name = 'new-suite-name:new-subsuite:new-subsub'
+        branch_name = 'new-branch'
+        new_run = Run(run_name)
+        Job(dict(job_id='11', suite=suite_name, branch=branch_name), new_run)
+        models.commit()
+        assert new_run.suite == suite_name
+        assert new_run.branch == branch_name
