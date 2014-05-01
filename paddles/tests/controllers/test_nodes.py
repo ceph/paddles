@@ -100,6 +100,24 @@ class TestNodeController(TestApp):
         response = self.app.get('/nodes/{name}/'.format(name=node_name))
         assert response.json['locked'] is True
 
+    def test_lock(self):
+        node_name = 'kittens'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=False))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=True, locked_by='me'))
+        assert response.json['locked'] is True and \
+            response.json['locked_by'] == 'me'
+
+    def test_double_lock(self):
+        node_name = 'kittens'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=True))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=True, locked_by='me'),
+            expect_errors=True)
+        assert response.status_int == 403
+
     def test_post_junk(self):
         response = self.app.post_json('/nodes/', dict(), expect_errors=True)
         assert response.status_int == 400

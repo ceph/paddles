@@ -120,6 +120,29 @@ class NodeController(object):
         self.node.update(request.json)
         return dict()
 
+    @expose(generic=True, template='json')
+    def lock(self):
+        error(
+            '/errors/invalid/',
+            'this URL only makes sense as a PUT request'
+            )
+
+    @lock.when(method='PUT', template='json')
+    def lock_put(self):
+        node_dict = request.json
+        if not self.node:
+            error(
+                '/errors/not_found/',
+                'attempted to lock a non-existent node'
+            )
+        elif self.node.locked and node_dict.get('locked', False) is True:
+            error(
+                '/errors/forbidden/',
+                'attempted to lock a locked node'
+            )
+        self.node.update(node_dict)
+        return self.node.__json__()
+
     @expose('json')
     def jobs(self, name='', status='', count=0):
         if not self.node:
