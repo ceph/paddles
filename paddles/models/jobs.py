@@ -159,6 +159,10 @@ class Job(Base):
                 self.set_updated(v)
                 self.run.updated = self.updated
                 continue
+            # Correct a potentially-incorrect Run.suite value - we started
+            # putting the suite name in the job config on 5/1/2014
+            elif key == 'suite' and self.run.suite != v:
+                self.run.suite = v
             if key in self.allowed_keys:
                 self.update_attr(key, v)
         if self.__changed and 'updated' not in json_data:
