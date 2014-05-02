@@ -100,6 +100,14 @@ class TestNodeController(TestApp):
         response = self.app.get('/nodes/{name}/'.format(name=node_name))
         assert response.json['locked'] is True
 
+    def test_check(self):
+        node_name = 'crabs'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=False))
+        response = self.app.get(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=True, locked_by='me'))
+        assert response.json['locked'] is False
+
     def test_lock(self):
         node_name = 'kittens'
         self.app.post_json('/nodes/', dict(name=node_name, locked=False))
@@ -109,6 +117,14 @@ class TestNodeController(TestApp):
         assert response.json['locked'] is True and \
             response.json['locked_by'] == 'me'
 
+    def test_lock_no_owner(self):
+        node_name = 'kittens'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=False))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=True), expect_errors=True)
+        assert response.status_int == 400
+
     def test_double_lock(self):
         node_name = 'kittens'
         self.app.post_json('/nodes/', dict(name=node_name, locked=True))
@@ -116,6 +132,24 @@ class TestNodeController(TestApp):
             '/nodes/{name}/lock'.format(name=node_name),
             dict(locked=True, locked_by='me'),
             expect_errors=True)
+        assert response.status_int == 403
+
+    def test_unlock(self):
+        node_name = 'ferrets'
+        self.app.post_json('/nodes/',
+                           dict(name=node_name, locked=True, locked_by='me'))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=False, locked_by='me'))
+        assert response.json['locked'] is False and \
+            response.json['locked_by'] == 'me'
+
+    def test_unlock_different_owner(self):
+        node_name = 'minnows'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=True))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=False, locked_by='me'), expect_errors=True)
         assert response.status_int == 403
 
     def test_post_junk(self):

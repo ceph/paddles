@@ -122,25 +122,42 @@ class NodeController(object):
 
     @expose(generic=True, template='json')
     def lock(self):
-        error(
-            '/errors/invalid/',
-            'this URL only makes sense as a PUT request'
-            )
+        if request.method == 'PUT':
+            node_dict = request.json
+        else:
+            node_dict = dict()
+        verb_dict = {False: 'unlock', True: 'lock', None: 'check'}
+        verb = verb_dict[node_dict.get('locked')]
+        owner = node_dict.get('locked_by')
 
-    @lock.when(method='PUT', template='json')
-    def lock_put(self):
-        node_dict = request.json
         if not self.node:
             error(
                 '/errors/not_found/',
-                'attempted to lock a non-existent node'
+                'attempted to {verb} a non-existent node'.format(
+                    verb=verb
+                )
             )
-        elif self.node.locked and node_dict.get('locked', False) is True:
+        elif 'lock' in verb and not owner:
+            error(
+                '/errors/invalid',
+                'cannot {verb} without specifying locked_by'
+            )
+        elif self.node.locked and verb == 'locked':
             error(
                 '/errors/forbidden/',
                 'attempted to lock a locked node'
             )
-        self.node.update(node_dict)
+        elif 'lock' in verb and self.node.locked and \
+                owner != self.node.locked_by:
+            error(
+                '/errors/forbidden/',
+                'cannot {verb}; owners do not match'.format(
+                    verb=verb
+                )
+            )
+
+        if request.method == 'PUT':
+            self.node.update(node_dict)
         return self.node.__json__()
 
     @expose('json')
