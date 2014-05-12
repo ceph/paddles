@@ -52,7 +52,7 @@ class JobController(object):
         old_job_status = self.job.status
         self.job.update(request.json)
         if self.job.status != old_job_status:
-            log.info("Job %s %s status changed from %s to %s", self.job.name,
+            log.info("Job %s/%s status changed from %s to %s", self.job.name,
                      self.job.job_id, old_job_status, self.job.status)
         return dict()
 
@@ -123,7 +123,7 @@ class JobsController(object):
             error('/errors/invalid/',
                   "job with job_id %s already exists" % job_id)
         else:
-            log.info("Creating job: %s %s", data.get('name', '<no name!>'),
+            log.info("Creating job: %s/%s", data.get('name', '<no name!>'),
                      job_id)
             self.job = Job(data, self.run)
         return dict()
