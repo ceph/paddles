@@ -6,6 +6,9 @@ from sqlalchemy.orm import aliased, load_only
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class NodesController(object):
     @expose(generic=True, template='json')
@@ -45,6 +48,63 @@ class NodesController(object):
             self.node = Node(name=name)
             self.node.update(data)
         return dict()
+
+    @expose(generic=True, template='json')
+    def lock_many(self):
+        error('/errors/invalid/',
+              "this URI only supports POST requests")
+
+    @lock_many.when(method='POST', template='json')
+    def lock_many_post(self):
+        req = request.json
+        fields = ['count', 'locked_by', 'machine_type', 'description']
+        if sorted(req.keys()) != sorted(fields):
+            error('/errors/invalid/',
+                  "must pass these fields: %s" % ', '.join(fields))
+
+        req['locked'] = True
+
+        count = req.pop('count', 0)
+        if count < 1:
+            error('/errors/invalid/',
+                  "cannot lock less than 1 node")
+
+        machine_type = req.pop('machine_type', None)
+        if not machine_type:
+            error('/errors/invalid/',
+                  "must specify machine_type")
+
+        query = Node.query
+        query = query.filter(Node.machine_type == machine_type)
+        query = query.filter(Node.up.is_(True))
+
+        # First, try to recycle a user's already-locked nodes if description
+        # matches. In this case we don't care if the nodes are locked or not.
+        locked_by = req.get('locked_by')
+        description = req.get('description')
+        recycle_q = query.filter(Node.locked_by == locked_by)
+        recycle_q = recycle_q.filter(Node.description == description)
+        recycle_q = recycle_q.limit(count)
+        nodes = recycle_q.all()
+        nodes_avail = len(nodes)
+        if nodes_avail == count:
+            return nodes
+
+        # Find unlocked nodes
+        query = query.filter(Node.locked.is_(False))
+        query = query.limit(count)
+        nodes = query.all()
+        nodes_avail = len(nodes)
+        if nodes_avail < count:
+            # What do here? Error? Return empty list?
+            error('/errors/unavailable/',
+                  "only {count} nodes available".format(count=nodes_avail))
+            return []
+
+        for node in nodes:
+            node.update(req)
+
+        return [node for node in nodes]
 
     @expose('json')
     def job_stats(self, machine_type='', since_days=14):
