@@ -88,6 +88,8 @@ class NodesController(object):
         nodes = recycle_q.all()
         nodes_avail = len(nodes)
         if nodes_avail == count:
+            log.info("Re-using {count} locks for {locked_by}".format(
+                count=count, locked_by=locked_by))
             return nodes
 
         # Find unlocked nodes
@@ -102,6 +104,8 @@ class NodesController(object):
             return []
 
         for node in nodes:
+            log.info("Locking {count} nodes for {locked_by}".format(
+                count=count, locked_by=locked_by))
             node.update(req)
 
         return [node for node in nodes]
@@ -217,6 +221,10 @@ class NodeController(object):
             )
 
         if request.method == 'PUT':
+            if 'lock' in verb:
+                word = dict(lock='Locking', unlock='Unlocking')[verb]
+            log.info("{word} {node} for {owner}".format(
+                word=word, node=self.node, owner=owner))
             self.node.update(node_dict)
         return self.node.__json__()
 
