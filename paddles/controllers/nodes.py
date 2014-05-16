@@ -167,7 +167,10 @@ class NodeController(object):
     @expose(generic=True, template='json')
     def index(self):
         if not self.node:
-            abort(404)
+            error(
+                '/errors/not_found/',
+                'node not found'
+            )
         json_node = self.node.__json__()
         return json_node
 
