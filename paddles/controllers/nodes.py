@@ -219,7 +219,7 @@ class NodeController(object):
                 owner != self.node.locked_by:
             error(
                 '/errors/forbidden/',
-                'cannot {verb}; owners do not match'.format(
+                'cannot {verb} - owners do not match'.format(
                     verb=verb
                 )
             )
