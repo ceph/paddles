@@ -71,6 +71,7 @@ class ImportNodesCommand(BaseCommand):
         node.locked = node_json.get('locked') == 1
         node.locked_by = node_json.get('locked_by')
         node.locked_since = locked_since
+        node.description = node_json.get('description')
 
         return verb
 
