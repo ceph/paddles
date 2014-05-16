@@ -207,7 +207,8 @@ class NodeController(object):
         elif 'lock' in verb and not owner:
             error(
                 '/errors/invalid',
-                'cannot {verb} without specifying locked_by'
+                'cannot {verb} without specifying locked_by'.format(
+                    verb=verb)
             )
         elif self.node.locked and verb == 'locked':
             error(
