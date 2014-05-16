@@ -210,7 +210,7 @@ class NodeController(object):
                 'cannot {verb} without specifying locked_by'.format(
                     verb=verb)
             )
-        elif self.node.locked and verb == 'locked':
+        elif self.node.locked and verb == 'lock':
             error(
                 '/errors/forbidden/',
                 'attempted to lock a locked node'
