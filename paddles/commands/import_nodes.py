@@ -64,7 +64,7 @@ class ImportNodesCommand(BaseCommand):
         node.machine_type = node_json.get('type')
         node.arch = node_json.get('arch')
         node.distro = node_json.get('distro')
-        node.up = node_json.get('up', 0) == 1
+        node.up = bool(node_json.get('up', 0))
         node.is_vm = is_vm
         node.mac_address = node_json.get('mac').lower()
         node.ssh_pub_key = node_json.get('sshpubkey')
