@@ -80,6 +80,8 @@ class Node(Base):
         if 'locked' in values:
             if self.locked != was_locked:
                 self.locked_since = datetime.utcnow() if self.locked else None
+            if not self.locked:
+                self.locked_by = None
 
     def __json__(self):
         return dict(
