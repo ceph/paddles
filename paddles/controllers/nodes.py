@@ -185,7 +185,12 @@ class NodeController(object):
                 '/errors/not_found/',
                 'attempted to update a non-existent node'
             )
-        self.node.update(request.json)
+        update = request.json
+        log.info("Updating {node}: {data}".format(
+            node=self.node,
+            data=update,
+        ))
+        self.node.update(update)
         return dict()
 
     @expose(generic=True, template='json')
