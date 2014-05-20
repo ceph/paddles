@@ -82,15 +82,16 @@ class NodesController(object):
         # matches. In this case we don't care if the nodes are locked or not.
         locked_by = req.get('locked_by')
         description = req.get('description')
-        recycle_q = query.filter(Node.locked_by == locked_by)
-        recycle_q = recycle_q.filter(Node.description == description)
-        recycle_q = recycle_q.limit(count)
-        nodes = recycle_q.all()
-        nodes_avail = len(nodes)
-        if nodes_avail == count:
-            log.info("Re-using {count} locks for {locked_by}".format(
-                count=count, locked_by=locked_by))
-            return nodes
+        if description is not None:
+            recycle_q = query.filter(Node.locked_by == locked_by)
+            recycle_q = recycle_q.filter(Node.description == description)
+            recycle_q = recycle_q.limit(count)
+            nodes = recycle_q.all()
+            nodes_avail = len(nodes)
+            if nodes_avail == count:
+                log.info("Re-using {count} locks for {locked_by}".format(
+                    count=count, locked_by=locked_by))
+                return nodes
 
         # Find unlocked nodes
         query = query.filter(Node.locked.is_(False))
