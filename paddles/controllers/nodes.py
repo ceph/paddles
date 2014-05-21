@@ -101,10 +101,8 @@ class NodesController(object):
         nodes = query.all()
         nodes_avail = len(nodes)
         if nodes_avail < count:
-            # What do here? Error? Return empty list?
             error('/errors/unavailable/',
                   "only {count} nodes available".format(count=nodes_avail))
-            return []
 
         for node in nodes:
             log.info("Locking {count} nodes for {locked_by}".format(
