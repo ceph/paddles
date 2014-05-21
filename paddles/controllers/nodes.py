@@ -98,11 +98,11 @@ class NodesController(object):
         # Find unlocked nodes
         query = query.filter(Node.locked.is_(False))
         query = query.limit(count)
-        nodes = query.all()
-        nodes_avail = len(nodes)
+        nodes_avail = query.count()
         if nodes_avail < count:
             error('/errors/unavailable/',
                   "only {count} nodes available".format(count=nodes_avail))
+        nodes = query.all()
 
         for node in nodes:
             log.info("Locking {count} nodes for {locked_by}".format(
