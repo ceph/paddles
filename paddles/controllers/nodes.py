@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 class NodesController(object):
     @expose(generic=True, template='json')
-    def index(self, locked=None, machine_type='', locked_by=None):
+    def index(self, locked=None, machine_type='', locked_by=None, up=None):
         query = Node.query
         if locked is not None:
             query = query.filter(Node.locked == locked)
@@ -24,6 +24,8 @@ class NodesController(object):
                 query = query.filter(Node.machine_type == machine_type)
         if locked_by:
             query = query.filter(Node.locked_by == locked_by)
+        if up is not None:
+            query = query.filter(Node.up == up)
         return [node.__json__() for node in query.all()]
 
     @index.when(method='POST', template='json')
