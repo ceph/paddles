@@ -193,7 +193,7 @@ class NodeController(object):
         self.node.update(update)
         return dict()
 
-    @expose(generic=True, template='json')
+    @expose(template='json')
     def lock(self):
         if request.method == 'PUT':
             node_dict = request.json
