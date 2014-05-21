@@ -212,7 +212,7 @@ class TestNodeController(TestApp):
             '/nodes/{name}/lock'.format(name=node_name),
             dict(locked=False, locked_by='me'))
         assert response.json['locked'] is False and \
-            response.json['locked_by'] == 'me'
+            response.json['locked_by'] is None
 
     def test_unlock_different_owner(self):
         node_name = 'minnows'
