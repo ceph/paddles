@@ -151,11 +151,7 @@ class Job(Base):
 
         for k, v in json_data.items():
             key = k.replace('-', '_')
-            # Handle teuthology transition from sentry_events -> sentry_event
-            if key == 'sentry_events' and v != []:
-                key = 'sentry_event'
-                v = v[0]
-            elif key == 'updated':
+            if key == 'updated':
                 self.set_updated(v)
                 self.run.updated = self.updated
                 continue
