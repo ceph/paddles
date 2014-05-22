@@ -98,7 +98,10 @@ class Job(Base):
         self.set_or_update(json_data)
 
     def set_or_update(self, json_data):
-        self.__changed = False
+        # Set self.updated, and more importantly, self.run.updated, to avoid
+        # deadlocks when lots of jobs are updated at once.
+        self.run.updated = self.updated = datetime.utcnow()
+
         status_map = {True: 'pass',
                       False: 'fail',
                       None: 'unknown',
@@ -112,15 +115,15 @@ class Job(Base):
                 raise ValueError("Job status must be one of: %s" %
                                  self.allowed_statuses)
             if status == 'dead' and self.success is not None:
-                self.update_attr('status', status_map.get(self.success))
+                self.status = status_map.get(self.success)
             else:
-                self.update_attr('status', status)
+                self.status = status
         elif 'success' in json_data:
             success = json_data.pop('success')
-            self.update_attr('status', status_map.get(success))
-            self.update_attr('success', success)
+            self.status = status_map.get(success)
+            self.success = success
         elif self.success is None and self.status is None:
-            self.update_attr('status', 'unknown')
+            self.status = 'unknown'
 
         if old_status in (None, 'queued') and self.status == 'running':
             self.started = datetime.utcnow()
@@ -153,7 +156,6 @@ class Job(Base):
             key = k.replace('-', '_')
             if key == 'updated':
                 self.set_updated(v)
-                self.run.updated = self.updated
                 continue
             # Correct potentially-incorrect Run.suite/branch values
             # We started putting the suite/branch names in the job config on
@@ -163,24 +165,7 @@ class Job(Base):
             elif key == 'branch' and self.run.branch != v:
                 self.run.branch = v
             if key in self.allowed_keys:
-                self.update_attr(key, v)
-        if self.__changed and 'updated' not in json_data:
-            self.updated = datetime.utcnow()
-            self.run.updated = self.updated
-
-    def update_attr(self, attr_name, new_value):
-        """
-        Compare getattr(self, attr_name) with new_value. If equal, do nothing.
-        Else, set self.__changed to True and update the value.
-
-        This is used by set_or_update() to determine whethor or not
-        self.updated should be... updated.
-        """
-        if getattr(self, attr_name) != new_value:
-            setattr(self, attr_name, new_value)
-            self.__changed = True
-        elif attr_name == 'status' and new_value == 'running':
-            self.__changed = True
+                setattr(self, key, v)
 
     def set_updated(self, local_str):
         """
@@ -190,7 +175,7 @@ class Job(Base):
         """
         local_dt = datetime.strptime(local_str, '%Y-%m-%d %H:%M:%S')
         utc_dt = local_datetime_to_utc(local_dt)
-        self.updated = utc_dt
+        self.run.updated = self.updated = utc_dt
 
     def update(self, json_data):
         self.set_or_update(json_data)
