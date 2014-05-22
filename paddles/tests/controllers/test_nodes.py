@@ -49,6 +49,96 @@ class TestNodesController(TestApp):
         response = self.app.get('/nodes/{name}/'.format(name=node_name))
         assert response.json['name'] == node_name
 
+    def test_multiple_machine_types(self):
+        self.app.post_json('/nodes/', dict(name='node1', machine_type='type1'))
+        self.app.post_json('/nodes/', dict(name='node2', machine_type='type2'))
+        self.app.post_json('/nodes/', dict(name='node3', machine_type='type3'))
+        self.app.post_json('/nodes/', dict(name='node4', machine_type='type4'))
+        response = self.app.get('/nodes/?machine_type=type1|type2|type4')
+        wanted_types = ['type1', 'type2', 'type4']
+        got_types = sorted([n['machine_type'] for n in response.json])
+        assert got_types == wanted_types
+
+    def test_query_locked_by(self):
+        self.app.post_json('/nodes/',
+                           dict(name='node1', locked=True, locked_by='gal'))
+        self.app.post_json('/nodes/',
+                           dict(name='node2', locked=True, locked_by='gal'))
+        self.app.put_json('/nodes/node1/',
+                          dict(locked=True, locked_by='guy'))
+        response = self.app.get('/nodes/?locked_by=guy')
+        assert response.json[-1]['name'] == 'node1'
+
+    def test_lock_many_simple(self):
+        count = 2
+        node_names = ('cat', 'dog', 'dragon')
+        for name in node_names:
+            self.app.post_json(
+                '/nodes/',
+                dict(name=name, machine_type='pet', locked=False, up=True,)
+            )
+
+        response = self.app.post_json(
+            '/nodes/lock_many/',
+            dict(count=count, machine_type='pet', description='desc',
+                 locked_by='me')
+        )
+        assert len(response.json) == count
+
+    def test_lock_many_too_many(self):
+        count = 4
+        node_names = ('cat', 'dog', 'dragon')
+        for name in node_names:
+            self.app.post_json(
+                '/nodes/',
+                dict(name=name, machine_type='pet', locked=False, up=True,)
+            )
+
+        response = self.app.post_json(
+            '/nodes/lock_many/',
+            dict(count=count, machine_type='pet', description='desc',
+                 locked_by='me'),
+            expect_errors=True,
+        )
+        assert response.status_int == 503
+
+    def test_lock_many_already_taken(self):
+        count = 1
+        node_names = ('cat', 'dog', 'dragon')
+        for name in node_names:
+            self.app.post_json(
+                '/nodes/',
+                dict(name=name, machine_type='pet', locked=True,
+                     locked_by='you', up=True,)
+            )
+
+        response = self.app.post_json(
+            '/nodes/lock_many/',
+            dict(count=count, machine_type='pet', description='desc',
+                 locked_by='me'),
+            expect_errors=True,
+        )
+        assert response.status_int == 503
+
+    def test_lock_many_recycle(self):
+        count = 2
+        node_names = ('cat', 'dog', 'dragon')
+        desc = 'my_super_cool_test_run'
+        locked_by = 'me'
+        for name in node_names:
+            self.app.post_json(
+                '/nodes/',
+                dict(name=name, machine_type='pet', locked=True,
+                     locked_by=locked_by, description=desc, up=True,)
+            )
+
+        response = self.app.post_json(
+            '/nodes/lock_many/',
+            dict(count=count, machine_type='pet', description=desc,
+                 locked_by=locked_by)
+        )
+        assert len(response.json) == count
+
 
 class TestNodeController(TestApp):
 
@@ -79,6 +169,58 @@ class TestNodeController(TestApp):
                           dict(name=node_name, locked=True))
         response = self.app.get('/nodes/{name}/'.format(name=node_name))
         assert response.json['locked'] is True
+
+    def test_check(self):
+        node_name = 'crabs'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=False))
+        response = self.app.get(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=True, locked_by='me'))
+        assert response.json['locked'] is False
+
+    def test_lock(self):
+        node_name = 'kittens'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=False))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=True, locked_by='me'))
+        assert response.json['locked'] is True and \
+            response.json['locked_by'] == 'me'
+
+    def test_lock_no_owner(self):
+        node_name = 'kittens'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=False))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=True), expect_errors=True)
+        assert response.status_int == 400
+
+    def test_double_lock(self):
+        node_name = 'kittens'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=True))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=True, locked_by='me'),
+            expect_errors=True)
+        assert response.status_int == 403
+
+    def test_unlock(self):
+        node_name = 'ferrets'
+        self.app.post_json('/nodes/',
+                           dict(name=node_name, locked=True, locked_by='me'))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=False, locked_by='me'))
+        assert response.json['locked'] is False and \
+            response.json['locked_by'] is None
+
+    def test_unlock_different_owner(self):
+        node_name = 'minnows'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=True))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=False, locked_by='me'), expect_errors=True)
+        assert response.status_int == 403
 
     def test_post_junk(self):
         response = self.app.post_json('/nodes/', dict(), expect_errors=True)

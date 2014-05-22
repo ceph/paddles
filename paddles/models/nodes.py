@@ -2,6 +2,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
                         Text)
 from sqlalchemy.orm import relationship, backref
+from datetime import datetime
 
 from paddles.models import Base
 
@@ -67,6 +68,7 @@ class Node(Base):
         """
         :param values: a dict.
         """
+        was_locked = self.locked
         for k, v in values.items():
             if k in self.allowed_update_keys:
                 if k == 'vm_host':
@@ -74,6 +76,12 @@ class Node(Base):
                     query = self.query.filter(Node.name == vm_host_name)
                     v = query.one()
                 setattr(self, k, v)
+
+        if 'locked' in values:
+            if self.locked != was_locked:
+                self.locked_since = datetime.utcnow() if self.locked else None
+            if not self.locked:
+                self.locked_by = None
 
     def __json__(self):
         return dict(

@@ -4,6 +4,8 @@ from paddles import models
 
 from sqlalchemy.exc import StatementError
 
+from datetime import datetime, timedelta
+
 import pytest
 
 
@@ -56,3 +58,18 @@ class TestNodeModel(TestApp):
         for guest in guest_nodes:
             query = query.filter(Node.vm_guests.contains(guest))
         assert host_node == query.one()
+
+    def test_locked_since_locked(self):
+        node_name = 'cats'
+        node = Node(name=node_name)
+        node.update(dict(locked=True))
+        assert (datetime.utcnow() - node.locked_since) < timedelta(0, 0, 100)
+
+    def test_locked_since_unlocked(self):
+        node_name = 'cats'
+        old_locked_since = datetime(2000, 1, 1, 0, 0)
+        node = Node(name=node_name)
+        node.locked = True
+        node.locked_since = old_locked_since
+        node.update(dict(locked=False))
+        assert node.locked_since is None

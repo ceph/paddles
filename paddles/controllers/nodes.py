@@ -6,15 +6,26 @@ from sqlalchemy.orm import aliased, load_only
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
+import logging
+log = logging.getLogger(__name__)
+
 
 class NodesController(object):
     @expose(generic=True, template='json')
-    def index(self, locked=None, machine_type=''):
+    def index(self, locked=None, machine_type='', locked_by=None, up=None):
         query = Node.query
         if locked is not None:
             query = query.filter(Node.locked == locked)
         if machine_type:
-            query = query.filter(Node.machine_type == machine_type)
+            if '|' in machine_type:
+                machine_types = machine_type.split('|')
+                query = query.filter(Node.machine_type.in_(machine_types))
+            else:
+                query = query.filter(Node.machine_type == machine_type)
+        if locked_by:
+            query = query.filter(Node.locked_by == locked_by)
+        if up is not None:
+            query = query.filter(Node.up == up)
         return [node.__json__() for node in query.all()]
 
     @index.when(method='POST', template='json')
@@ -39,6 +50,66 @@ class NodesController(object):
             self.node = Node(name=name)
             self.node.update(data)
         return dict()
+
+    @expose(generic=True, template='json')
+    def lock_many(self):
+        error('/errors/invalid/',
+              "this URI only supports POST requests")
+
+    @lock_many.when(method='POST', template='json')
+    def lock_many_post(self):
+        req = request.json
+        fields = ['count', 'locked_by', 'machine_type', 'description']
+        if sorted(req.keys()) != sorted(fields):
+            error('/errors/invalid/',
+                  "must pass these fields: %s" % ', '.join(fields))
+
+        req['locked'] = True
+
+        count = req.pop('count', 0)
+        if count < 1:
+            error('/errors/invalid/',
+                  "cannot lock less than 1 node")
+
+        machine_type = req.pop('machine_type', None)
+        if not machine_type:
+            error('/errors/invalid/',
+                  "must specify machine_type")
+
+        query = Node.query
+        query = query.filter(Node.machine_type == machine_type)
+        query = query.filter(Node.up.is_(True))
+
+        # First, try to recycle a user's already-locked nodes if description
+        # matches. In this case we don't care if the nodes are locked or not.
+        locked_by = req.get('locked_by')
+        description = req.get('description')
+        if description is not None:
+            recycle_q = query.filter(Node.locked_by == locked_by)
+            recycle_q = recycle_q.filter(Node.description == description)
+            recycle_q = recycle_q.limit(count)
+            nodes = recycle_q.all()
+            nodes_avail = len(nodes)
+            if nodes_avail == count:
+                log.info("Re-using {count} locks for {locked_by}".format(
+                    count=count, locked_by=locked_by))
+                return nodes
+
+        # Find unlocked nodes
+        query = query.filter(Node.locked.is_(False))
+        query = query.limit(count)
+        nodes_avail = query.count()
+        if nodes_avail < count:
+            error('/errors/unavailable/',
+                  "only {count} nodes available".format(count=nodes_avail))
+        nodes = query.all()
+
+        for node in nodes:
+            log.info("Locking {count} nodes for {locked_by}".format(
+                count=count, locked_by=locked_by))
+            node.update(req)
+
+        return [node for node in nodes]
 
     @expose('json')
     def job_stats(self, machine_type='', since_days=14):
@@ -97,12 +168,15 @@ class NodeController(object):
     @expose(generic=True, template='json')
     def index(self):
         if not self.node:
-            abort(404)
+            error(
+                '/errors/not_found/',
+                'node not found'
+            )
         json_node = self.node.__json__()
         return json_node
 
     @index.when(method='PUT', template='json')
-    def index_post(self):
+    def index_put(self):
         """
         Update the Node object here
         """
@@ -111,8 +185,58 @@ class NodeController(object):
                 '/errors/not_found/',
                 'attempted to update a non-existent node'
             )
-        self.node.update(request.json)
+        update = request.json
+        log.info("Updating {node}: {data}".format(
+            node=self.node,
+            data=update,
+        ))
+        self.node.update(update)
         return dict()
+
+    @expose(template='json')
+    def lock(self):
+        if request.method == 'PUT':
+            node_dict = request.json
+        else:
+            node_dict = dict()
+        verb_dict = {False: 'unlock', True: 'lock', None: 'check'}
+        verb = verb_dict[node_dict.get('locked')]
+        owner = node_dict.get('locked_by')
+
+        if not self.node:
+            error(
+                '/errors/not_found/',
+                'attempted to {verb} a non-existent node'.format(
+                    verb=verb
+                )
+            )
+        elif 'lock' in verb and not owner:
+            error(
+                '/errors/invalid',
+                'cannot {verb} without specifying locked_by'.format(
+                    verb=verb)
+            )
+        elif self.node.locked and verb == 'lock':
+            error(
+                '/errors/forbidden/',
+                'attempted to lock a locked node'
+            )
+        elif 'lock' in verb and self.node.locked and \
+                owner != self.node.locked_by:
+            error(
+                '/errors/forbidden/',
+                'cannot {verb} - owners do not match'.format(
+                    verb=verb
+                )
+            )
+
+        if request.method == 'PUT':
+            if 'lock' in verb:
+                word = dict(lock='Locking', unlock='Unlocking')[verb]
+            log.info("{word} {node} for {owner}".format(
+                word=word, node=self.node, owner=owner))
+            self.node.update(node_dict)
+        return self.node.__json__()
 
     @expose('json')
     def jobs(self, name='', status='', count=0):
