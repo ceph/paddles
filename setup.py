@@ -27,5 +27,6 @@ setup(
         set_status=paddles.commands.set_status:SetStatusCommand
         set_targets=paddles.commands.set_targets:SetTargetsCommand
         import_nodes=paddles.commands.import_nodes:ImportNodesCommand
+        queue_stats=paddles.commands.queue_stats:QueueStatsCommand
         """
 )
