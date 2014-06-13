@@ -12,7 +12,8 @@ def out(string):
 
 class QueueStatsCommand(BaseCommand):
     """
-    Print the number of jobs scheduled versus completed (passed or failed) for each of N days in the past
+    Print the number of jobs scheduled versus completed (passed or failed) for
+    each of N days in the past
     """
 
     arguments = BaseCommand.arguments + (dict(
@@ -33,11 +34,11 @@ class QueueStatsCommand(BaseCommand):
 
         job_counts = {}
         for day in day_objs:
-            if day_objs[-1] == day:
-                break
-            next_day = day_objs[day_objs.index(day) + 1]
-            jobs_sched = self.jobs_scheduled_between(day, next_day).count()
-            jobs_done = self.jobs_completed_between(day, next_day).count()
+            if day_objs[0] == day:
+                continue
+            prev_day = day_objs[day_objs.index(day) - 1]
+            jobs_sched = self.jobs_scheduled_between(prev_day, day).count()
+            jobs_done = self.jobs_completed_between(prev_day, day).count()
             job_counts[day] = OrderedDict(scheduled=jobs_sched,
                                           completed=jobs_done)
             print "{day}: {sched: >4} scheduled, {done: >4} completed".format(
