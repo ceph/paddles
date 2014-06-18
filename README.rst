@@ -4,6 +4,23 @@ A very simple ``JSON`` based API to store and report back on test
 results from Ceph tests.
 
 
+Setup
+=====
+
+To install and use paddles:
+
+#. Install and configure PostgreSQL on your system.
+#. Create a database. Ours is called 'paddles'
+#. Clone the `repository <https://github.com/ceph/paddles.git>`_
+#. Inside the repository, create a virtualenv: ``virtualenv ./virtualenv``
+#. Create a copy of the configuration template: ``cp config.py.in config.py``
+#. Edit config.py to reflect your hostnames, database info, etc.
+#. Activate the virtualenv: ``source ./virtualenv/bin/activate``
+#. Install required python packages: ``pip install -r requirements.txt``
+#. Populate the database tables: ``pecan populate config.py``
+#. To start the server, you may use ``pecan serve config.py`` - though we use `supervisord <http://supervisord.org/>`_ to manage it.
+
+
 ``/runs/``
 ========
 
