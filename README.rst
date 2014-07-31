@@ -19,7 +19,7 @@ To install and use paddles:
 #. Install required python packages: ``pip install -r requirements.txt``
 #. Run ``python setup.py develop``
 #. Populate the database tables: ``pecan populate config.py``
-#. To start the server, you may use ``pecan serve config.py`` - though we use `supervisord <http://supervisord.org/>`_ to manage it.
+#. To start the server for testing purposes, you may use ``pecan serve config.py`` - though for production use it's wise to use `a real server <http://pecan.readthedocs.org/en/latest/deployment.html>`_. We use gunicorn managed by `supervisord <http://supervisord.org/>`_.
 #. To get `teuthology <https://github.com/ceph/teuthology/>`_ talking to paddles add a line like this to your ``~/.teuthology.yaml``: ``results_server: http://paddles.example.com/``
 
 
