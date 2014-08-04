@@ -3,7 +3,7 @@ import datetime
 from sqlalchemy import Date, cast
 
 from pecan import abort, conf, expose, request
-from paddles.models import Job, Run, rollback
+from paddles.models import Job, Run, rollback, Session
 from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.controllers import error
@@ -268,11 +268,9 @@ class DateRangeController(object):
 class QueuedRunsController(object):
     @expose('json')
     def index(self):
-        query = Job.query.filter(Job.status == 'queued').values(Job.name)
-        run_names = set([item[0] for item in query if item[0]])
-        runs = Run.query.filter(Run.name.in_(sorted(run_names))).order_by(
-            Run.scheduled)
-        return runs.all()
+        query = Session.query(Run).join(Job).filter(Job.status == 'queued')\
+            .group_by(Run).order_by(Run.scheduled)
+        return query.all()
 
 
 class RunsController(object):
