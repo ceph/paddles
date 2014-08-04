@@ -178,6 +178,32 @@ class TestRunController(TestApp):
         response = self.app.get('/runs/machine_type/vps/')
         assert response.json[0]['name'] == run_b_name
 
+    def test_queued_fully(self):
+        run_names = ['run_one', 'run_two']
+        for run_name in run_names:
+            self.app.post_json('/runs/', dict(name=run_name))
+            self.app.post_json('/runs/%s/jobs/' % run_name, dict(job_id=1,
+                                                            status='queued'))
+            self.app.post_json('/runs/%s/jobs/' % run_name, dict(job_id=2,
+                                                            status='queued'))
+
+        result = self.app.get('/runs/queued/').json
+        result_names = sorted([r['name'] for r in result])
+        assert result_names == sorted(run_names)
+
+    def test_queued_partially(self):
+        run_names = ['run_one', 'run_two']
+        for run_name in run_names:
+            self.app.post_json('/runs/', dict(name=run_name))
+            self.app.post_json('/runs/%s/jobs/' % run_name, dict(job_id=1,
+                                                            status='queued'))
+            self.app.post_json('/runs/%s/jobs/' % run_name, dict(job_id=2,
+                                                            status='dead'))
+
+        result = self.app.get('/runs/queued/').json
+        result_names = sorted([r['name'] for r in result])
+        assert result_names == sorted(run_names)
+
 
 class TestRunControllerDateFilters(TestApp):
 
