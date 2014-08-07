@@ -49,6 +49,7 @@ class Job(Base):
     roles = deferred(Column(JSONType()))
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
+    suite_branch = Column(String(64), index=True)
     targets = deferred(Column(JSONType()))
     target_nodes = relationship("Node", secondary=job_nodes_table,
                                 backref=backref('jobs'), lazy='dynamic')
@@ -77,6 +78,7 @@ class Job(Base):
         "sentry_event",
         "status",
         "success",
+        "suite_branch",
         "targets",
         "tasks",
         "teuthology_branch",
