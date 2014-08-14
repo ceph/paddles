@@ -13,7 +13,16 @@ class TestJobModel(TestApp):
         new_run = Run('test_basic_creation')
         Job({}, new_run)
         models.commit()
-        assert Job.get(1)
+        job = Job.get(1)
+        assert job
+        assert job.job_id == '1'
+
+    def test_job_id_generation(self):
+        new_run = Run('test_job_id_generation')
+        count = 7
+        for i in range(count):
+            Job(dict(), new_run)
+        assert new_run.jobs[-1].job_id == str(count)
 
     def test_basic_deletion(self):
         new_run = Run('test_basic_deletion')

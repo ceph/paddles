@@ -99,6 +99,8 @@ class Job(Base):
 
     def __init__(self, json_data, run):
         self.run = run
+        if not 'job_id' in json_data:
+            json_data['job_id']  = self.run.next_job_id
         self.posted = datetime.utcnow()
         self.set_or_update(json_data)
 
