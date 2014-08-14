@@ -198,6 +198,18 @@ class Run(Base):
         return by_desc
 
     @property
+    def next_job_id(self):
+        """
+        :returns: <highest job_id> + 1 as a unicode() or '1' if run is empty
+        """
+        query = self.jobs.filter(~Job.job_id.is_(None)).order_by(Job.job_id)
+        try:
+            return unicode(int(query[-1].job_id) + 1)
+        except IndexError:
+            return u"1"
+        j = Job(dict(), new_run)
+
+    @property
     def _updated(self):
         if self.jobs.count():
             last_updated_job = self.jobs.order_by(Job.updated)[-1]
