@@ -25,7 +25,10 @@ class TestJobsController(TestApp):
         ))
         response = self.app.post_json('/runs/foo/jobs/', dict(),
                                       expect_errors=True)
-        assert response.status_code == 400
+        assert response.status_code == 200
+        response = self.app.get('/runs/foo/jobs/2/')
+        assert response.status_code == 200
+        assert response.json.get('job_id') == '2'
 
     def test_to_create_a_new_job(self):
         self.app.post_json('/runs/', dict(name="foo"))

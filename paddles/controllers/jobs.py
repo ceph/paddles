@@ -110,24 +110,26 @@ class JobsController(object):
         """
         try:
             data = request.json
-            job_id = data.get('job_id')
         except ValueError:
             rollback()
             error('/errors/invalid/', 'could not decode JSON body')
-        # we allow empty data to be pushed
-        if not job_id:
-            error('/errors/invalid/', "could not find required key: 'job_id'")
-        job_id = data['job_id'] = str(job_id)
 
-        query = Job.query.options(load_only('id', 'job_id'))
-        query = query.filter_by(job_id=job_id, run=self.run)
-        if query.first():
-            error('/errors/invalid/',
-                  "job with job_id %s already exists" % job_id)
-        else:
-            log.info("Creating job: %s/%s", data.get('name', '<no name!>'),
-                     job_id)
-            self.job = Job(data, self.run)
+        if 'job_id' in data:
+            job_id = data['job_id']
+            if isinstance(job_id, int):
+                data['job_id'] = str(job_id)
+            elif not job_id.isdigit():
+                error('/errors/invalid/', 'job_id must be an int')
+
+            query = Job.query.options(load_only('id', 'job_id'))
+            query = query.filter_by(job_id=job_id, run=self.run)
+            if query.first():
+                error('/errors/invalid/',
+                    "job with job_id %s already exists" % job_id)
+
+        self.job = Job(data, self.run)
+        job_id = self.job.job_id
+        log.info("Created job: %s/%s", data.get('name', '<no name!>'), job_id)
         return dict()
 
     @expose('json')
