@@ -77,7 +77,11 @@ class NodesController(object):
                   "must specify machine_type")
 
         query = Node.query
-        query = query.filter(Node.machine_type == machine_type)
+        if '|' in machine_type:
+            machine_types = machine_type.split('|')
+            query = query.filter(Node.machine_type.in_(machine_types))
+        else:
+            query = query.filter(Node.machine_type == machine_type)
         query = query.filter(Node.up.is_(True))
 
         # First, try to recycle a user's already-locked nodes if description

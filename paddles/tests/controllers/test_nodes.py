@@ -85,6 +85,32 @@ class TestNodesController(TestApp):
         )
         assert len(response.json) == count
 
+    def test_lock_many_multi(self):
+        count = 5
+        nodes = dict(
+            munchkin='cat',
+            tabby='cat',
+            mainecoon='cat',
+            corgi='dog',
+            heeler='dog',
+            husky='dog',
+        )
+        for (name, type_) in nodes.iteritems():
+            self.app.post_json(
+                '/nodes/',
+                dict(name=name, machine_type=type_, locked=False, up=True,)
+            )
+
+        response = self.app.post_json(
+            '/nodes/lock_many/',
+            dict(count=count, machine_type='cat|dog', description='desc',
+                 locked_by='me')
+        )
+        types = [node['machine_type'] for node in response.json]
+        num_dogs = types.count('dog')
+        num_cats = types.count('cat')
+        assert num_dogs + num_cats == 5
+
     def test_lock_many_too_many(self):
         count = 4
         node_names = ('cat', 'dog', 'dragon')
