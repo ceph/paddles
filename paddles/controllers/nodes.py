@@ -12,7 +12,8 @@ log = logging.getLogger(__name__)
 
 class NodesController(object):
     @expose(generic=True, template='json')
-    def index(self, locked=None, machine_type='', locked_by=None, up=None):
+    def index(self, locked=None, machine_type='', locked_by=None, up=None,
+              count=None):
         query = Node.query
         if locked is not None:
             query = query.filter(Node.locked == locked)
@@ -26,6 +27,10 @@ class NodesController(object):
             query = query.filter(Node.locked_by == locked_by)
         if up is not None:
             query = query.filter(Node.up == up)
+        if count is not None:
+            if not count.isdigit() or isinstance(count, int):
+                error('/errors/invalid/', 'count must be an integer')
+            query = query.limit(count)
         return [node.__json__() for node in query.all()]
 
     @index.when(method='POST', template='json')

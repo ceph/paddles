@@ -7,6 +7,14 @@ class TestNodesController(TestApp):
         response = self.app.get('/nodes/')
         assert response.status_int == 200
 
+    def test_get_count(self):
+        node_names = ['n1', 'n2', 'n3', 'n4', 'n5']
+        nodes = [dict(name=n) for n in node_names]
+        for node in nodes:
+            response = self.app.post_json('/nodes/', node)
+        response = self.app.get('/nodes/?count=3')
+        assert len(response.json) == 3
+
     def test_job_creates_nodes(self):
         run_name = 'job_creates_nodes'
         job_id = 276
