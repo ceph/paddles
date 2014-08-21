@@ -113,9 +113,9 @@ class NodesController(object):
                   "only {count} nodes available".format(count=nodes_avail))
         nodes = query.all()
 
+        log.info("Locking {count} nodes for {locked_by}".format(
+            count=count, locked_by=locked_by))
         for node in nodes:
-            log.info("Locking {count} nodes for {locked_by}".format(
-                count=count, locked_by=locked_by))
             node.update(req)
 
         return [node for node in nodes]
