@@ -210,31 +210,35 @@ class NodeController(object):
             node_dict = dict()
         verb_dict = {False: 'unlock', True: 'lock', None: 'check'}
         verb = verb_dict[node_dict.get('locked')]
-        owner = node_dict.get('locked_by')
+        locked_by = node_dict.get('locked_by')
 
-        if not self.node:
+        return self._lock(self.node, node_dict, verb, locked_by)
+
+    @staticmethod
+    def _lock(node_obj, node_dict, verb, locked_by):
+        if not node_obj:
             error(
                 '/errors/not_found/',
                 'attempted to {verb} a non-existent node'.format(
                     verb=verb
                 )
             )
-        elif 'lock' in verb and not owner:
+        elif 'lock' in verb and not locked_by:
             error(
                 '/errors/invalid',
                 'cannot {verb} without specifying locked_by'.format(
                     verb=verb)
             )
-        elif self.node.locked and verb == 'lock':
+        elif node_obj.locked and verb == 'lock':
             error(
                 '/errors/forbidden/',
                 'attempted to lock a locked node'
             )
-        elif 'lock' in verb and self.node.locked and \
-                owner != self.node.locked_by:
+        elif 'lock' in verb and node_obj.locked and \
+                locked_by != node_obj.locked_by:
             error(
                 '/errors/forbidden/',
-                'cannot {verb} - owners do not match'.format(
+                'cannot {verb} - locked_bys do not match'.format(
                     verb=verb
                 )
             )
@@ -242,10 +246,10 @@ class NodeController(object):
         if request.method == 'PUT':
             if 'lock' in verb:
                 word = dict(lock='Locking', unlock='Unlocking')[verb]
-            log.info("{word} {node} for {owner}".format(
-                word=word, node=self.node, owner=owner))
-            self.node.update(node_dict)
-        return self.node.__json__()
+            log.info("{word} {node} for {locked_by}".format(
+                word=word, node=node_obj, locked_by=locked_by))
+            node_obj.update(node_dict)
+        return node_obj.__json__()
 
     @expose('json')
     def jobs(self, name='', status='', count=0):
