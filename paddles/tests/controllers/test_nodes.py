@@ -173,6 +173,27 @@ class TestNodesController(TestApp):
         )
         assert len(response.json) == count
 
+    def test_unlock_many_simple(self):
+        mtype = 'ulmtest'
+        locked_by = 'unlock@many'
+        desc = 'unlock_many'
+        count = 7
+        node_names = ['n%s' % i for i in range(count)]
+        for name in node_names:
+            self.app.post_json(
+                '/nodes/',
+                dict(name=name, machine_type=mtype, locked=True,
+                     locked_by=locked_by, description=desc, up=True,)
+            )
+
+        response = self.app.post_json('/nodes/unlock_many/',
+                                      dict(names=node_names,
+                                           locked_by=locked_by))
+        got_names = [node['name'] for node in response.json]
+        assert sorted(got_names) == node_names
+        got_locked = [node['locked'] for node in response.json]
+        assert list(set(got_locked)) == [False]
+
 
 class TestNodeController(TestApp):
 

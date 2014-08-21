@@ -120,6 +120,38 @@ class NodesController(object):
 
         return [node for node in nodes]
 
+    @expose(generic=True, template='json')
+    def unlock_many(self):
+        error('/errors/invalid/',
+              "this URI only supports POST requests")
+
+    @unlock_many.when(method='POST', template='json')
+    def unlock_many_post(self):
+        req = request.json
+        fields = ['names', 'locked_by']
+        if sorted(req.keys()) != sorted(fields):
+            error('/errors/invalid/',
+                  "must pass these fields: %s" % ', '.join(fields))
+        locked_by = req.get('locked_by')
+        names = req.get('names')
+        if not isinstance(names, list):
+            error('/errors/invalid/',
+                  "'names' must be a list; got: %s" % str(type(names)))
+
+        base_query = Node.query
+        query = base_query.filter(Node.name.in_(names))
+        if query.count() != len(names):
+            error('/errors/invalid/',
+                  "Could not find all nodes!")
+
+        result = []
+        for node in query.all():
+            result.append(
+                NodeController._lock(node, dict(locked=False), 'unlock',
+                                     locked_by, expect_method='POST')
+            )
+        return result
+
     @expose('json')
     def job_stats(self, machine_type='', since_days=14):
         since_days = int(since_days)
@@ -215,7 +247,7 @@ class NodeController(object):
         return self._lock(self.node, node_dict, verb, locked_by)
 
     @staticmethod
-    def _lock(node_obj, node_dict, verb, locked_by):
+    def _lock(node_obj, node_dict, verb, locked_by, expect_method='PUT'):
         if not node_obj:
             error(
                 '/errors/not_found/',
@@ -243,7 +275,7 @@ class NodeController(object):
                 )
             )
 
-        if request.method == 'PUT':
+        if request.method == expect_method:
             if 'lock' in verb:
                 word = dict(lock='Locking', unlock='Unlocking')[verb]
             log.info("{word} {node} for {locked_by}".format(
