@@ -144,6 +144,8 @@ class NodesController(object):
             error('/errors/invalid/',
                   "Could not find all nodes!")
 
+        log.info("Unlocking {count} nodes for {locked_by}".format(
+            count=len(names), locked_by=locked_by))
         result = []
         for node in query.all():
             result.append(
