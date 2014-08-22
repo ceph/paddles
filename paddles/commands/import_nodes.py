@@ -34,6 +34,7 @@ class ImportNodesCommand(BaseCommand):
                 print "{verb} {n}/{count}\r".format(verb=verb, n=i+1,
                                                     count=count),
             print
+            self.set_vm_hosts()
         except:
             rollback()
             out("ROLLING BACK... ")
