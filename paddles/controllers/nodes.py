@@ -259,14 +259,19 @@ class NodeController(object):
             )
         elif 'lock' in verb and not locked_by:
             error(
-                '/errors/invalid',
+                '/errors/invalid/',
                 'cannot {verb} without specifying locked_by'.format(
                     verb=verb)
             )
-        elif node_obj.locked and verb == 'lock':
+        elif verb == 'lock' and node_obj.locked:
             error(
                 '/errors/forbidden/',
                 'attempted to lock a locked node'
+            )
+        elif verb == 'unlock' and not node_obj.locked:
+            error(
+                '/errors/invalid/',
+                'attempted to unlock an unlocked node'
             )
         elif 'lock' in verb and node_obj.locked and \
                 locked_by != node_obj.locked_by:

@@ -259,6 +259,15 @@ class TestNodeController(TestApp):
             expect_errors=True)
         assert response.status_int == 403
 
+    def test_double_unlock(self):
+        node_name = 'kittens'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=False))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=False, locked_by='me'),
+            expect_errors=True)
+        assert response.status_int == 400
+
     def test_unlock(self):
         node_name = 'ferrets'
         self.app.post_json('/nodes/',
