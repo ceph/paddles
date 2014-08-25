@@ -141,7 +141,10 @@ class Job(Base):
             # Populate self.target_nodes, creating Node objects if necessary
             targets = json_data['targets']
             for target_key in targets.keys():
-                hostname = target_key.split('@')[1]
+                if '@' in target_key:
+                    hostname = target_key.split('@')[1]
+                else:
+                    hostname = target_key
                 node_q = Node.query.options(load_only('id', 'name'))\
                     .filter(Node.name == hostname)
                 try:
