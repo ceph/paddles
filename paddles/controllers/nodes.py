@@ -116,7 +116,11 @@ class NodesController(object):
         log.info("Locking {count} nodes for {locked_by}".format(
             count=count, locked_by=locked_by))
         for node in nodes:
-            node.update(req)
+            try:
+                node.update(req)
+            except RuntimeError:
+                error('/errors/unavailable/',
+                      "possible race condition avoided; try again")
 
         return [node for node in nodes]
 

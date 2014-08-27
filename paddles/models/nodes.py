@@ -69,6 +69,8 @@ class Node(Base):
         :param values: a dict.
         """
         was_locked = self.locked
+        if was_locked is True and values.get('locked', False) is True:
+            raise RuntimeError("Cannot lock an already-locked node")
         for k, v in values.items():
             if k in self.allowed_update_keys:
                 if k == 'vm_host':

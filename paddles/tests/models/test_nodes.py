@@ -73,3 +73,10 @@ class TestNodeModel(TestApp):
         node.locked_since = old_locked_since
         node.update(dict(locked=False))
         assert node.locked_since is None
+
+    def test_double_lock(self):
+        node_name = 'goldfish'
+        node = Node(name=node_name)
+        node.update(dict(locked=True))
+        with pytest.raises(RuntimeError):
+            node.update(dict(locked=True))

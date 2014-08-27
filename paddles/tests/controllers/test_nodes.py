@@ -68,14 +68,16 @@ class TestNodesController(TestApp):
         assert got_types == wanted_types
 
     def test_query_locked_by(self):
-        self.app.post_json('/nodes/',
-                           dict(name='node1', locked=True, locked_by='gal'))
-        self.app.post_json('/nodes/',
-                           dict(name='node2', locked=True, locked_by='gal'))
-        self.app.put_json('/nodes/node1/',
+        self.app.post_json('/nodes/', dict(name='query_locked_by1',
+                                           locked=True, locked_by='gal'))
+        self.app.post_json('/nodes/', dict(name='query_locked_by2',
+                                           locked=True, locked_by='gal'))
+        self.app.put_json('/nodes/query_locked_by1/',
+                          dict(locked=False, locked_by='gal'))
+        self.app.put_json('/nodes/query_locked_by1/',
                           dict(locked=True, locked_by='guy'))
         response = self.app.get('/nodes/?locked_by=guy')
-        assert response.json[-1]['name'] == 'node1'
+        assert response.json[-1]['name'] == 'query_locked_by1'
 
     def test_lock_many_simple(self):
         count = 2
