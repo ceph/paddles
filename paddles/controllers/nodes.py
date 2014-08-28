@@ -1,5 +1,6 @@
 from pecan import abort, expose, request
 from paddles.controllers import error
+from paddles.exceptions import PaddlesError
 from paddles.models import Job, Node, Session, rollback
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, load_only
@@ -254,44 +255,15 @@ class NodeController(object):
 
     @staticmethod
     def _lock(node_obj, node_dict, verb, locked_by, expect_method='PUT'):
-        if not node_obj:
-            error(
-                '/errors/not_found/',
-                'attempted to {verb} a non-existent node'.format(
-                    verb=verb
-                )
-            )
-        elif 'lock' in verb and not locked_by:
-            error(
-                '/errors/invalid/',
-                'cannot {verb} without specifying locked_by'.format(
-                    verb=verb)
-            )
-        elif verb == 'lock' and node_obj.locked:
-            error(
-                '/errors/forbidden/',
-                'attempted to lock a locked node'
-            )
-        elif verb == 'unlock' and not node_obj.locked:
-            error(
-                '/errors/invalid/',
-                'attempted to unlock an unlocked node'
-            )
-        elif 'lock' in verb and node_obj.locked and \
-                locked_by != node_obj.locked_by:
-            error(
-                '/errors/forbidden/',
-                'cannot {verb} - locked_bys do not match'.format(
-                    verb=verb
-                )
-            )
-
         if request.method == expect_method:
             if 'lock' in verb:
                 word = dict(lock='Locking', unlock='Unlocking')[verb]
             log.info("{word} {node} for {locked_by}".format(
                 word=word, node=node_obj, locked_by=locked_by))
-            node_obj.update(node_dict)
+            try:
+                node_obj.update(node_dict)
+            except PaddlesError as exc:
+                error(exc.url, exc.message)
         return node_obj.__json__()
 
     @expose('json')
