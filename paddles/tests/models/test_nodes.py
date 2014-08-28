@@ -1,3 +1,4 @@
+from paddles.exceptions import ForbiddenRequestError
 from paddles.models import Node
 from paddles.tests import TestApp
 from paddles import models
@@ -61,22 +62,25 @@ class TestNodeModel(TestApp):
 
     def test_locked_since_locked(self):
         node_name = 'cats'
+        user = 'cat@door'
         node = Node(name=node_name)
-        node.update(dict(locked=True))
+        node.update(dict(locked=True, locked_by=user))
         assert (datetime.utcnow() - node.locked_since) < timedelta(0, 0, 100)
 
     def test_locked_since_unlocked(self):
         node_name = 'cats'
+        user = 'cat@door'
         old_locked_since = datetime(2000, 1, 1, 0, 0)
         node = Node(name=node_name)
-        node.locked = True
+        node.update(dict(locked=True, locked_by=user))
         node.locked_since = old_locked_since
-        node.update(dict(locked=False))
+        node.update(dict(locked=False, locked_by=user))
         assert node.locked_since is None
 
     def test_double_lock(self):
         node_name = 'goldfish'
+        user = 'fish@bowl'
         node = Node(name=node_name)
-        node.update(dict(locked=True))
-        with pytest.raises(RuntimeError):
-            node.update(dict(locked=True))
+        node.update(dict(locked=True, locked_by=user))
+        with pytest.raises(ForbiddenRequestError):
+            node.update(dict(locked=True, locked_by=user))
