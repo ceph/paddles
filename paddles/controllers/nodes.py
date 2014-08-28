@@ -54,7 +54,10 @@ class NodesController(object):
                   "Node with name %s already exists" % name)
         else:
             self.node = Node(name=name)
-            self.node.update(data)
+            try:
+                self.node.update(data)
+            except PaddlesError as exc:
+                error(exc.url, exc.message)
         return dict()
 
     @expose(generic=True, template='json')
@@ -119,9 +122,8 @@ class NodesController(object):
         for node in nodes:
             try:
                 node.update(req)
-            except RuntimeError:
-                error('/errors/unavailable/',
-                      "possible race condition avoided; try again")
+            except PaddlesError as exc:
+                error(exc.url, exc.message)
 
         return [node for node in nodes]
 
@@ -238,7 +240,10 @@ class NodeController(object):
             node=self.node,
             data=update,
         ))
-        self.node.update(update)
+        try:
+            self.node.update(update)
+        except PaddlesError as exc:
+            error(exc.url, exc.message)
         return dict()
 
     @expose(template='json')
