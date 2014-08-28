@@ -156,8 +156,10 @@ class NodesController(object):
         result = []
         for node in query.all():
             result.append(
-                NodeController._lock(node, dict(locked=False), 'unlock',
-                                     locked_by, expect_method='POST')
+                NodeController._lock(node,
+                                     dict(locked=False, locked_by=locked_by),
+                                     'unlock',
+                                     expect_method='POST')
             )
         return result
 
@@ -254,12 +256,12 @@ class NodeController(object):
             node_dict = dict()
         verb_dict = {False: 'unlock', True: 'lock', None: 'check'}
         verb = verb_dict[node_dict.get('locked')]
-        locked_by = node_dict.get('locked_by')
 
-        return self._lock(self.node, node_dict, verb, locked_by)
+        return self._lock(self.node, node_dict, verb)
 
     @staticmethod
-    def _lock(node_obj, node_dict, verb, locked_by, expect_method='PUT'):
+    def _lock(node_obj, node_dict, verb, expect_method='PUT'):
+        locked_by = node_dict.get('locked_by')
         if request.method == expect_method:
             if 'lock' in verb:
                 word = dict(lock='Locking', unlock='Unlocking')[verb]
