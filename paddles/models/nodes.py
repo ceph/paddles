@@ -4,6 +4,7 @@ from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 
+from paddles.exceptions import InvalidRequestError, ForbiddenRequestError
 from paddles.models import Base
 
 
@@ -68,9 +69,24 @@ class Node(Base):
         """
         :param values: a dict.
         """
+        locking = values.get('locked')
         was_locked = self.locked
-        if was_locked is True and values.get('locked', False) is True:
-            raise RuntimeError("Cannot lock an already-locked node")
+        if locking in (True, False) and was_locked is not None:
+            to_lock_for = values.get('locked_by')
+            verb = {False: 'unlock', True: 'lock'}.get(locking)
+            if was_locked == locking:
+                raise ForbiddenRequestError(
+                    "Cannot {verb} an already-{verb}ed node".format(verb=verb))
+            elif not to_lock_for:
+                raise InvalidRequestError(
+                    "Cannot {verb} without specifying locked_by".format(
+                        verb=verb))
+            elif (verb == 'unlock' and was_locked and to_lock_for !=
+                  self.locked_by):
+                raise ForbiddenRequestError(
+                    "Cannot {verb}; locked_by values must match".format(
+                        verb=verb))
+
         for k, v in values.items():
             if k in self.allowed_update_keys:
                 if k == 'vm_host':
