@@ -19,11 +19,12 @@ app = {
     'errors': {
         '404': '/error/404',
         '__force_dict__': True
-    }
+    },
 }
 
 sqlalchemy = {
-    'url':          'sqlite://',
+    'url': 'sqlite:////tmp/test.db',
+    #'url': 'postgresql+psycopg2://paddles:paddles@localhost/',
     'echo':         True,
     'echo_pool':    True,
     'pool_recycle': 3600,
