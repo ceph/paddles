@@ -85,47 +85,14 @@ class NodesController(object):
             error('/errors/invalid/',
                   "must specify machine_type")
 
-        query = Node.query
-        if '|' in machine_type:
-            machine_types = machine_type.split('|')
-            query = query.filter(Node.machine_type.in_(machine_types))
-        else:
-            query = query.filter(Node.machine_type == machine_type)
-        query = query.filter(Node.up.is_(True))
-
-        # First, try to recycle a user's already-locked nodes if description
-        # matches. In this case we don't care if the nodes are locked or not.
         locked_by = req.get('locked_by')
         description = req.get('description')
-        if description is not None:
-            recycle_q = query.filter(Node.locked_by == locked_by)
-            recycle_q = recycle_q.filter(Node.description == description)
-            recycle_q = recycle_q.limit(count)
-            nodes = recycle_q.all()
-            nodes_avail = len(nodes)
-            if nodes_avail == count:
-                log.info("Re-using {count} locks for {locked_by}".format(
-                    count=count, locked_by=locked_by))
-                return nodes
-
-        # Find unlocked nodes
-        query = query.filter(Node.locked.is_(False))
-        query = query.limit(count)
-        nodes_avail = query.count()
-        if nodes_avail < count:
-            error('/errors/unavailable/',
-                  "only {count} nodes available".format(count=nodes_avail))
-        nodes = query.all()
-
-        log.info("Locking {count} nodes for {locked_by}".format(
-            count=count, locked_by=locked_by))
-        for node in nodes:
-            try:
-                node.update(req)
-            except PaddlesError as exc:
-                error(exc.url, exc.message)
-
-        return [node for node in nodes]
+        try:
+            result = Node.lock_many(count, locked_by, machine_type,
+                                    description)
+        except PaddlesError as exc:
+            error(exc.url, exc.message)
+        return result
 
     @expose(generic=True, template='json')
     def unlock_many(self):
