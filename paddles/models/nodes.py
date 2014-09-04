@@ -6,7 +6,7 @@ from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 
 from paddles.exceptions import (InvalidRequestError, ForbiddenRequestError,
-                                ResourceUnavailableError)
+                                RaceConditionError, ResourceUnavailableError)
 from paddles.models import Base, commit, rollback
 
 import logging
@@ -163,7 +163,7 @@ class Node(Base):
             commit()
         except (sqlalchemy.exc.DBAPIError, sqlalchemy.exc.InvalidRequestError):
             rollback()
-            raise ResourceUnavailableError(
+            raise RaceConditionError(
                 "error locking nodes. please retry request."
             )
         return nodes

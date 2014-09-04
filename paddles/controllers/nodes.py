@@ -1,6 +1,6 @@
 from pecan import abort, expose, request
 from paddles.controllers import error
-from paddles.exceptions import PaddlesError
+from paddles.exceptions import PaddlesError, RaceConditionError
 from paddles.models import Job, Node, Session, rollback
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, load_only
@@ -87,12 +87,22 @@ class NodesController(object):
 
         locked_by = req.get('locked_by')
         description = req.get('description')
-        try:
-            result = Node.lock_many(count, locked_by, machine_type,
-                                    description)
-        except PaddlesError as exc:
-            error(exc.url, exc.message)
-        return result
+        attempts = 2
+        while attempts > 0:
+            try:
+                result = Node.lock_many(count, locked_by, machine_type,
+                                        description)
+                return result
+            except RaceConditionError as exc:
+                log.warn("lock_many() detected race condition")
+                attempts -= 1
+                if attempts > 0:
+                    log.info("retrying after race avoidance (%s tries left)",
+                             attempts)
+                else:
+                    error(exc.url, exc.message)
+            except PaddlesError as exc:
+                error(exc.url, exc.message)
 
     @expose(generic=True, template='json')
     def unlock_many(self):
