@@ -76,6 +76,9 @@ def init_model():
 
 def _engine_from_config(configuration):
     configuration = dict(configuration)
+    # Avoid race conditions
+    if 'isolation_level' not in configuration:
+        configuration['isolation_level'] = 'SERIALIZABLE'
     url = configuration.pop('url')
     return create_engine(url, **configuration)
 
