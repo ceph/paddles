@@ -17,3 +17,7 @@ class ResourceNotFoundError(PaddlesError, ValueError):
 
 class ResourceUnavailableError(PaddlesError, RuntimeError):
     url = '/errors/unavailable/'
+
+
+class RaceConditionError(ResourceUnavailableError):
+    url = '/errors/unavailable/'
