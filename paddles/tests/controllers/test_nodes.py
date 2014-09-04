@@ -232,7 +232,7 @@ class TestNodeController(TestApp):
         node_name = 'crabs'
         self.app.post_json('/nodes/', dict(name=node_name, locked=False))
         response = self.app.get(
-            '/nodes/{name}/lock'.format(name=node_name),
+            '/nodes/{name}/'.format(name=node_name),
             dict(locked=True, locked_by='me'))
         assert response.json['locked'] is False
 

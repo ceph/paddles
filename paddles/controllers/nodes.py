@@ -135,8 +135,7 @@ class NodesController(object):
             result.append(
                 NodeController._lock(node,
                                      dict(locked=False, locked_by=locked_by),
-                                     'unlock',
-                                     expect_method='POST')
+                                     'unlock')
             )
         return result
 
@@ -227,27 +226,27 @@ class NodeController(object):
 
     @expose(template='json')
     def lock(self):
-        if request.method == 'PUT':
-            node_dict = request.json
-        else:
-            node_dict = dict()
+        if request.method not in ('PUT', 'POST'):
+            error('/errors/invalid/',
+                  'this URI only supports PUT and POST requests' +
+                  ' but %s was attempted' % request.method)
+        node_dict = request.json
         verb_dict = {False: 'unlock', True: 'lock', None: 'check'}
         verb = verb_dict[node_dict.get('locked')]
 
         return self._lock(self.node, node_dict, verb)
 
     @staticmethod
-    def _lock(node_obj, node_dict, verb, expect_method='PUT'):
+    def _lock(node_obj, node_dict, verb):
         locked_by = node_dict.get('locked_by')
-        if request.method == expect_method:
-            if 'lock' in verb:
-                word = dict(lock='Locking', unlock='Unlocking')[verb]
-            log.info("{word} {node} for {locked_by}".format(
-                word=word, node=node_obj, locked_by=locked_by))
-            try:
-                node_obj.update(node_dict)
-            except PaddlesError as exc:
-                error(exc.url, exc.message)
+        if 'lock' in verb:
+            word = dict(lock='Locking', unlock='Unlocking')[verb]
+        log.info("{word} {node} for {locked_by}".format(
+            word=word, node=node_obj, locked_by=locked_by))
+        try:
+            node_obj.update(node_dict)
+        except PaddlesError as exc:
+            error(exc.url, exc.message)
         return node_obj.__json__()
 
     @expose('json')
