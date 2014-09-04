@@ -1,7 +1,13 @@
 from paddles.tests import TestApp
+from paddles.models import Node, start, commit
 
 
 class TestNodesController(TestApp):
+    def teardown_method(self, meth):
+        # After each test in this class, delete all the Nodes we created
+        start()
+        Node.query.delete()
+        commit()
 
     def test_get_node_root(self):
         response = self.app.get('/nodes/')
