@@ -1,5 +1,6 @@
 from pecan import abort, expose, request
 from paddles.controllers import error
+from paddles.exceptions import PaddlesError, RaceConditionError
 from paddles.models import Job, Node, Session, rollback
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, load_only
@@ -53,7 +54,10 @@ class NodesController(object):
                   "Node with name %s already exists" % name)
         else:
             self.node = Node(name=name)
-            self.node.update(data)
+            try:
+                self.node.update(data)
+            except PaddlesError as exc:
+                error(exc.url, exc.message)
         return dict()
 
     @expose(generic=True, template='json')
@@ -81,48 +85,24 @@ class NodesController(object):
             error('/errors/invalid/',
                   "must specify machine_type")
 
-        query = Node.query
-        if '|' in machine_type:
-            machine_types = machine_type.split('|')
-            query = query.filter(Node.machine_type.in_(machine_types))
-        else:
-            query = query.filter(Node.machine_type == machine_type)
-        query = query.filter(Node.up.is_(True))
-
-        # First, try to recycle a user's already-locked nodes if description
-        # matches. In this case we don't care if the nodes are locked or not.
         locked_by = req.get('locked_by')
         description = req.get('description')
-        if description is not None:
-            recycle_q = query.filter(Node.locked_by == locked_by)
-            recycle_q = recycle_q.filter(Node.description == description)
-            recycle_q = recycle_q.limit(count)
-            nodes = recycle_q.all()
-            nodes_avail = len(nodes)
-            if nodes_avail == count:
-                log.info("Re-using {count} locks for {locked_by}".format(
-                    count=count, locked_by=locked_by))
-                return nodes
-
-        # Find unlocked nodes
-        query = query.filter(Node.locked.is_(False))
-        query = query.limit(count)
-        nodes_avail = query.count()
-        if nodes_avail < count:
-            error('/errors/unavailable/',
-                  "only {count} nodes available".format(count=nodes_avail))
-        nodes = query.all()
-
-        log.info("Locking {count} nodes for {locked_by}".format(
-            count=count, locked_by=locked_by))
-        for node in nodes:
+        attempts = 2
+        while attempts > 0:
             try:
-                node.update(req)
-            except RuntimeError:
-                error('/errors/unavailable/',
-                      "possible race condition avoided; try again")
-
-        return [node for node in nodes]
+                result = Node.lock_many(count, locked_by, machine_type,
+                                        description)
+                return result
+            except RaceConditionError as exc:
+                log.warn("lock_many() detected race condition")
+                attempts -= 1
+                if attempts > 0:
+                    log.info("retrying after race avoidance (%s tries left)",
+                             attempts)
+                else:
+                    error(exc.url, exc.message)
+            except PaddlesError as exc:
+                error(exc.url, exc.message)
 
     @expose(generic=True, template='json')
     def unlock_many(self):
@@ -153,8 +133,9 @@ class NodesController(object):
         result = []
         for node in query.all():
             result.append(
-                NodeController._lock(node, dict(locked=False), 'unlock',
-                                     locked_by, expect_method='POST')
+                NodeController._lock(node,
+                                     dict(locked=False, locked_by=locked_by),
+                                     'unlock')
             )
         return result
 
@@ -237,61 +218,35 @@ class NodeController(object):
             node=self.node,
             data=update,
         ))
-        self.node.update(update)
+        try:
+            self.node.update(update)
+        except PaddlesError as exc:
+            error(exc.url, exc.message)
         return dict()
 
     @expose(template='json')
     def lock(self):
-        if request.method == 'PUT':
-            node_dict = request.json
-        else:
-            node_dict = dict()
+        if request.method not in ('PUT', 'POST'):
+            error('/errors/invalid/',
+                  'this URI only supports PUT and POST requests' +
+                  ' but %s was attempted' % request.method)
+        node_dict = request.json
         verb_dict = {False: 'unlock', True: 'lock', None: 'check'}
         verb = verb_dict[node_dict.get('locked')]
-        locked_by = node_dict.get('locked_by')
 
-        return self._lock(self.node, node_dict, verb, locked_by)
+        return self._lock(self.node, node_dict, verb)
 
     @staticmethod
-    def _lock(node_obj, node_dict, verb, locked_by, expect_method='PUT'):
-        if not node_obj:
-            error(
-                '/errors/not_found/',
-                'attempted to {verb} a non-existent node'.format(
-                    verb=verb
-                )
-            )
-        elif 'lock' in verb and not locked_by:
-            error(
-                '/errors/invalid/',
-                'cannot {verb} without specifying locked_by'.format(
-                    verb=verb)
-            )
-        elif verb == 'lock' and node_obj.locked:
-            error(
-                '/errors/forbidden/',
-                'attempted to lock a locked node'
-            )
-        elif verb == 'unlock' and not node_obj.locked:
-            error(
-                '/errors/invalid/',
-                'attempted to unlock an unlocked node'
-            )
-        elif 'lock' in verb and node_obj.locked and \
-                locked_by != node_obj.locked_by:
-            error(
-                '/errors/forbidden/',
-                'cannot {verb} - locked_bys do not match'.format(
-                    verb=verb
-                )
-            )
-
-        if request.method == expect_method:
-            if 'lock' in verb:
-                word = dict(lock='Locking', unlock='Unlocking')[verb]
-            log.info("{word} {node} for {locked_by}".format(
-                word=word, node=node_obj, locked_by=locked_by))
+    def _lock(node_obj, node_dict, verb):
+        locked_by = node_dict.get('locked_by')
+        if 'lock' in verb:
+            word = dict(lock='Locking', unlock='Unlocking')[verb]
+        log.info("{word} {node} for {locked_by}".format(
+            word=word, node=node_obj, locked_by=locked_by))
+        try:
             node_obj.update(node_dict)
+        except PaddlesError as exc:
+            error(exc.url, exc.message)
         return node_obj.__json__()
 
     @expose('json')

@@ -15,15 +15,14 @@ def config_file():
 class TestModel(object):
 
     config = configuration.conf_from_file(config_file()).to_dict()
-    # XXX This is absolutely terrible!
-    engine_url = 'sqlite:////tmp/test.db'
+    engine_url = config['sqlalchemy']['url']
 
     __db__ = None
 
     @classmethod
     def setup_class(cls):
         if TestModel.__db__ is None:
-            TestModel.__db__ = 'paddlestest'
+            TestModel.__db__ = 'paddles_test'
 
             # Bind and create the database tables
             pmodels.clear()
