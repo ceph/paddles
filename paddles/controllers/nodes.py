@@ -88,6 +88,8 @@ class NodesController(object):
         locked_by = req.get('locked_by')
         description = req.get('description')
         attempts = 2
+        log.info("Locking {count} nodes for {locked_by}".format(
+            count=count, locked_by=locked_by))
         while attempts > 0:
             try:
                 result = Node.lock_many(count, locked_by, machine_type,
