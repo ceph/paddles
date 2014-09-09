@@ -76,21 +76,25 @@ def init_model():
 
 def _engine_from_config(configuration):
     configuration = dict(configuration)
-    # Avoid race conditions
-    if 'isolation_level' not in configuration:
-        configuration['isolation_level'] = 'SERIALIZABLE'
     url = configuration.pop('url')
     return create_engine(url, **configuration)
 
 
-def start():
-    Session.bind = conf.sqlalchemy.engine
-    metadata.bind = Session.bind
+def bind(engine):
+    Session.bind = engine
+    metadata.bind = engine
+
+
+def start(isolation_level=None):
+    if isolation_level:
+        bind(conf.sqlalchemy.engine.execution_options(
+            isolation_level=isolation_level))
+    else:
+        bind(conf.sqlalchemy.engine)
 
 
 def start_read_only():
-    Session.bind = conf.sqlalchemy.engine
-    metadata.bind = Session.bind
+    bind(conf.sqlalchemy.engine)
 
 
 def commit():
