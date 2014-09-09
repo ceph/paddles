@@ -1,5 +1,6 @@
 from pecan import abort, expose, request
 from paddles.controllers import error
+from paddles.decorators import isolation_level
 from paddles.exceptions import PaddlesError, RaceConditionError
 from paddles.models import Job, Node, Session, rollback
 from sqlalchemy import func
@@ -65,6 +66,7 @@ class NodesController(object):
         error('/errors/invalid/',
               "this URI only supports POST requests")
 
+    @isolation_level('SERIALIZABLE')
     @lock_many.when(method='POST', template='json')
     def lock_many_post(self):
         req = request.json
