@@ -96,6 +96,9 @@ class NodesController(object):
             try:
                 result = Node.lock_many(count, locked_by, machine_type,
                                         description)
+                log.info("Locked {names} for {locked_by}".format(
+                    names=" ".join([str(node) for node in result]),
+                    locked_by=locked_by))
                 return result
             except RaceConditionError as exc:
                 log.warn("lock_many() detected race condition")
