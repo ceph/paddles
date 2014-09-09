@@ -27,6 +27,7 @@ class Node(Base):
     is_vm = Column(Boolean(), nullable=False, default=False)
 
     os_type = Column(String(32))
+    os_version = Column(String(16), index=True)
     vm_host = relationship("Node",
                            backref=backref('vm_guests'),
                            remote_side='Node.id',
@@ -45,6 +46,7 @@ class Node(Base):
         'arch',
         'description',
         'os_type',
+        'os_version',
         'is_vm',
         'locked',
         'locked_by',
@@ -57,12 +59,13 @@ class Node(Base):
     ]
 
     def __init__(self, name, machine_type=None, arch=None, os_type=None,
-                 up=None, is_vm=False, vm_host=None, description=None,
-                 mac_address=None, ssh_pub_key=None):
+                 os_version=None, up=None, is_vm=False, vm_host=None,
+                 description=None, mac_address=None, ssh_pub_key=None):
         self.name = name
         self.machine_type = machine_type
         self.arch = arch
         self.os_type = os_type
+        self.os_version = os_version
         self.up = up
         self.is_vm = is_vm
         self.vm_host = vm_host
@@ -177,6 +180,7 @@ class Node(Base):
             is_vm=self.is_vm,
             vm_host=self.vm_host,
             os_type=self.os_type,
+            os_version=self.os_version,
             arch=self.arch,
             locked=self.locked,
             locked_since=self.locked_since,
