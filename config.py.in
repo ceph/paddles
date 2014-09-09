@@ -1,8 +1,9 @@
 # This is a sample configuration file.
-# 
+#
 # Modify it to fit your environment and rename it to something like 'prod.py'
 
-from pecan.hooks import TransactionHook, RequestViewerHook
+from pecan.hooks import RequestViewerHook
+from paddles.hooks import IsolatedTransactionHook
 from paddles import models
 from paddles.hooks.cors import CorsHook
 
@@ -27,7 +28,7 @@ app = {
     'default_renderer': 'json',
     'debug': False,
     'hooks': [
-        TransactionHook(
+        IsolatedTransactionHook(
             models.start,
             models.start_read_only,
             models.commit,
