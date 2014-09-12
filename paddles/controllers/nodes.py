@@ -246,12 +246,15 @@ class NodeController(object):
     @staticmethod
     def _lock(node_obj, node_dict, verb):
         locked_by = node_dict.get('locked_by')
-        if 'lock' in verb:
-            word = dict(lock='Locking', unlock='Unlocking')[verb]
-        log.info("{word} {node} for {locked_by}".format(
-            word=word, node=node_obj, locked_by=locked_by))
+        _verb = dict(lock='Lock', unlock='Unlock').get(verb, 'Check')
+        log.debug("{verb}ing {node} for {locked_by}".format(
+            verb=_verb, node=node_obj, locked_by=locked_by))
         try:
             node_obj.update(node_dict)
+            log.info("{verb}ed {node} for {locked_by}".format(
+                verb=_verb,
+                node=node_obj,
+                locked_by=locked_by))
         except PaddlesError as exc:
             error(exc.url, exc.message)
         return node_obj.__json__()
