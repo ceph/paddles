@@ -18,4 +18,13 @@ class ExpireJobsCommand(BaseCommand):
         now = datetime.utcnow()
         running = Job.query.filter(Job.status == 'running')
         to_expire = running.filter(~Job.updated.between(now - delta, now))
-        print to_expire.count()
+        msg = "Expiring {count} jobs".format(count=to_expire.count())
+        print msg
+        for job in to_expire:
+            job.status = 'dead'
+        try:
+            models.commit()
+        except:
+            print "Rolling back"
+            models.rollback()
+            raise
