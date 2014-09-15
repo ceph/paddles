@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 
 
 class ExpireJobsCommand(BaseCommand):
+    """
+    Mark stale jobs as 'dead'
+    """
     def run(self, args):
         super(ExpireJobsCommand, self).run(args)
         self.load_app()
