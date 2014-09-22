@@ -1,9 +1,13 @@
 venv
+virtualenv
 log
 .DS_Store
 .vagrant
 
 *.py[cod]
+
+# Config files
+alembic.ini
 
 # C extensions
 *.so
@@ -31,3 +35,6 @@ pip-log.txt
 .coverage
 .tox
 nosetest
+
+# vim crap
+*.ropeproject
