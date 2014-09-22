@@ -233,6 +233,11 @@ class NodeController(object):
 
     @expose(template='json')
     def lock(self):
+        if not self.node:
+            error(
+                '/errors/not_found/',
+                'node not found'
+            )
         if request.method not in ('PUT', 'POST'):
             error('/errors/invalid/',
                   'this URI only supports PUT and POST requests' +
