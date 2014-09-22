@@ -122,7 +122,8 @@ class Node(Base):
                         verb=verb))
 
     @classmethod
-    def lock_many(cls, count, locked_by, machine_type, description=None):
+    def lock_many(cls, count, locked_by, machine_type, description=None,
+                  os_type=None, os_version=None):
         update_dict = dict(
             locked=True,
             locked_by=locked_by,
@@ -135,6 +136,10 @@ class Node(Base):
             query = query.filter(Node.machine_type.in_(machine_types))
         else:
             query = query.filter(Node.machine_type == machine_type)
+        if os_type:
+            query = query.filter(Node.os_type == os_type)
+        if os_version:
+            query = query.filter(Node.os_version == os_version)
         query = query.filter(Node.up.is_(True))
 
         # First, try to recycle a user's already-locked nodes if description

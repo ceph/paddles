@@ -127,6 +127,38 @@ class TestNodesController(TestApp):
         num_cats = types.count('cat')
         assert num_dogs + num_cats == 5
 
+    def test_lock_many_os_type(self):
+        self.app.post_json('/nodes/', dict(name='d', machine_type='os_test',
+                                           locked=False, up=True,
+                                           os_type='debian'))
+        self.app.post_json('/nodes/', dict(name='r', machine_type='os_test',
+                                           locked=False, up=True,
+                                           os_type='rhel'))
+
+        response = self.app.post_json(
+            '/nodes/lock_many/',
+            dict(count=1, machine_type='os_test', os_type='rhel',
+                 description='desc', locked_by='me')
+        )
+        assert len(response.json) == 1
+        assert response.json[0]['name'] == 'r'
+
+    def test_lock_many_os_version(self):
+        self.app.post_json('/nodes/', dict(name='one', machine_type='os_test',
+                                           locked=False, up=True,
+                                           os_version='1'))
+        self.app.post_json('/nodes/', dict(name='two', machine_type='os_test',
+                                           locked=False, up=True,
+                                           os_version='2'))
+
+        response = self.app.post_json(
+            '/nodes/lock_many/',
+            dict(count=1, machine_type='os_test', os_version='2',
+                 description='desc', locked_by='me')
+        )
+        assert len(response.json) == 1
+        assert response.json[0]['name'] == 'two'
+
     def test_lock_many_too_many(self):
         count = 4
         node_names = ('cat', 'dog', 'dragon')

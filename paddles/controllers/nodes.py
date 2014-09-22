@@ -14,8 +14,8 @@ log = logging.getLogger(__name__)
 
 class NodesController(object):
     @expose(generic=True, template='json')
-    def index(self, locked=None, machine_type='', locked_by=None, up=None,
-              count=None):
+    def index(self, locked=None, machine_type='', os_type=None,
+              os_version=None, locked_by=None, up=None, count=None):
         query = Node.query
         if locked is not None:
             query = query.filter(Node.locked == locked)
@@ -25,6 +25,10 @@ class NodesController(object):
                 query = query.filter(Node.machine_type.in_(machine_types))
             else:
                 query = query.filter(Node.machine_type == machine_type)
+        if os_type:
+            query = query.filter(Node.os_type == os_type)
+        if os_version:
+            query = query.filter(Node.os_version == os_version)
         if locked_by:
             query = query.filter(Node.locked_by == locked_by)
         if up is not None:
@@ -70,8 +74,8 @@ class NodesController(object):
     @lock_many.when(method='POST', template='json')
     def lock_many_post(self):
         req = request.json
-        fields = ['count', 'locked_by', 'machine_type', 'description']
-        if sorted(req.keys()) != sorted(fields):
+        fields = set(('count', 'locked_by', 'machine_type', 'description'))
+        if not fields.issubset(set(req.keys())):
             error('/errors/invalid/',
                   "must pass these fields: %s" % ', '.join(fields))
 
@@ -89,13 +93,17 @@ class NodesController(object):
 
         locked_by = req.get('locked_by')
         description = req.get('description')
+        os_type = req.get('os_type')
+        os_version = req.get('os_version')
         attempts = 2
         log.info("Locking {count} {mtype} nodes for {locked_by}".format(
             count=count, mtype=machine_type, locked_by=locked_by))
         while attempts > 0:
             try:
-                result = Node.lock_many(count, locked_by, machine_type,
-                                        description)
+                result = Node.lock_many(count=count, locked_by=locked_by,
+                                        machine_type=machine_type,
+                                        description=description,
+                                        os_type=os_type, os_version=os_version)
                 log.info("Locked {names} for {locked_by}".format(
                     names=" ".join([str(node) for node in result]),
                     locked_by=locked_by))
