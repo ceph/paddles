@@ -96,7 +96,7 @@ class NodesController(object):
         os_type = req.get('os_type')
         os_version = req.get('os_version')
         attempts = 2
-        log.info("Locking {count} {mtype} nodes for {locked_by}".format(
+        log.debug("Locking {count} {mtype} nodes for {locked_by}".format(
             count=count, mtype=machine_type, locked_by=locked_by))
         while attempts > 0:
             try:
