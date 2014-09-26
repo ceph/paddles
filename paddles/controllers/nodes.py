@@ -62,7 +62,7 @@ class NodesController(object):
             try:
                 self.node.update(data)
             except PaddlesError as exc:
-                error(exc.url, exc.message)
+                error(exc.url, str(exc))
         return dict()
 
     @expose(generic=True, template='json')
@@ -117,9 +117,9 @@ class NodesController(object):
                     log.info("retrying after race avoidance (%s tries left)",
                              attempts)
                 else:
-                    error(exc.url, exc.message)
+                    error(exc.url, str(exc))
             except PaddlesError as exc:
-                error(exc.url, exc.message)
+                error(exc.url, str(exc))
 
     @expose(generic=True, template='json')
     def unlock_many(self):
@@ -238,7 +238,7 @@ class NodeController(object):
         try:
             self.node.update(update)
         except PaddlesError as exc:
-            error(exc.url, exc.message)
+            error(exc.url, str(exc))
         return dict()
 
     @expose(template='json')
@@ -271,7 +271,7 @@ class NodeController(object):
                 node=node_obj,
                 locked_by=locked_by))
         except PaddlesError as exc:
-            error(exc.url, exc.message)
+            error(exc.url, str(exc))
         return node_obj.__json__()
 
     @expose('json')
