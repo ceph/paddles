@@ -118,7 +118,7 @@ class Node(Base):
             elif (verb == 'unlock' and was_locked and to_lock_for !=
                   self.locked_by):
                 raise ForbiddenRequestError(
-                    "Cannot {verb}; locked_by values must match".format(
+                    "Cannot {verb} - locked_by values must match".format(
                         verb=verb))
 
     @classmethod
