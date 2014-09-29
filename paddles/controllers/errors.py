@@ -1,7 +1,12 @@
-from pecan import expose, response
+from pecan import expose, response, request
 
 
 class ErrorsController(object):
+
+    @expose('json')
+    def schema(self, **kw):
+        response.status = 400
+        return dict(message=str(request.validation_error))
 
     @expose('json')
     def invalid(self, **kw):
