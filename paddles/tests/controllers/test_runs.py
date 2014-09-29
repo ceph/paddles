@@ -17,7 +17,20 @@ class TestRunController(TestApp):
 
     def test_post_invalid(self):
         response = self.app.post_json('/runs/', dict(), expect_errors=True)
+        error_message = response.json['message']
+        assert error_message == '-> top level has no data to validate against schema'
+
         assert response.status_int == 400
+
+    def test_post_no_name(self):
+        response = self.app.post_json('/runs/', dict(bar=1), expect_errors=True)
+        error_message = response.json['message']
+        assert error_message == "-> bar key did not match 'name'"
+
+    def test_post_name_is_not_a_string(self):
+        response = self.app.post_json('/runs/', dict(name=1), expect_errors=True)
+        error_message = response.json['message']
+        assert error_message == "-> name -> 1 did not pass validation against callable: string (not of type string)"
 
     def test_get_invalid_url_on_run(self):
         response = self.app.get('/runs/suck/', expect_errors=True)
@@ -65,7 +78,7 @@ class TestRunController(TestApp):
         # this is just posting a dict in the body, no proper headers
         response = self.app.post('/runs/', dict(), expect_errors=True)
         assert response.status_int == 400
-        assert response.json['message'] == 'could not decode JSON body'
+        assert response.json['message'] == 'No JSON object could be decoded'
 
     def test_create_new_job(self):
         self.app.post_json('/runs/', dict(name="foo"))
