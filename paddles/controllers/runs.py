@@ -1,12 +1,14 @@
 import logging
 import datetime
 from sqlalchemy import Date, cast
+from pecan.ext.notario import validate
 
 from pecan import abort, conf, expose, request
 from paddles.models import Job, Run, rollback, Session
 from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.controllers import error
+from paddles import schemas
 
 log = logging.getLogger(__name__)
 
@@ -279,15 +281,9 @@ class RunsController(object):
         return latest_runs(fields=fields, count=count, page=page)
 
     @index.when(method='POST', template='json')
+    @validate(schemas.run_schema(), handler='/errors/schema')
     def index_post(self):
-        # save to DB here
-        try:
-            name = request.json.get('name')
-        except ValueError:
-            rollback()
-            error('/errors/invalid/', 'could not decode JSON body')
-        if not name:
-            error('/errors/invalid/', "could not find required key: 'name'")
+        name = request.json.get('name')
         if not Run.query.filter_by(name=name).first():
             log.info("Creating run: %s", name)
             Run(name)
