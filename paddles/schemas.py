@@ -1,4 +1,4 @@
-from notario.validators import cherry_pick, types
+from notario.validators import types
 
 
 def run_schema():
