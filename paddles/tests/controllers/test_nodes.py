@@ -159,6 +159,22 @@ class TestNodesController(TestApp):
         assert len(response.json) == 1
         assert response.json[0]['name'] == 'two'
 
+    def test_lock_many_arch(self):
+        self.app.post_json('/nodes/', dict(name='one',
+                                           machine_type='arch_test',
+                                           locked=False, up=True, arch='1'))
+        self.app.post_json('/nodes/', dict(name='two',
+                                           machine_type='arch_test',
+                                           locked=False, up=True, arch='2'))
+
+        response = self.app.post_json(
+            '/nodes/lock_many/',
+            dict(count=1, machine_type='arch_test', arch='2',
+                 description='desc', locked_by='me')
+        )
+        assert len(response.json) == 1
+        assert response.json[0]['name'] == 'two'
+
     def test_lock_many_too_many(self):
         count = 4
         node_names = ('cat', 'dog', 'dragon')

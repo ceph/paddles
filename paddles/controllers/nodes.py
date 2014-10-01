@@ -95,6 +95,7 @@ class NodesController(object):
         description = req.get('description')
         os_type = req.get('os_type')
         os_version = req.get('os_version')
+        arch = req.get('arch')
         if os_version is not None:
             os_version = str(os_version)
         attempts = 2
@@ -105,7 +106,8 @@ class NodesController(object):
                 result = Node.lock_many(count=count, locked_by=locked_by,
                                         machine_type=machine_type,
                                         description=description,
-                                        os_type=os_type, os_version=os_version)
+                                        os_type=os_type, os_version=os_version,
+                                        arch=arch)
                 log.info("Locked {names} for {locked_by}".format(
                     names=" ".join([str(node) for node in result]),
                     locked_by=locked_by))
