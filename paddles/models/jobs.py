@@ -169,6 +169,10 @@ class Job(Base):
                 self.run.suite = v
             elif key == 'branch' and self.run.branch != v:
                 self.run.branch = v
+            # Correct a potential 'multi' value parsed from the run name to be
+            # equal to the actual value given to the runs
+            elif key == 'machine_type' and self.run.machine_type != v:
+                self.run.machine_type = v
             if key in self.allowed_keys:
                 setattr(self, key, v)
 

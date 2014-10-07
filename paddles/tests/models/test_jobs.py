@@ -171,3 +171,11 @@ class TestJobModel(TestApp):
         models.commit()
         assert new_run.suite == suite_name
         assert new_run.branch == branch_name
+
+    def test_run_multi_machine_type(self):
+        run_name = 'teuthology-2014-10-06_19:30:01-upgrade:dumpling-firefly-x:stress-split-giant-distro-basic-multi'
+        new_run = Run(run_name)
+        machine_type = 'plana,mira,burnupi'
+        Job(dict(job_id=1, machine_type=machine_type), new_run)
+        models.commit()
+        assert new_run.machine_type == machine_type
