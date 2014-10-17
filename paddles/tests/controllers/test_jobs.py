@@ -111,6 +111,12 @@ class TestJobsController(TestApp):
         response = self.app.get('/runs/RUN/jobs/42/')
         assert response.json.get('success') is None
 
+    def test_status_dead_success_false_means_status_dead(self):
+        self.app.post_json('/runs/RUN/jobs/',
+                           dict(job_id='42', success=False, status='dead'))
+        response = self.app.get('/runs/RUN/jobs/42/')
+        assert response.json.get('status') == 'dead'
+
     def test_manual_updated_time(self):
         time_stamp = '2014-03-31 21:25:43'
         run_name = 'manual_update'
