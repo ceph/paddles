@@ -109,7 +109,7 @@ class TestJobModel(TestApp):
         models.commit()
         assert job.status == 'pass'
 
-    def test_status_dead_ignored_when_success_set(self):
+    def test_status_dead_ignored_when_success_true(self):
         run_name = 'test_status_dead_ignored_when_success_set'
         run = Run(run_name)
         job_id = '27'
