@@ -43,6 +43,7 @@ class Job(Base):
     name = Column(String(512))
     nuke_on_error = Column(Boolean())
     os_type = Column(String(32))
+    os_version = Column(String(16))
     overrides = deferred(Column(JSONType()))
     owner = Column(String(128))
     pid = Column(String(32))
@@ -71,6 +72,7 @@ class Job(Base):
         "name",
         "nuke_on_error",
         "os_type",
+        "os_version",
         "overrides",
         "owner",
         "pid",
