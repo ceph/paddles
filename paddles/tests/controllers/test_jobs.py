@@ -80,7 +80,8 @@ class TestJobsController(TestApp):
         )]
 
     def test_status_dead_ignored_by_completed_job(self):
-        self.app.post_json('/runs/RUN/jobs/', dict(job_id='42', success=False))
+        self.app.post_json('/runs/RUN/jobs/', dict(job_id='42', success=False,
+                                                   status='fail'))
         self.app.put_json('/runs/RUN/jobs/42/', dict(status='dead'))
         response = self.app.get('/runs/RUN/jobs/42/')
         assert response.json.get('status') == 'fail'
@@ -127,6 +128,19 @@ class TestJobsController(TestApp):
                           dict(job_id='42', success=False, status='dead'))
         self.app.put_json('/runs/RUN/jobs/42/',
                           dict(job_id='42', success=False, status='dead'))
+        response = self.app.get('/runs/RUN/jobs/42/')
+        assert response.json.get('status') == 'dead'
+
+    def test_status_dead_success_false_means_status_dead_repost_2(self):
+        self.app.post_json('/runs/RUN/jobs/',
+                           dict(job_id='42',))
+        response = self.app.get('/runs/RUN/jobs/42/')
+        self.app.put_json('/runs/RUN/jobs/42/',
+                          dict(job_id='42', status='running'))
+        self.app.put_json('/runs/RUN/jobs/42/',
+                          dict(job_id='42', success=False, status='dead'))
+        self.app.put_json('/runs/RUN/jobs/42/',
+                          dict(job_id='42', status='dead'))
         response = self.app.get('/runs/RUN/jobs/42/')
         assert response.json.get('status') == 'dead'
 

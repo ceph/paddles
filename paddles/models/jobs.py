@@ -118,10 +118,7 @@ class Job(Base):
             if status not in self.allowed_statuses:
                 raise ValueError("Job status must be one of: %s" %
                                  self.allowed_statuses)
-            if status == 'dead' and 'success' not in json_data and \
-                    self.success is not None:
-                self.status = status_map.get(self.success)
-            else:
+            if self.status not in ('pass', 'fail'):
                 self.status = status
         elif 'success' in json_data:
             success = json_data.pop('success')
