@@ -63,6 +63,10 @@ class NodesController(object):
                 self.node.update(data)
             except PaddlesError as exc:
                 error(exc.url, str(exc))
+            log.info("Created {node}: {data}".format(
+                node=self.node,
+                data=data,
+            ))
         return dict()
 
     @expose(generic=True, template='json')
