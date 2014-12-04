@@ -151,8 +151,8 @@ class Job(Base):
                     node = node_q.one()
                 except NoResultFound:
                     node = Node(name=hostname)
-                    mtype = json_data.get('machine_type', '')
-                    if mtype and mtype in Node.machine_types:
+                    mtype = json_data.get('machine_type')
+                    if mtype:
                         node.machine_type = mtype
                 if node not in self.target_nodes:
                     self.target_nodes.append(node)
