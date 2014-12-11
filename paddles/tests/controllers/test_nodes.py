@@ -268,7 +268,7 @@ class TestNodeController(TestApp):
                                     status='running'))
 
         result = {'running': len(job_ids), 'pass': 0, 'fail': 0, 'dead': 0,
-                  'unknown': 0, 'queued': 0}
+                  'unknown': 0, 'queued': 0, 'waiting': 0}
         response = self.app.get('/nodes/{node}/job_stats/'.format(
             node=target_name))
         assert response.json == result
