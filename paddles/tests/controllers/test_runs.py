@@ -33,6 +33,28 @@ class TestRunController(TestApp):
         new_run = Run.get(1)
         assert new_run.name == 'foo'
 
+    def test_allows_waiting_status(self):
+        self.app.post_json('/runs/', dict(name="foo"))
+        self.app.post_json('/runs/foo/jobs/', dict(
+            job_id=1,
+            status="waiting",
+        ))
+        new_run = Run.get(1)
+        assert new_run.status == 'waiting'
+
+    def test_running_status_with_waiting_and_running_jobs(self):
+        self.app.post_json('/runs/', dict(name="foo"))
+        self.app.post_json('/runs/foo/jobs/', dict(
+            job_id=1,
+            status="running",
+        ))
+        self.app.post_json('/runs/foo/jobs/', dict(
+            job_id=2,
+            status="waiting",
+        ))
+        new_run = Run.get(1)
+        assert new_run.status == 'running'
+
     def test_create_then_get_new_run(self):
         self.app.post_json('/runs/', dict(name="foo"))
         response = self.app.get('/runs/')

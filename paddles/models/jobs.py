@@ -94,6 +94,7 @@ class Job(Base):
         "running",
         "dead",
         "unknown",
+        "waiting",
     )
 
     def __init__(self, json_data, run):

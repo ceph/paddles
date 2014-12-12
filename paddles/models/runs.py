@@ -122,6 +122,7 @@ class Run(Base):
     allowed_statuses = ('empty',
                         'queued',
                         'running',
+                        'waiting',
                         'unknown',
                         'finished pass',
                         'finished dead',
@@ -213,6 +214,7 @@ class Run(Base):
         jobs_status = [value[0] for value in self.jobs.values(Job.status)]
         queued = jobs_status.count('queued')
         passing = jobs_status.count('pass')
+        waiting = jobs_status.count('waiting')
         running = jobs_status.count('running')
         fail = jobs_status.count('fail')
         dead = jobs_status.count('dead')
@@ -222,6 +224,7 @@ class Run(Base):
             'queued': queued,
             'pass': passing,
             'running': running,
+            'waiting': waiting,
             'fail': fail,
             'dead': dead,
             'unknown': unknown,
@@ -249,6 +252,9 @@ class Run(Base):
         # any running => running
         elif results['running'] > 0:
             new_status = 'running'
+        # any waiting => waiting
+        elif results['waiting'] > 0:
+            new_status = 'waiting'
         # all dead => dead
         elif results['dead'] == total:
             new_status = 'finished dead'
