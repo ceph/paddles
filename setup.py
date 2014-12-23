@@ -24,6 +24,7 @@ setup(
         populate=paddles.commands.populate:PopulateCommand
         reparse=paddles.commands.reparse:ReparseCommand
         dedupe=paddles.commands.dedupe:DedupeCommand
+        delete=paddles.commands.delete:DeleteCommand
         expire_jobs=paddles.commands.expire_jobs:ExpireJobsCommand
         set_status=paddles.commands.set_status:SetStatusCommand
         set_targets=paddles.commands.set_targets:SetTargetsCommand
