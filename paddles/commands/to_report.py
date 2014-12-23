@@ -19,9 +19,9 @@ class ToReportCommand(BaseCommand):
             help="What status to look for",
         ),
         dict(
-            name="report_dead",
+            name="--dead",
             help="Report jobs as dead?",
-            optional=True,
+            required=False,
         ),
     )
 
