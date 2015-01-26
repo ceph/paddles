@@ -16,7 +16,7 @@ class ExpireJobsCommand(BaseCommand):
         models.start()
         delta = timedelta(seconds=60*60*0.5)
         now = datetime.utcnow()
-        running = Job.query.filter(Job.status == 'running')
+        running = Job.query.filter(Job.status.in_(['running', 'waiting']))
         to_expire = running.filter(~Job.updated.between(now - delta, now))
         msg = "Expiring {count} jobs".format(count=to_expire.count())
         print msg
