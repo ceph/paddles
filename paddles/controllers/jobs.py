@@ -88,9 +88,11 @@ class JobsController(object):
             return run
 
     @expose(generic=True, template='json')
-    def index(self, fields=''):
-        jobs = Job.filter_by(
-            run=self.run).order_by(Job.posted.desc()).all()
+    def index(self, status='', fields=''):
+        job_query = Job.filter_by(run=self.run)
+        if status:
+            job_query = job_query.filter_by(status=status)
+        jobs = job_query.order_by(Job.posted.desc()).all()
         if fields:
             try:
                 return [job.slice(fields) for job in jobs]
