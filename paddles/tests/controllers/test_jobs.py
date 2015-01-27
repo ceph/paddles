@@ -167,3 +167,13 @@ class TestJobsController(TestApp):
         utc_dt = local_datetime_to_utc(local_dt)
         response = self.app.get('/runs/%s/jobs/%s/' % (run_name, 1))
         assert response.json['updated'] == str(utc_dt)
+
+    def test_filter_running_jobs(self):
+        self.app.post_json('/runs/filter_running/jobs/',
+                           dict(job_id='1', status='running'))
+        self.app.post_json('/runs/filter_running/jobs/',
+                           dict(job_id='2', status='running'))
+        self.app.put_json('/runs/filter_running/jobs/1/',
+                          dict(job_id='1', success=True, status='pass'))
+        response = self.app.get('/runs/filter_running/jobs/?status=running')
+        assert len(response.json) == 1
