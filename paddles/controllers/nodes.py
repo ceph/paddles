@@ -112,9 +112,15 @@ class NodesController(object):
                                         description=description,
                                         os_type=os_type, os_version=os_version,
                                         arch=arch)
-                log.info("Locked {names} for {locked_by}".format(
+                if description:
+                    desc_str = " with description %s" % description
+                else:
+                    desc_str = ""
+                log.info("Locked {names} for {locked_by}{desc_str}".format(
                     names=" ".join([str(node) for node in result]),
-                    locked_by=locked_by))
+                    locked_by=locked_by,
+                    desc_str=desc_str,
+                ))
                 return result
             except RaceConditionError as exc:
                 log.warn("lock_many() detected race condition")
