@@ -349,6 +349,18 @@ class TestNodeController(TestApp):
             dict(locked=False, locked_by='someone@else'), expect_errors=True)
         assert response.status_int == 403
 
+    def test_unlock_different_description(self):
+        node_name = 'minnows'
+        user = 'fish@bowl'
+        self.app.post_json('/nodes/', dict(name=node_name, locked=True,
+                                           locked_by=user,
+                                           description='desc1'))
+        response = self.app.put_json(
+            '/nodes/{name}/lock'.format(name=node_name),
+            dict(locked=False, locked_by=user, description='desc2'),
+            expect_errors=True)
+        assert response.status_int == 403
+
     def test_post_junk(self):
         response = self.app.post_json('/nodes/', dict(), expect_errors=True)
         assert response.status_int == 400
