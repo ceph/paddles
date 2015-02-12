@@ -120,6 +120,11 @@ class Node(Base):
                 raise ForbiddenRequestError(
                     "Cannot {verb} - locked_by values must match".format(
                         verb=verb))
+            elif (verb == 'unlock' and was_locked and desc and desc !=
+                  self.description):
+                raise ForbiddenRequestError(
+                    "Cannot {verb} - description values must match".format(
+                        verb=verb))
 
     @classmethod
     def lock_many(cls, count, locked_by, machine_type, description=None,
