@@ -210,6 +210,11 @@ class NodesController(object):
         return ordered_stats
 
     @expose('json')
+    def machine_types(self):
+        query = Node.query.values(Node.machine_type)
+        return sorted(list(set([item[0] for item in query if item[0]])))
+
+    @expose('json')
     def _lookup(self, name, *remainder):
         return NodeController(name), remainder
 
