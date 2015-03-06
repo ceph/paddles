@@ -73,6 +73,14 @@ class TestNodesController(TestApp):
         got_types = sorted([n['machine_type'] for n in response.json])
         assert got_types == wanted_types
 
+    def test_list_machine_types(self):
+        self.app.post_json('/nodes/', dict(name='node1', machine_type='list1'))
+        self.app.post_json('/nodes/', dict(name='node2', machine_type='list2'))
+        response = self.app.get('/nodes/machine_types/')
+        wanted_types = ['list1', 'list2']
+        got_types = response.json
+        assert got_types == wanted_types
+
     def test_query_locked_by(self):
         self.app.post_json('/nodes/', dict(name='query_locked_by1',
                                            locked=True, locked_by='gal'))
