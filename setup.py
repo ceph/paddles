@@ -26,6 +26,7 @@ setup(
         dedupe=paddles.commands.dedupe:DedupeCommand
         delete=paddles.commands.delete:DeleteCommand
         expire_jobs=paddles.commands.expire_jobs:ExpireJobsCommand
+        node_jobs=paddles.commands.node_jobs:NodeJobsCommand
         set_status=paddles.commands.set_status:SetStatusCommand
         set_targets=paddles.commands.set_targets:SetTargetsCommand
         import_nodes=paddles.commands.import_nodes:ImportNodesCommand
