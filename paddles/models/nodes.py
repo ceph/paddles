@@ -25,6 +25,7 @@ class Node(Base):
     machine_type = Column(String(32), index=True)
     arch = Column(String(16))
     is_vm = Column(Boolean(), nullable=False, default=False)
+    is_container = Column(Boolean(), nullable=False, default=False)
 
     os_type = Column(String(32))
     os_version = Column(String(16), index=True)
@@ -48,6 +49,7 @@ class Node(Base):
         'os_type',
         'os_version',
         'is_vm',
+        'is_container',
         'locked',
         'locked_by',
         'locked_since',
@@ -175,6 +177,7 @@ class Node(Base):
             up=self.up,
             machine_type=self.machine_type,
             is_vm=self.is_vm,
+            is_container=self.is_container,
             vm_host=self.vm_host,
             os_type=self.os_type,
             os_version=self.os_version,
