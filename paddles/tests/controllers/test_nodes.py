@@ -233,9 +233,10 @@ class TestNodesController(TestApp):
         response = self.app.post_json(
             '/nodes/lock_many/',
             dict(count=count, machine_type='pet', description=desc,
-                 locked_by=locked_by)
+                 locked_by=locked_by),
+            expect_errors=True,
         )
-        assert len(response.json) == count
+        assert 'only 0' in response.json['message']
 
     def test_unlock_many_simple(self):
         mtype = 'ulmtest'

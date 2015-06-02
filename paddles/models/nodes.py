@@ -149,21 +149,6 @@ class Node(Base):
             query = query.filter(Node.arch == arch)
         query = query.filter(Node.up.is_(True))
 
-        # First, try to recycle a user's already-locked nodes if description
-        # matches. In this case we don't care if the nodes are locked or not.
-        if description is not None:
-            recycle_q = query.filter(Node.locked_by == locked_by)
-            recycle_q = recycle_q.filter(Node.description == description)
-            recycle_q = recycle_q.limit(count)
-            nodes = recycle_q.all()
-            nodes_avail = len(nodes)
-            if nodes_avail == count:
-                log.info("Re-using {count} locks for {locked_by}".format(
-                    count=count, locked_by=locked_by))
-                for node in nodes:
-                    node.update(update_dict)
-                return nodes
-
         # Find unlocked nodes
         query = query.filter(Node.locked.is_(False))
         query = query.limit(count)
