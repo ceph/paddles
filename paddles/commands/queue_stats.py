@@ -39,7 +39,10 @@ class QueueStatsCommand(BaseCommand):
             prev_day = day_objs[day_objs.index(day) - 1]
             jobs_sched = self.jobs_scheduled_between(prev_day, day).count()
             jobs_done = self.jobs_completed_between(prev_day, day).count()
-            percent = float(jobs_done) / float(jobs_sched) * 100
+            if jobs_sched == 0:
+                percent = 0
+            else:
+                percent = float(jobs_done) / float(jobs_sched) * 100
             job_counts[day] = OrderedDict(scheduled=jobs_sched,
                                           completed=jobs_done,
                                           percent=percent,
