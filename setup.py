@@ -14,6 +14,7 @@ setup(
     author_email='',
     install_requires=[
         "pecan",
+        "pecan-notario",
     ],
     test_suite='paddles',
     zip_safe=False,

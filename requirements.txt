@@ -11,3 +11,4 @@ tzlocal==1.1.1
 WebTest==2.0.15
 wsgiref==0.1.2
 gunicorn==19.1.1
+pecan-notario
