@@ -299,7 +299,8 @@ class NodeController(object):
     def jobs(self, name='', status='', count=0):
         if not self.node:
             abort(404)
-        jobs = Job.query.filter(Job.target_nodes.contains(self.node))
+        jobs = Job.query.order_by(Job.posted.desc())
+        jobs = jobs.filter(Job.target_nodes.contains(self.node))
         if name:
             jobs = jobs.filter(Job.name == name)
         if status:

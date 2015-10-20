@@ -282,6 +282,23 @@ class TestNodeController(TestApp):
             node=target_name))
         assert response.json == result
 
+    def test_single_node_jobs(self):
+        run_name = 'jobs'
+        job_ids = [1, 2, 3]
+        target_name = 't1'
+        targets = {'u@' + target_name: ''}
+        for job_id in job_ids:
+            self.app.post_json('/runs/{name}/jobs/'.format(name=run_name),
+                               dict(job_id=job_id, targets=targets,
+                                    status='running'))
+
+        response = self.app.get('/nodes/{node}/jobs/'.format(
+            node=target_name))
+        result = response.json
+        assert result[0]['job_id'] == '3'
+        assert result[1]['job_id'] == '2'
+        assert result[2]['job_id'] == '1'
+
     def test_update(self):
         node_name = 'kittens'
         user = 'momcat'
