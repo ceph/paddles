@@ -125,12 +125,12 @@ class JobsController(object):
             query = query.filter_by(job_id=job_id, run=self.run)
             if query.first():
                 error('/errors/invalid/',
-                    "job with job_id %s already exists" % job_id)
+                      "job with job_id %s already exists" % job_id)
 
         self.job = Job(data, self.run)
         job_id = self.job.job_id
         log.info("Created job: %s/%s", data.get('name', '<no name!>'), job_id)
-        return dict()
+        return dict(job_id=job_id)
 
     @expose('json')
     def _lookup(self, job_id, *remainder):
