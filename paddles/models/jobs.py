@@ -47,6 +47,7 @@ class Job(Base):
     overrides = deferred(Column(JSONType()))
     owner = Column(String(128))
     pid = Column(String(32))
+    priority = Column(Integer, index=True, default=1000)
     roles = deferred(Column(JSONType()))
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
@@ -76,6 +77,7 @@ class Job(Base):
         "overrides",
         "owner",
         "pid",
+        "priority",
         "roles",
         "sentry_event",
         "status",
