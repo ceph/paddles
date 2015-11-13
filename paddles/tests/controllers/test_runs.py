@@ -73,7 +73,7 @@ class TestRunController(TestApp):
             job_id=1,
         ))
         new_job = Job.get(1)
-        assert new_job.job_id == '1'
+        assert new_job.job_id == 1
 
     def test_delete_empty_run(self):
         self.app.post_json('/runs/', dict(name='foo'))

@@ -14,10 +14,10 @@ class TestJobsController(TestApp):
         response = self.app.post_json('/runs/foo/jobs/', dict(
             job_id=1,
         ))
-        assert response.json['job_id'] == '1'
+        assert response.json['job_id'] == 1
         response = self.app.get('/runs/foo/jobs/')
         assert len(response.json) == 1
-        assert response.json[0]['job_id'] == '1'
+        assert response.json[0]['job_id'] == 1
 
     def test_attempt_to_create_a_new_job(self):
         self.app.post_json('/runs/', dict(name="foo"))
@@ -29,7 +29,7 @@ class TestJobsController(TestApp):
         assert response.status_code == 200
         response = self.app.get('/runs/foo/jobs/2/')
         assert response.status_code == 200
-        assert response.json.get('job_id') == '2'
+        assert response.json.get('job_id') == 2
 
     def test_to_create_a_new_job(self):
         self.app.post_json('/runs/', dict(name="foo"))
@@ -84,13 +84,13 @@ class TestJobsController(TestApp):
             job_id=13,
         ))
         response = self.app.get('/runs/bar/jobs/13/')
-        assert response.json['job_id'] == '13'
+        assert response.json['job_id'] == 13
 
     def test_slice_valid(self):
-        self.app.post_json('/runs/foo/jobs/', dict(job_id='314'))
+        self.app.post_json('/runs/foo/jobs/', dict(job_id=314))
         response = self.app.get('/runs/foo/jobs/?fields=job_id')
         assert response.json == [dict(
-            job_id='314',
+            job_id=314,
         )]
 
     def test_status_dead_ignored_by_completed_job(self):

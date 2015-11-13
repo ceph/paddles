@@ -36,7 +36,7 @@ class Job(Base):
     email = Column(String(128))
     failure_reason = deferred(Column(Text))
     flavor = Column(String(128))
-    job_id = Column(String(32), index=True)
+    job_id = Column(Integer, index=True)
     kernel = deferred(Column(JSONType()))
     last_in_suite = Column(Boolean())
     machine_type = Column(String(32))
@@ -101,8 +101,8 @@ class Job(Base):
 
     def __init__(self, json_data, run):
         self.run = run
-        if not 'job_id' in json_data:
-            json_data['job_id']  = self.run.next_job_id
+        if 'job_id' not in json_data:
+            json_data['job_id'] = self.run.next_job_id
         self.posted = datetime.utcnow()
         self.set_or_update(json_data)
 

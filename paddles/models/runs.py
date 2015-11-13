@@ -201,13 +201,13 @@ class Run(Base):
     @property
     def next_job_id(self):
         """
-        :returns: <highest job_id> + 1 as a unicode() or '1' if run is empty
+        :returns: <highest job_id> + 1 or '1' if run is empty
         """
         query = self.jobs.filter(~Job.job_id.is_(None)).order_by(Job.job_id)
         try:
-            return unicode(int(query[-1].job_id) + 1)
+            return int(query[-1].job_id) + 1
         except IndexError:
-            return u"1"
+            return 1
 
     @property
     def _updated(self):

@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 class JobController(object):
 
     def __init__(self, job_id):
-        self.job_id = str(job_id)
+        self.job_id = int(job_id)
         run_name = request.context.get('run_name')
         if not run_name:
             self.run = None
@@ -116,10 +116,8 @@ class JobsController(object):
 
         if 'job_id' in data:
             job_id = data['job_id']
-            if isinstance(job_id, int):
-                data['job_id'] = str(job_id)
-            elif not job_id.isdigit():
-                error('/errors/invalid/', 'job_id must be an int')
+            if isinstance(job_id, basestring):
+                data['job_id'] = job_id = int(job_id)
 
             query = Job.query.options(load_only('id', 'job_id'))
             query = query.filter_by(job_id=job_id, run=self.run)

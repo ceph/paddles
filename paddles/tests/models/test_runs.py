@@ -238,8 +238,8 @@ class TestRunModel(TestApp):
     def test_next_job_id(self):
         run_name = 'test_next_job_id'
         new_run = Run(run_name)
-        assert new_run.next_job_id == '1'
-        j = Job(dict(), new_run)
-        assert new_run.next_job_id == '2'
-        j = Job(dict(), new_run)
-        assert new_run.next_job_id == '3'
+        assert new_run.next_job_id == 1
+        Job(dict(), new_run)
+        assert new_run.next_job_id == 2
+        Job(dict(), new_run)
+        assert new_run.next_job_id == 3

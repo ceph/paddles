@@ -295,9 +295,9 @@ class TestNodeController(TestApp):
         response = self.app.get('/nodes/{node}/jobs/'.format(
             node=target_name))
         result = response.json
-        assert result[0]['job_id'] == '3'
-        assert result[1]['job_id'] == '2'
-        assert result[2]['job_id'] == '1'
+        assert result[0]['job_id'] == 3
+        assert result[1]['job_id'] == 2
+        assert result[2]['job_id'] == 1
 
     def test_update(self):
         node_name = 'kittens'
