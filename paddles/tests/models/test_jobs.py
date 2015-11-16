@@ -188,3 +188,12 @@ class TestJobModel(TestApp):
         Job(dict(job_id=1, machine_type=machine_type), new_run)
         models.commit()
         assert new_run.machine_type == machine_type
+
+    def test_job_starting(self):
+        run_name = 'test_job_started'
+        run = Run(run_name)
+        job = Job(dict(status='queued'), run)
+        models.commit()
+        assert job.status == 'queued'
+        job.start()
+        assert job.status == 'starting'

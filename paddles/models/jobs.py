@@ -4,7 +4,7 @@ from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
 from sqlalchemy.orm import backref, deferred, load_only, relationship
 from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 from pecan import conf
-from paddles.models import Base
+from paddles.models import Base, commit
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
 from paddles.util import local_datetime_to_utc
@@ -194,6 +194,14 @@ class Job(Base):
 
     def update(self, json_data):
         self.set_or_update(json_data)
+
+    def start(self):
+        if self.status != 'queued':
+            raise RuntimeError(
+                "Only 'queued' jobs can be started. Current status is '%s'" %
+                self.status)
+        self.update(dict(status='starting'))
+        commit()
 
     @property
     def href(self):
