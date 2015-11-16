@@ -1,6 +1,7 @@
 from pecan import expose
 
 from paddles.controllers.runs import RunsController
+from paddles.controllers.queue import QueueController
 from paddles.controllers.nodes import NodesController
 from paddles.controllers.errors import ErrorsController
 from paddles.models import Run, Job
@@ -28,6 +29,7 @@ class RootController(object):
         )
 
     runs = RunsController()
+    queue = QueueController()
     errors = ErrorsController()
     nodes = NodesController()
 
