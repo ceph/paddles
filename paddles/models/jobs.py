@@ -93,6 +93,7 @@ class Job(Base):
         "pass",
         "fail",
         "queued",
+        "starting",
         "running",
         "dead",
         "unknown",

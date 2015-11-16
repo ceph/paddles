@@ -224,6 +224,7 @@ class Run(Base):
     def get_results(self):
         jobs_status = [value[0] for value in self.jobs.values(Job.status)]
         queued = jobs_status.count('queued')
+        starting = jobs_status.count('starting')
         passing = jobs_status.count('pass')
         waiting = jobs_status.count('waiting')
         running = jobs_status.count('running')
@@ -233,6 +234,7 @@ class Run(Base):
         total = len(jobs_status)
         return {
             'queued': queued,
+            'starting': starting,
             'pass': passing,
             'running': running,
             'waiting': waiting,
@@ -258,7 +260,7 @@ class Run(Base):
         total = results['total']
 
         # all queued => queued
-        if results['queued'] == total:
+        if results['queued'] + results['starting'] == total:
             new_status = 'queued'
         # any running => running
         elif results['running'] > 0:
