@@ -4,6 +4,7 @@ from sqlalchemy.orm import load_only
 from pecan import expose, abort, request
 
 from paddles import models
+from paddles.decorators import isolation_level
 from paddles.models import Job, rollback
 from paddles.controllers import error
 
@@ -133,3 +134,28 @@ class JobsController(object):
     @expose('json')
     def _lookup(self, job_id, *remainder):
         return JobController(job_id), remainder
+
+
+class QueuedJobsController(object):
+    @expose('json')
+    def index(self, count=0):
+        return self.get_jobs(count=count)
+
+    @isolation_level('SERIALIZABLE')
+    @expose('json')
+    def start_next(self):
+        result = self.get_jobs(count=1)
+        if result:
+            job = result[0]
+            job.start()
+            return job
+        return dict()
+
+    def get_jobs(self, count=0):
+        query = Job.query.filter(Job.status == 'queued')
+        query = query.order_by(Job.priority).order_by(Job.posted)
+        if count:
+            query = query.limit(count)
+        if not query.count():
+            return []
+        return query.all()
