@@ -122,3 +122,4 @@ def flush():
 from runs import Run  # noqa
 from jobs import Job  # noqa
 from nodes import Node  # noqa
+from labs import Lab  # noqa
