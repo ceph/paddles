@@ -14,14 +14,22 @@ class NodeStatsCommand(BaseCommand):
     """
     epoch = datetime.utcfromtimestamp(0)
 
-    arguments = BaseCommand.arguments + (dict(
-        name="days",
-        help="How many days to go back in history",
-    ),)
+    arguments = BaseCommand.arguments + (
+        dict(
+            name="days",
+            help="How many days to go back in history",
+        ),
+        dict(
+            name=["-m", "--machine-type"],
+            help="Only look at runs using this exact machine type",
+            default=None,
+        ),
+    )
 
     def run(self, args):
         super(NodeStatsCommand, self).run(args)
         days = int(args.days) + 1
+        self.machine_type = args.machine_type
         self.load_app()
         models.start()
         today = date.today()
@@ -45,6 +53,8 @@ class NodeStatsCommand(BaseCommand):
 
     def jobs_scheduled_between(self, day1, day2):
         query = Job.query.filter(Job.posted.between(day1, day2))
+        if self.machine_type:
+            query = query.filter(Job.machine_type == self.machine_type)
         return query
 
     def jobs_completed_between(self, day1, day2):
