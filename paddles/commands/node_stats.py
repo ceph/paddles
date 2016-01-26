@@ -80,5 +80,6 @@ class NodeStatsCommand(BaseCommand):
             duration=duration,
             runtime=runtime,
             waited=waited,
+            description=job.description,
         )
         return job_info
