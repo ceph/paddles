@@ -141,7 +141,12 @@ class Node(Base):
         if os_type:
             query = query.filter(Node.os_type == os_type)
         if os_version:
-            query = query.filter(Node.os_version == os_version)
+            if '~' in os_version:
+                os_version = os_version.lstrip('~') + '$'
+                query = query.filter(
+                    text("os_version ~:exp")).params(exp=os_version)
+            else:
+                query = query.filter(Node.os_version == os_version)
         if arch:
             query = query.filter(Node.arch == arch)
         if up is not None:
