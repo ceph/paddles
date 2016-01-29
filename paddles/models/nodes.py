@@ -1,5 +1,6 @@
 import sqlalchemy.exc
 from sqlalchemy.orm.exc import DetachedInstanceError
+from sqlalchemy.sql import text
 from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
                         Text)
 from sqlalchemy.orm import relationship, backref
@@ -127,36 +128,57 @@ class Node(Base):
                         verb=verb))
 
     @classmethod
-    def lock_many(cls, count, locked_by, machine_type, description=None,
-                  os_type=None, os_version=None, arch=None):
-        update_dict = dict(
-            locked=True,
-            locked_by=locked_by,
-            description=description,
-        )
-
+    def find(cls, count=None, locked=None, locked_by=None, machine_type=None,
+             description=None, os_type=None, os_version=None, arch=None,
+             up=None):
         query = cls.query
-        if '|' in machine_type:
-            machine_types = machine_type.split('|')
-            query = query.filter(Node.machine_type.in_(machine_types))
-        else:
-            query = query.filter(Node.machine_type == machine_type)
+        if machine_type:
+            if '|' in machine_type:
+                machine_types = machine_type.split('|')
+                query = query.filter(Node.machine_type.in_(machine_types))
+            else:
+                query = query.filter(Node.machine_type == machine_type)
         if os_type:
             query = query.filter(Node.os_type == os_type)
         if os_version:
             query = query.filter(Node.os_version == os_version)
         if arch:
             query = query.filter(Node.arch == arch)
-        query = query.filter(Node.up.is_(True))
+        if up is not None:
+            query = query.filter(Node.up == up)
+        if locked is not None:
+            query = query.filter(Node.locked == locked)
+        if locked_by:
+            query = query.filter(Node.locked_by == locked_by)
+        if count:
+            query = query.limit(count)
+        return query
 
-        # Find unlocked nodes
-        query = query.filter(Node.locked.is_(False))
-        query = query.limit(count)
+    @classmethod
+    def lock_many(cls, count, locked_by, machine_type, description=None,
+                  os_type=None, os_version=None, arch=None):
+        query = cls.find(
+            locked=False,
+            up=True,
+            count=count,
+            machine_type=machine_type,
+            os_type=os_type,
+            os_version=os_version,
+            arch=arch,
+        )
+
         nodes = query.all()
         nodes_avail = len(nodes)
         if nodes_avail < count:
             raise ResourceUnavailableError(
                 "only {count} nodes available".format(count=nodes_avail))
+
+        update_dict = dict(
+            locked=True,
+            locked_by=locked_by,
+            description=description,
+        )
+
         for node in nodes:
             node.update(update_dict)
         try:
