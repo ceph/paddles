@@ -57,6 +57,8 @@ class Job(Base):
     tasks = deferred(Column(JSONType()))
     teuthology_branch = Column(String(32))
     verbose = Column(Boolean())
+    issue_url = deferred(Column(Text))
+    comment = deferred(Column(Text))
 
     allowed_keys = (
         "archive_path",
