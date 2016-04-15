@@ -197,6 +197,9 @@ database are:
 * tasks
 * teuthology_branch
 * verbose
+* branch
+* sha1
+* suite_sha1
 
 For initial creation of a ``job`` associated to its ``run`` a ``job_id`` key is
 **required**. It is the only key in the JSON body that *must* exist, otherwise
