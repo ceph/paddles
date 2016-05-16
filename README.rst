@@ -200,6 +200,7 @@ database are:
 * branch
 * sha1
 * suite_sha1
+* pcp_grafana_url
 
 For initial creation of a ``job`` associated to its ``run`` a ``job_id`` key is
 **required**. It is the only key in the JSON body that *must* exist, otherwise

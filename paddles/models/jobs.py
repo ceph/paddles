@@ -62,6 +62,7 @@ class Job(Base):
     verbose = Column(Boolean())
     issue_url = deferred(Column(Text))
     comment = deferred(Column(Text))
+    pcp_grafana_url = Column(Text)
 
     allowed_keys = (
         "archive_path",
@@ -93,6 +94,7 @@ class Job(Base):
         "tasks",
         "teuthology_branch",
         "verbose",
+        "pcp_grafana_url",
     )
 
     allowed_statuses = (
