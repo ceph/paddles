@@ -7,6 +7,7 @@ from pecan import conf
 from paddles.models import Base
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
+from paddles.stats import get_client as get_statsd_client
 from paddles.util import local_datetime_to_utc
 
 job_nodes_table = Table(
@@ -142,6 +143,10 @@ class Job(Base):
             self.started = datetime.utcnow()
 
         if self.status != old_status:
+            # Submit pass/fail/dead stats to statsd
+            if self.status in ('pass', 'fail', 'dead'):
+                counter = get_statsd_client().get_counter('jobs.status')
+                counter.increment(self.status)
             self.run.set_status()
 
         if old_run_status != 'running' and self.run.status == 'running':
