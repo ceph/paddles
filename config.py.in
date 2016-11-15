@@ -14,6 +14,11 @@ server = {
     'host': '127.0.0.1'
 }
 
+statsd = {
+    'host': 'example.com',
+    'prefix': 'ceph.test.teuthology.your_lab',
+}
+
 # These values will be specific to your site
 address = 'http://paddles.front.sepia.ceph.com'
 job_log_href_templ = 'http://qa-proxy.ceph.com/teuthology/{run_name}/{job_id}/teuthology.log'  # noqa
