@@ -11,3 +11,4 @@ tzlocal==1.2
 WebTest==2.0.18
 wsgiref==0.1.2
 gunicorn==19.3.0
+python-statsd==2.0.0
