@@ -1,10 +1,12 @@
+import pytest
+
+from datetime import datetime
+from mock import patch, Mock
+
 from paddles.models import Job, Run, Node
 from paddles.util import local_datetime_to_utc
 from paddles.tests import TestApp
 from paddles import models
-from datetime import datetime
-
-import pytest
 
 
 class TestJobModel(TestApp):
@@ -179,3 +181,21 @@ class TestJobModel(TestApp):
         Job(dict(job_id=1, machine_type=machine_type), new_run)
         models.commit()
         assert new_run.machine_type == machine_type
+
+    @patch('paddles.stats.get_client')
+    def test_statsd_update(self, m_get_client):
+        m_client = Mock()
+        m_counter = Mock()
+        m_client.get_counter.return_value = m_counter
+        m_get_client.return_value = m_client
+        run_name = 'test_statsd_update'
+        run = Run(run_name)
+        job_id = '27'
+        job = Job(dict(name=run_name, job_id=job_id, status='running'), run)
+        models.commit()
+        job.update({'status': 'pass'})
+        models.commit()
+        assert job.status == 'pass'
+        assert m_get_client.called_once_with()
+        assert m_client.get_counter.called_once_with('jobs.status')
+        assert m_counter.increment.called_once_with('pass')
