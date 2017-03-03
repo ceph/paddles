@@ -1,5 +1,6 @@
 from pecan import abort, expose, request
 from paddles.controllers import error
+from paddles.controllers.util import offset_query
 from paddles.decorators import isolation_level
 from paddles.exceptions import PaddlesError, RaceConditionError
 from paddles.models import Job, Node, Session, rollback
@@ -296,7 +297,7 @@ class NodeController(object):
         return node_obj.__json__()
 
     @expose('json')
-    def jobs(self, name='', status='', count=0):
+    def jobs(self, name='', status='', count=0, page=1):
         if not self.node:
             abort(404)
         jobs = Job.query.order_by(Job.posted.desc())
@@ -306,7 +307,7 @@ class NodeController(object):
         if status:
             jobs = jobs.filter(Job.status == status)
         if count:
-            jobs = jobs.limit(count)
+            jobs = offset_query(jobs, count, page)
         return [job.__json__() for job in jobs]
 
     @expose('json')
