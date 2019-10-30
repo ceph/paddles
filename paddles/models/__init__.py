@@ -119,6 +119,6 @@ def clear():
 def flush():
     Session.flush()
 
-from runs import Run  # noqa
-from jobs import Job  # noqa
-from nodes import Node  # noqa
+from .runs import Run  # noqa
+from .jobs import Job  # noqa
+from .nodes import Node  # noqa
