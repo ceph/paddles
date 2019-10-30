@@ -274,6 +274,9 @@ class TestRunControllerDateFilters(TestApp):
             'date format must match')
 
     def test_date_range_filter_finds_runs(self):
+        if 'sqlite' in conf['sqlalchemy']['url']:
+            skip("sqlite does not support DATE")
+
         response = self.app.get('/runs/date/from/2013-01-02/to/2013-01-03/')
         got_names = [run['name'] for run in response.json]
         assert sorted(got_names) == sorted(self.day2_runs + self.day3_runs)
@@ -285,16 +288,25 @@ class TestRunControllerDateFilters(TestApp):
             'date format must match')
 
     def test_branch_and_since(self):
+        if 'sqlite' in conf['sqlalchemy']['url']:
+            skip("sqlite does not support DATE")
+
         response = self.app.get('/runs/branch/next/?since=2013-01-03')
         got_names = sorted(run['name'] for run in response.json)
         assert got_names == self.day3_runs[0:2] + self.day4_runs[0:2]
 
     def test_suite_and_since(self):
+        if 'sqlite' in conf['sqlalchemy']['url']:
+            skip("sqlite does not support DATE")
+
         response = self.app.get('/runs/suite/nfs/?since=2013-01-03')
         got_names = sorted(run['name'] for run in response.json)
         assert got_names == (self.day3_runs + self.day4_runs)[1::2]
 
     def test_suite_and_branch_and_since(self):
+        if 'sqlite' in conf['sqlalchemy']['url']:
+            skip("sqlite does not support DATE")
+
         response = self.app.get(
             '/runs/suite/nfs/branch/next/?since=2013-01-03')
         got_names = sorted(run['name'] for run in response.json)
