@@ -1,5 +1,5 @@
 
-class PaddlesError(StandardError):
+class PaddlesError(Exception):
     pass
 
 
