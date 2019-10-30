@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 
 from datetime import date, datetime
@@ -49,7 +50,7 @@ class NodeStatsCommand(BaseCommand):
                     continue
                 job_info = self.get_job_info(job)
                 all_jobs.append(job_info)
-        print json.dumps(all_jobs, indent=2)
+        print(json.dumps(all_jobs, indent=2))
 
     def jobs_scheduled_between(self, day1, day2):
         query = Job.query.filter(Job.posted.between(day1, day2))

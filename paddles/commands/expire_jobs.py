@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 
 from paddles import models
@@ -48,7 +49,7 @@ class ExpireJobsCommand(BaseCommand):
             count=query.count(),
             reason=reason,
         )
-        print msg
+        print(msg)
         runs = set()
         for job in query:
             job.status = 'dead'
@@ -74,6 +75,6 @@ class ExpireJobsCommand(BaseCommand):
         try:
             models.commit()
         except:
-            print "Rolling back"
+            print("Rolling back")
             models.rollback()
             raise

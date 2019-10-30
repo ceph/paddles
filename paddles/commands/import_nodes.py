@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 from datetime import datetime
 from paddles.util import local_datetime_to_utc
@@ -6,7 +7,7 @@ import requests
 
 
 def out(string):
-    print "==> %s" % string
+    print("==> %s" % string)
 
 
 class ImportNodesCommand(BaseCommand):
@@ -20,7 +21,7 @@ class ImportNodesCommand(BaseCommand):
         super(ImportNodesCommand, self).run(args)
         response = requests.get(self.lockserver)
         nodes_json = response.json()
-        print "Found {count} nodes to import".format(count=len(nodes_json))
+        print("Found {count} nodes to import".format(count=len(nodes_json)))
         out("LOADING ENVIRONMENT")
         self.load_app()
         try:
@@ -31,9 +32,9 @@ class ImportNodesCommand(BaseCommand):
             for i in range(count):
                 node_json = nodes_json[i]
                 verb = self.update_node(node_json)
-                print "{verb} {n}/{count}\r".format(verb=verb, n=i+1,
-                                                    count=count),
-            print
+                print("{verb} {n}/{count}\r".format(verb=verb, n=i+1,
+                                                    count=count)),
+            print()
             self.set_vm_hosts()
         except:
             rollback()
@@ -77,7 +78,7 @@ class ImportNodesCommand(BaseCommand):
         return verb
 
     def set_vm_hosts(self):
-        print "Setting VM hosts..."
+        print("Setting VM hosts...")
         vms = Node.query.filter(Node.is_vm.is_(True))
         for vm in vms:
             host_name = self.vm_hosts[vm.name]

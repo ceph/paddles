@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 
 from paddles import models
@@ -33,7 +34,7 @@ class NodeJobsCommand(BaseCommand):
                 ~Job.updated.is_(None)).order_by(
                     Job.updated.desc()).limit(job_count)
         if not jobs.count():
-            print "No jobs found for %s" % node_name
+            print("No jobs found for %s" % node_name)
             return
         for job in jobs:
-            print '%s/%s/' % (job.run.name, job.job_id)
+            print('%s/%s/' % (job.run.name, job.job_id))

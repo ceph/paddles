@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 
 from collections import OrderedDict
@@ -7,7 +8,7 @@ from paddles.models import Run, Job
 
 
 def out(string):
-    print "==> %s" % string
+    print("==> %s" % string)
 
 
 class QueueStatsCommand(BaseCommand):
@@ -47,12 +48,12 @@ class QueueStatsCommand(BaseCommand):
                                           completed=jobs_done,
                                           percent=percent,
                                           )
-            print "{day}: {sched: >4} scheduled, {done: >4} completed ({percent:.0f}%)".format(
+            print("{day}: {sched: >4} scheduled, {done: >4} completed ({percent:.0f}%)".format(
                 day=day,
                 sched=jobs_sched,
                 done=jobs_done,
                 percent=percent,
-            )
+            ))
 
     def jobs_scheduled_between(self, day1, day2):
         query = Run.query.filter(Run.scheduled.between(day1, day2))

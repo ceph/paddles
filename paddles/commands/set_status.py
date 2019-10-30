@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 
 from paddles import models
@@ -5,7 +6,7 @@ from paddles.models import Job, Run
 
 
 def out(string):
-    print "==> %s" % string
+    print("==> %s" % string)
 
 
 class SetStatusCommand(BaseCommand):
@@ -26,7 +27,7 @@ class SetStatusCommand(BaseCommand):
                 if run.jobs.filter(Job.status == 'running').count() == 0:
                     to_fix.append(run)
                     self._set_run_status(run)
-            print ""
+            print("")
             out("Updated {count} runs...".format(count=len(to_fix)))
         except:
             models.rollback()
@@ -38,4 +39,4 @@ class SetStatusCommand(BaseCommand):
 
     def _set_run_status(self, run):
         run.set_status()
-        print ".",
+        print("."),

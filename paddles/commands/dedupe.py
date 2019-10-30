@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 
 from paddles import models
@@ -5,7 +6,7 @@ from paddles.models import Run, Job
 
 
 def out(string):
-    print "==> %s" % string
+    print("==> %s" % string)
 
 
 class DedupeCommand(BaseCommand):
@@ -45,10 +46,10 @@ class DedupeCommand(BaseCommand):
         if len(runs) <= 1:
             return
 
-        print "{name} has {count} duplicate runs".format(
+        print("{name} has {count} duplicate runs".format(
             name=name,
             count=len(runs),
-        )
+        ))
 
         primary_run = runs[0]
 
@@ -65,10 +66,10 @@ class DedupeCommand(BaseCommand):
         unique_ids = sorted(list(set(job_ids)))
         if job_ids == unique_ids:
             return
-        print "{name} has {count} duplicate jobs".format(
+        print("{name} has {count} duplicate jobs".format(
             name=name,
             count=(len(job_ids) - len(unique_ids)),
-        )
+        ))
         for job_id in unique_ids:
             jobs = run.jobs.filter(Job.job_id == job_id).all()
             if len(jobs) == 1:

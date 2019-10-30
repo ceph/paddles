@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pytest import skip
 from pecan import conf
 
@@ -92,7 +93,7 @@ class TestRunController(TestApp):
 
     def test_slice_valid(self):
         self.app.post_json('/runs/', dict(name='slice_valid'))
-        print self.app.get('/runs/slice_valid/').json
+        print(self.app.get('/runs/slice_valid/').json)
         response = self.app.get('/runs/?fields=name,status')
         assert response.json == [dict(
             name='slice_valid',
@@ -127,7 +128,7 @@ class TestRunController(TestApp):
         self.app.post_json('/runs/', dict(name=run_a_name))
         self.app.post_json('/runs/', dict(name=run_b_name))
         response = self.app.get('/runs/branch/master/status/empty/')
-        print response.json
+        print(response.json)
         assert response.json[0]['name'] == run_b_name
 
     def test_runs_by_branch_then_suite(self):
