@@ -9,7 +9,7 @@ simplegeneric==0.8.1
 SQLAlchemy==1.0.8
 tzlocal==1.2
 WebTest==2.0.18
-gunicorn==19.5.0
+gunicorn==20.0.4
 python-statsd==2.0.0
 mock==2.0.0
 pytest==3.0.4
