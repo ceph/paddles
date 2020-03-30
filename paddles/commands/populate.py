@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 from pecan import conf
 
@@ -5,7 +6,7 @@ from paddles import models
 
 
 def out(string):
-    print "==> %s" % string
+    print("==> %s" % string)
 
 
 class PopulateCommand(BaseCommand):

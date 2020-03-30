@@ -17,7 +17,7 @@ import sqlalchemy as sa
 def upgrade():
     op.add_column('runs', sa.Column('status', sa.String(length=16),
                                     nullable=True))
-    print "Now, you may want to run the set_status command"
+    print("Now, you may want to run the set_status command")
 
 
 def downgrade():

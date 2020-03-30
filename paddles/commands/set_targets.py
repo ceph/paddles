@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 
 from paddles.models import start, rollback, flush, commit, Job
@@ -5,7 +6,7 @@ from paddles.models import Node
 
 
 def out(string):
-    print "==> %s" % string
+    print("==> %s" % string)
 
 
 class SetTargetsCommand(BaseCommand):
@@ -25,16 +26,16 @@ class SetTargetsCommand(BaseCommand):
         for job in jobs_q.yield_per(10):
             try:
                 n += 1
-                print "Processing Job {n}/{t}\r".format(n=n, t=count),
+                print("Processing Job {n}/{t}\r".format(n=n, t=count)),
                 self._populate(job)
             except:
-                print
+                print()
                 rollback()
                 out("ROLLING BACK... ")
                 raise
             else:
                 flush()
-        print
+        print()
 
         nodes = Node.query.filter(Node.machine_type.is_(None)).all()
         for node in nodes:
@@ -42,7 +43,7 @@ class SetTargetsCommand(BaseCommand):
         commit()
 
     def _populate(self, job):
-        #print "Job: %s/%s" % (job.name, job.job_id)
+        #print("Job: %s/%s" % (job.name, job.job_id))
         if not job.targets:
             return
 
@@ -50,12 +51,12 @@ class SetTargetsCommand(BaseCommand):
             name = key.split('@')[1]
             mtype = self.parse_machine_type(name)
             node_q = Node.query.filter(Node.name == name)
-            #print " node: exists={count}, name={name}".format(
+            #print(" node: exists={count}, name={name}".format(
             #    count=node_q.count(),
             #    name=name,
-            #)
+            #))
             if node_q.count() == 0:
-                #print "  Creating Node with name: %s" % name
+                #print("  Creating Node with name: %s" % name)
                 node = Node(name=name)
             else:
                 node = node_q.one()

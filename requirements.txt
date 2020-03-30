@@ -9,7 +9,6 @@ simplegeneric==0.8.1
 SQLAlchemy==1.0.8
 tzlocal==1.2
 WebTest==2.0.18
-wsgiref==0.1.2
 gunicorn==19.5.0
 python-statsd==2.0.0
 mock==2.0.0

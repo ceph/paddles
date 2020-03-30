@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 
 from paddles import models
@@ -5,7 +6,7 @@ from paddles.models.runs import local_datetime_to_utc
 
 
 def out(string):
-    print "==> %s" % string
+    print("==> %s" % string)
 
 
 class ReparseCommand(BaseCommand):
@@ -55,11 +56,11 @@ class ReparseCommand(BaseCommand):
         )
 
         if old_values != new_values:
-            print "{name}".format(name=run.name),
+            print("{name}".format(name=run.name)),
             for field in old_values.keys():
                 new_value = new_values[field]
                 if old_values[field] != new_value:
-                    print "| {old} => {new}".format(
-                        old=old_values[field], new=new_value),
+                    print("| {old} => {new}".format(
+                        old=old_values[field], new=new_value)),
                     setattr(run, field, new_value)
-            print
+            print()

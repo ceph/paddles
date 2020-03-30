@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pecan.commands.base import BaseCommand
 
 from paddles import models
@@ -5,7 +6,7 @@ from paddles.models import Run
 
 
 def out(string):
-    print "==> %s" % string
+    print("==> %s" % string)
 
 
 class DeleteCommand(BaseCommand):
