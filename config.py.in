@@ -78,7 +78,7 @@ logging = {
 
 sqlalchemy = {
     # You may use SQLite for testing
-    'url': 'sqlite:///dev.db',
+    'url': os.environ.get('PADDLES_SQLALCHEMY_URL', 'sqlite:///dev.db'),
     # When you set up PostreSQL, it will look more like:
     #'url': 'postgresql+psycopg2://USER:PASSWORD@DB_HOST/DB_NAME',
     'echo':          True,
