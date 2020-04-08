@@ -1,15 +1,23 @@
 name: Build Docker Image
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile
+    - name: Build the container image
+      run: docker build . --file Dockerfile --tag ceph-paddles-${GITHUB_SHA}
+    - name: Run the container image in background
+      run: docker run -d -p 80:8080 -e PADDLES_SERVER_HOST=0.0.0.0 -e PADDLES_SQLALCHEMY_URL=sqlite:///dev.db ceph-paddles-${GITHUB_SHA}
+    - name: Wait a bit so paddles container is up and running
+      run: sleep 4
+    - name: Show running containers
+      run: docker ps
+    - name: Get root url from paddles
+      run: curl http://localhost:80
+    - name: Create testrun on paddles
+      run: curl -d '{ "name": "testrun" }' -H 'Content-Type: application/json' http://localhost:80/runs/
+    - name: Get runs on paddles
+      run: curl http://localhost:80/runs/
