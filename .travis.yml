@@ -1,0 +1,14 @@
+---
+
+services:
+  - docker
+
+before_install:
+  - docker build . --file Dockerfile --tag ceph-paddles-test
+  - docker run -d -p 80:8080 -e PADDLES_SERVER_HOST=0.0.0.0 -e PADDLES_SQLALCHEMY_URL=sqlite:///dev.db ceph-paddles-test
+  - sleep 4
+  - docker ps -a
+script:
+  - curl http://localhost:80
+  - curl -d '{ "name": "testrun" }' -H 'Content-Type: application/json' http://localhost:80/runs/
+  - curl http://localhost:80/runs/
