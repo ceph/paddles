@@ -9,5 +9,5 @@ before_install:
   - docker ps -a
 script:
   - curl http://localhost:80
-  - "curl -d '{ \"name\": \"testrun\" }' -H 'Content-Type: application/json' http://localhost:80/runs/"
+  - curl -d '{ \"name\": \"testrun\" }' -H 'Content-Type: application/json' http://localhost:80/runs/
   - test `curl -s http://localhost:80/runs/ | jq '. | length'` -eq 1
