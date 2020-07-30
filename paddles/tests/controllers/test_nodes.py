@@ -119,7 +119,7 @@ class TestNodesController(TestApp):
             heeler='dog',
             husky='dog',
         )
-        for (name, type_) in nodes.iteritems():
+        for (name, type_) in nodes.items():
             self.app.post_json(
                 '/nodes/',
                 dict(name=name, machine_type=type_, locked=False, up=True,)
