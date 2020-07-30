@@ -1,7 +1,7 @@
 alembic==0.8.2
 Mako==1.0.2
 mccabe==0.3.1
-pecan==0.9.0
+pecan==1.3.3
 psycopg2==2.7.7
 pytz==2015.6
 requests==2.20.0
@@ -9,7 +9,7 @@ simplegeneric==0.8.1
 SQLAlchemy==1.0.8
 tzlocal==1.2
 WebTest==2.0.18
-gunicorn==19.5.0
+gunicorn==20.0.4
 python-statsd==2.0.0
 mock==2.0.0
 pytest==3.0.4

@@ -1,4 +1,8 @@
-import Queue
+try:
+    from queue import Queue
+except:
+    from Queue import Queue
+
 import threading
 import requests
 import json
@@ -75,7 +79,7 @@ class TestNodesControllerNew(object):
             queue.put(results)
 
         jobs = []
-        queue = Queue.Queue()
+        queue = Queue()
         queue.put([])
         for user in self.users:
             proc = threading.Thread(target=lock_attempt, args=(user, queue))
