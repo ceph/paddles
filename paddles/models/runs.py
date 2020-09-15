@@ -167,6 +167,7 @@ class Run(Base):
             branch=self.branch,
             suite=self.suite,
             machine_type=self.machine_type,
+            sha1=results['sha1'],
         )
 
     @classmethod
@@ -220,6 +221,7 @@ class Run(Base):
         dead = jobs_status.count('dead')
         unknown = jobs_status.count(None) + jobs_status.count('unknown')
         total = len(jobs_status)
+        sha1 = next(self.jobs.values(Job.sha1), ['none'])[0]
         return {
             'queued': queued,
             'pass': passing,
@@ -228,7 +230,8 @@ class Run(Base):
             'fail': fail,
             'dead': dead,
             'unknown': unknown,
-            'total': total
+            'total': total,
+            'sha1': sha1,
         }
 
     def set_status(self, results=None):
