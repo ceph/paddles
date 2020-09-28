@@ -173,6 +173,8 @@ class BranchController(RunFilterController):
             return DatesController()
         if field == 'machine_type':
             return MachineTypesController()
+        if field == 'sha1':
+            return Sha1sController()
         if field == 'status':
             return StatusesController()
         if field == 'suite':
@@ -272,6 +274,32 @@ class QueuedRunsController(object):
             .group_by(Run).order_by(Run.scheduled)
         return query.all()
 
+class Sha1sController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.values(Job.sha1)
+
+    def get_lookup_controller(self):
+        return Sha1Controller
+
+
+class Sha1Controller(RunFilterController):
+    def get_subquery(self, query):
+        return query.join(Job).filter(Job.sha1.startswith(self.value))\
+                .group_by(Run)
+
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'date':
+            return DatesController()
+        if field == 'machine_type':
+            return MachineTypesController()
+        if field == 'status':
+            return StatusesController()
+        if field == 'suite':
+            return SuitesController()
+
+
 
 class RunsController(object):
     @expose(generic=True, template='json')
@@ -306,6 +334,8 @@ class RunsController(object):
     suite = SuitesController()
 
     queued = QueuedRunsController()
+
+    sha1 = Sha1sController()
 
     @expose('json')
     def _lookup(self, name, *remainder):

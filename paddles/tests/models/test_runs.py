@@ -220,10 +220,10 @@ class TestRunModel(TestApp):
     def test_run_results(self):
         run_name = 'teuthology-2014-03-27_00:00:00-x-x-x-x-x'
         new_run = Run(run_name)
-        stats_in = {'pass': 9, 'fail': 1, 'dead': 6, 'running': 5,
+        stats_in = {'pass': 9, 'fail': 1, 'dead': 6, 'running': 5, 'sha1': None,
                     'waiting': 1, 'unknown': 1, 'queued': 1}
         statuses = stats_in.keys()
-        stats_in['total'] = sum(stats_in.values())
+        stats_in['total'] = sum(_ for _ in stats_in.values() if _)
         stats_out = {}
         for i in range(stats_in['total']):
             for status in statuses:
