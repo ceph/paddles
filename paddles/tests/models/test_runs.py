@@ -229,7 +229,8 @@ class TestRunModel(TestApp):
             for status in statuses:
                 count = stats_out.get(status, 0)
                 count += 1
-                if count <= stats_in[status]:
+                # treat None as 0
+                if count <= (stats_in[status] or 0):
                     break
             Job(dict(job_id=i, status=status), new_run)
             stats_out[status] = count
