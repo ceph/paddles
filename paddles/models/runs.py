@@ -98,7 +98,6 @@ class Run(Base):
     timestamp_format = '%Y-%m-%d_%H:%M:%S'
     name_regexes = get_name_regexes(timestamp_regex, suite_names, distros,
                                     machine_types)
-    backup_name_regex = '(?P<user>.*)-(?P<scheduled>%s)-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-(?P<machine_type>.*?)' % timestamp_regex  # noqa
 
     __tablename__ = 'runs'
     id = Column(Integer, primary_key=True)
@@ -175,14 +174,15 @@ class Run(Base):
         name_match = re.match(cls.name_regexes[0], name) or \
             re.match(cls.name_regexes[1], name) or \
             re.match(cls.name_regexes[2], name) or \
-            re.match(cls.backup_name_regex, name)
+            re.match(conf.backup_name_regex, name)
         if name_match:
             match_dict = name_match.groupdict()
             for (key, value) in match_dict.iteritems():
                 match_dict[key] = value.strip(' -')
 
-            match_dict['scheduled'] = datetime.strptime(
-                match_dict['scheduled'], cls.timestamp_format)
+            if 'scheduled' in match_dict:
+                match_dict['scheduled'] = datetime.strptime(
+                    match_dict['scheduled'], cls.timestamp_format)
             return match_dict
         return dict()
 
