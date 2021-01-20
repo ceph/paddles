@@ -7,7 +7,7 @@ class JSONType(SATypes.TypeDecorator):
     impl = SATypes.UnicodeText
 
     def process_bind_param(self, value, engine):
-        return unicode(json.dumps(value))
+        return json.dumps(value)
 
     def process_result_value(self, value, engine):
         if value:

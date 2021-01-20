@@ -178,7 +178,7 @@ class Run(Base):
             re.match(cls.backup_name_regex, name)
         if name_match:
             match_dict = name_match.groupdict()
-            for (key, value) in match_dict.iteritems():
+            for (key, value) in match_dict.items():
                 match_dict[key] = value.strip(' -')
 
             match_dict['scheduled'] = datetime.strptime(

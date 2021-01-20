@@ -18,7 +18,7 @@ def get_client():
     except AttributeError as exc:
         log.info(
             "Could not find statsd configuration; disabling statsd. "
-            "Error message was: %s" % exc.message
+            "Error message was: %s", str(exc)
         )
         prefix = None
         statsd.Connection.set_defaults(

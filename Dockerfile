@@ -1,13 +1,22 @@
 FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install \
-  -y --no-install-recommends python python-pip python-setuptools python-wheel gunicorn tzdata curl lsof alembic
+  -y --no-install-recommends \
+	curl \
+	lsof \
+	python3 \
+	python3-alembic \
+	python3-gunicorn \
+	python3-pip \
+	python3-setuptools \
+	python3-wheel \
+	tzdata
 
 # Install dependencies:
 COPY requirements.txt .
 ADD . /paddles
-RUN pip install -r requirements.txt
-RUN pip install /paddles/.
+RUN pip3 install -r requirements.txt
+RUN pip3 install /paddles/.
 
 # Run the application:
 COPY config.py.in /paddles/config.py
