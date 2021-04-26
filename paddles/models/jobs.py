@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
                         Table, Text)
@@ -19,6 +20,7 @@ job_nodes_table = Table(
            index=True)
 )
 
+log = logging.getLogger(__name__)
 
 class Job(Base):
 
@@ -39,27 +41,38 @@ class Job(Base):
     flavor = Column(String(128))
     job_id = Column(String(32), index=True)
     kernel = deferred(Column(JSONType()))
+    first_in_suite = Column(Boolean())
     last_in_suite = Column(Boolean())
     machine_type = Column(String(32))
     name = Column(String(512))
     nuke_on_error = Column(Boolean())
+    openstack = Column(JSONType())
     os_type = Column(String(32))
     os_version = Column(String(16))
     overrides = deferred(Column(JSONType()))
     owner = Column(String(128))
+    priority = Column(Integer)
     pid = Column(String(32))
+    repo = Column(String(32))
     roles = deferred(Column(JSONType()))
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
     branch = Column(String(64), index=True)
     sha1 = Column(String(40), index=True)
+    sleep_before_teardown = Column(Integer)
+    suite = Column(String(32))
     suite_branch = Column(String(64), index=True)
+    suite_relpath = Column(String(32))
+    suite_repo = Column(String(32))
     suite_sha1 = Column(String(40), index=True)
     targets = deferred(Column(JSONType()))
     target_nodes = relationship("Node", secondary=job_nodes_table,
                                 backref=backref('jobs'), lazy='dynamic')
     tasks = deferred(Column(JSONType()))
     teuthology_branch = Column(String(32))
+    teuthology_sha1 = Column(String(40), index=True)
+    timestamp = Column(DateTime)
+    user = Column(String(32))
     verbose = Column(Boolean())
     issue_url = deferred(Column(Text))
     comment = deferred(Column(Text))
@@ -96,6 +109,7 @@ class Job(Base):
         "teuthology_branch",
         "verbose",
         "pcp_grafana_url",
+        "priority",
     )
 
     allowed_statuses = (
@@ -111,6 +125,8 @@ class Job(Base):
     def __init__(self, json_data, run):
         self.run = run
         self.posted = datetime.utcnow()
+        self.id = json_data['id']
+        self.job_id = json_data['job_id']
         self.set_or_update(json_data)
 
     def set_or_update(self, json_data):
@@ -199,8 +215,9 @@ class Job(Base):
         timezone, create a datetime object, convert it to UTC, and store it in
         self.updated.
         """
-        local_dt = datetime.strptime(local_str, '%Y-%m-%d %H:%M:%S')
-        utc_dt = local_datetime_to_utc(local_dt)
+        local_dt = datetime.strptime(local_str, '%Y-%m-%d %H:%M:%S.%f')
+        local_formatted_dt = local_dt.strftime('%Y-%m-%d %H:%M:%S')
+        utc_dt = local_datetime_to_utc(local_formatted_dt)
         self.run.updated = self.updated = utc_dt
 
     def update(self, json_data):
