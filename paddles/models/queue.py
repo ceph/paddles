@@ -62,19 +62,15 @@ class Queue(Base):
             to_pause_for = values.get('paused_by')
             verb = {False: 'unpause', True: 'pause'}.get(pausing)
             if was_paused == pausing:
-                if (self.paused_by != to_pause_for):
-                    raise ForbiddenRequestError(
-                        "Cannot {verb} an already-{verb}ed node".format(
-                            verb=verb))
+                raise ForbiddenRequestError(
+                    f"Cannot {verb} an already-{verb}d queue")
             elif not to_pause_for:
                 raise InvalidRequestError(
-                    "Cannot {verb} without specifying paused_by".format(
-                        verb=verb))
+                    f"Cannot {verb} without specifying paused_by")
             elif (verb == 'unpause' and was_paused and to_pause_for !=
                   self.paused_by):
                 raise ForbiddenRequestError(
-                    "Cannot {verb} - paused_by values must match".format(
-                        verb=verb))
+                    f"Cannot {verb} - paused_by value must match {self.paused_by}")
         
     
     def __json__(self):
