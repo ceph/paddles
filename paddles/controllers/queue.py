@@ -1,7 +1,7 @@
 from pecan import expose, request
 from paddles.controllers import error
 from paddles.exceptions import PaddlesError
-from paddles.models import Queue, Job, Session, rollback
+from paddles.models import Queue, Job, Session
 
 import logging
 log = logging.getLogger(__name__)
@@ -31,7 +31,6 @@ class QueuesController(object):
             data = request.json
             machine_type = data.get('machine_type')
         except ValueError:
-            rollback()
             error('/errors/invalid/', 'could not decode JSON body')
         if not machine_type:
             error('/errors/invalid/', "could not find required key: 'machine_type'")
@@ -60,7 +59,6 @@ class QueuesController(object):
             data = request.json
             machine_type = data.get('machine_type')
         except ValueError:
-            rollback()
             error('/errors/invalid', 'could not decode JSON body')
         if not machine_type:
             error('/errors/invalid/', "could not find required key: 'machine_type'")
@@ -91,7 +89,6 @@ class QueuesController(object):
             data = request.json
             machine_type = data.get('machine_type')
         except ValueError:
-            rollback()
             error('/errors/invalid', 'could not decode JSON body')
         if not machine_type:
             error('/errors/invalid/', "could not find required key: 'machine_type'")
@@ -123,10 +120,11 @@ class QueuesController(object):
             machine_type = data.get('machine_type')
             user = data.get('user')
         except ValueError:
-            rollback()
             error('/errors/invalid', 'could not decode JSON body')
-        if not machine_type or not user:
-            error('/errors/invalid/', "could not find required keys: 'machine_type' and 'user'")
+        if not machine_type:
+            error('/errors/invalid/', "could not find required key: 'machine_type'")
+        if not user:
+            error('/errors/invalid/', "could not find required key: 'user'")
         queue = Queue.filter_by(machine_type=machine_type).first()
         if queue:
             jobs = Session.query(Job).\
