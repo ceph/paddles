@@ -113,25 +113,33 @@ class QueuesController(object):
     @expose(template='json')
     def queued_jobs(self):
         """
-        Retrieve all the queued jobs for a particular user
+        Retrieve all the queued jobs for a particular user or a particular run
         """
         try:
             data = request.json
             machine_type = data.get('machine_type')
             user = data.get('user')
+            run_name = data.get('run_name')
         except ValueError:
             error('/errors/invalid', 'could not decode JSON body')
         if not machine_type:
             error('/errors/invalid/', "could not find required key: 'machine_type'")
-        if not user:
-            error('/errors/invalid/', "could not find required key: 'user'")
+        if not user and not run_name:
+            error('/errors/invalid/', "'user' key or 'run_name' key is required")
         queue = Queue.filter_by(machine_type=machine_type).first()
         if queue:
-            jobs = Session.query(Job).\
-                filter(Queue.machine_type==Job.machine_type).\
-                filter(Queue.machine_type==machine_type).\
-                filter(Job.status=='queued').\
-                filter(Job.user==user)
+            if run_name:
+                jobs = Session.query(Job).\
+                    filter(Queue.machine_type==Job.machine_type).\
+                    filter(Queue.machine_type==machine_type).\
+                    filter(Job.status=='queued').\
+                    filter(Job.name==run_name)
+            else:
+                jobs = Session.query(Job).\
+                    filter(Queue.machine_type==Job.machine_type).\
+                    filter(Queue.machine_type==machine_type).\
+                    filter(Job.status=='queued').\
+                    filter(Job.user==user)
             return [job.__json__() for job in jobs.all()]
         else:
             error('/errors/invalid', "queue for specified 'machine_type' does not exist")

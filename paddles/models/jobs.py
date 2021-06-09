@@ -110,6 +110,7 @@ class Job(Base):
         "verbose",
         "pcp_grafana_url",
         "priority",
+        "user",
     )
 
     allowed_statuses = (
@@ -215,9 +216,9 @@ class Job(Base):
         timezone, create a datetime object, convert it to UTC, and store it in
         self.updated.
         """
-        local_dt = datetime.strptime(local_str, '%Y-%m-%d %H:%M:%S.%f')
-        local_formatted_dt = local_dt.strftime('%Y-%m-%d %H:%M:%S')
-        utc_dt = local_datetime_to_utc(local_formatted_dt)
+        local_str = local_str.split(".")[0]
+        local_dt = datetime.strptime(local_str, '%Y-%m-%d %H:%M:%S')
+        utc_dt = local_datetime_to_utc(local_dt)
         self.run.updated = self.updated = utc_dt
 
     def update(self, json_data):
