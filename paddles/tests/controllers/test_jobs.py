@@ -162,7 +162,6 @@ class TestJobsController(TestApp):
     def test_manual_updated_time(self):
         time_stamp = '2014-03-31 21:25:43'
         run_name = 'manual_update'
-        job_id = 1
         self.app.post_json('/runs/', dict(name=run_name))
         self.app.post_json('/runs/%s/jobs/' % run_name, dict(
             updated=time_stamp,
