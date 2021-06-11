@@ -2,7 +2,7 @@ import logging
 from sqlalchemy import Sequence
 from sqlalchemy.orm import load_only
 
-from pecan import expose, abort, request
+from pecan import expose, abort, request, conf
 
 from paddles import models
 from paddles.decorators import retryOperation
@@ -118,8 +118,21 @@ class JobsController(object):
         """
         try:
             data = request.json
-            job_id = str(Session.execute(Sequence('job_id_sequence')))
-            log.info("New Job ID: %s", job_id)
+            if not data:
+                raise ValueError()
+            config = dict(conf.sqlalchemy)
+            if 'sqlite' in config['url']:
+                '''
+                Need this check since Sequence is not supported in SQLite
+                '''
+                job = Session.query(Job).order_by(Job.id.desc()).first()
+                if job:
+                    job_id = job.id + 1
+                else:
+                    job_id = 1
+            else:
+                job_id = Session.execute(Sequence('job_id_sequence'))
+            job_id = str(job_id)
             data['job_id'] = job_id
             data['id'] = int(job_id)
         except ValueError:

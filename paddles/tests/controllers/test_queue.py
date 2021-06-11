@@ -1,6 +1,5 @@
-from datetime import datetime
 from paddles.tests import TestApp
-from paddles.util import local_datetime_to_utc
+
 
 class TestQueueController(TestApp):
 
@@ -47,7 +46,7 @@ class TestQueueController(TestApp):
             status='queued',
             name='job1',
         ))
-        response_2 = self.app.post_json('/runs/testrun/jobs/', dict(
+        self.app.post_json('/runs/testrun/jobs/', dict(
             machine_type='test_queue',
             priority=15,
             status='queued',

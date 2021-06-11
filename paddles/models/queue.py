@@ -1,4 +1,3 @@
-import sqlalchemy.exc
 from sqlalchemy import (Boolean, Column, DateTime, Integer, String)
 from datetime import datetime
 

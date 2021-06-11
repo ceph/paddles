@@ -40,7 +40,6 @@ class TestRunController(TestApp):
     def test_allows_waiting_status(self):
         self.app.post_json('/runs/', dict(name="foo"))
         self.app.post_json('/runs/foo/jobs/', dict(
-            job_id=1,
             status="waiting",
         ))
         new_run = Run.get(1)
@@ -49,11 +48,9 @@ class TestRunController(TestApp):
     def test_running_status_with_waiting_and_running_jobs(self):
         self.app.post_json('/runs/', dict(name="foo"))
         self.app.post_json('/runs/foo/jobs/', dict(
-            job_id=1,
             status="running",
         ))
         self.app.post_json('/runs/foo/jobs/', dict(
-            job_id=2,
             status="waiting",
         ))
         new_run = Run.get(1)
@@ -74,7 +71,7 @@ class TestRunController(TestApp):
     def test_create_new_job(self):
         self.app.post_json('/runs/', dict(name="foo"))
         self.app.post_json('/runs/foo/jobs/', dict(
-            job_id=1,
+            status='queued',
         ))
         new_job = Job.get(1)
         assert new_job.job_id == '1'
@@ -87,7 +84,7 @@ class TestRunController(TestApp):
 
     def test_delete_full_run(self):
         self.app.post_json('/runs/', dict(name='foo'))
-        self.app.post_json('/runs/foo/', dict(job_id='42'))
+        self.app.post_json('/runs/foo/', dict(user='test'))
         self.app.post_json('/runs/foo/', dict(job_id='9'))
         self.app.post_json('/runs/foo/', dict(job_id='12345'))
         self.app.delete('/runs/foo/')
@@ -207,10 +204,8 @@ class TestRunController(TestApp):
         run_names = ['run_one', 'run_two']
         for run_name in run_names:
             self.app.post_json('/runs/', dict(name=run_name))
-            self.app.post_json('/runs/%s/jobs/' % run_name, dict(job_id=1,
-                                                            status='queued'))
-            self.app.post_json('/runs/%s/jobs/' % run_name, dict(job_id=2,
-                                                            status='queued'))
+            self.app.post_json('/runs/%s/jobs/' % run_name, dict(status='queued'))
+            self.app.post_json('/runs/%s/jobs/' % run_name, dict(status='queued'))
 
         result = self.app.get('/runs/queued/').json
         result_names = sorted([r['name'] for r in result])
@@ -220,10 +215,8 @@ class TestRunController(TestApp):
         run_names = ['run_one', 'run_two']
         for run_name in run_names:
             self.app.post_json('/runs/', dict(name=run_name))
-            self.app.post_json('/runs/%s/jobs/' % run_name, dict(job_id=1,
-                                                            status='queued'))
-            self.app.post_json('/runs/%s/jobs/' % run_name, dict(job_id=2,
-                                                            status='dead'))
+            self.app.post_json('/runs/%s/jobs/' % run_name, dict(status='queued'))
+            self.app.post_json('/runs/%s/jobs/' % run_name, dict(status='dead'))
 
         result = self.app.get('/runs/queued/').json
         result_names = sorted([r['name'] for r in result])
