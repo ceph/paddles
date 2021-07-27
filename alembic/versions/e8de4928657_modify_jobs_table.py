@@ -1,14 +1,14 @@
 """modify jobs table
 
 Revision ID: e8de4928657
-Revises: 4699efaaee99
+Revises: 11e2594da07b
 Create Date: 2021-06-28 13:45:32.717585
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'e8de4928657'
-down_revision = '4699efaaee99'
+down_revision = '11e2594da07b'
 
 from alembic import op
 from paddles.models.types import JSONType
