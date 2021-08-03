@@ -199,6 +199,8 @@ class DateController(RunFilterController):
             return MachineTypesController()
         if field == 'status':
             return StatusesController()
+        if field == 'sha1':
+            return Sha1sController()
         if field == 'suite':
             return SuitesController()
 
@@ -214,6 +216,8 @@ class MachineTypeController(RunFilterController):
             return DatesController()
         if field == 'status':
             return StatusesController()
+        if field == 'sha1':
+            return Sha1sController()
         if field == 'suite':
             return SuitesController()
 
@@ -229,6 +233,8 @@ class StatusController(RunFilterController):
             return DatesController()
         if field == 'machine_type':
             return MachineTypesController()
+        if field == 'sha1':
+            return Sha1sController()
         if field == 'suite':
             return SuitesController()
 
@@ -244,6 +250,8 @@ class SuiteController(RunFilterController):
             return DatesController()
         if field == 'machine_type':
             return MachineTypesController()
+        if field == 'sha1':
+            return Sha1sController()
         if field == 'status':
             return StatusesController()
 
