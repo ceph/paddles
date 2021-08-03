@@ -6,6 +6,7 @@ from paddles.exceptions import PaddlesError, RaceConditionError
 from paddles.models import Job, Node, Session, rollback
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, load_only
+from sqlalchemy.exc import InvalidRequestError
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
@@ -38,7 +39,19 @@ class NodesController(object):
             if not count.isdigit() or isinstance(count, int):
                 error('/errors/invalid/', 'count must be an integer')
             query = query.limit(count)
-        return [node.__json__() for node in query.all()]
+        attempts = 20
+        while attempts > 0:
+            try:
+                return [node.__json__() for node in query.all()]
+            except InvalidRequestError:
+                attempts -= 1
+                if attempts > 0:
+                    log.info("retrying after invalid request error (%s tries left)",
+                             attempts)
+                    rollback()
+                else:
+                    error('/errors/unavailable/', 'invalid request error. please retry')
+
 
     @index.when(method='POST', template='json')
     def index_post(self):
@@ -223,10 +236,23 @@ class NodesController(object):
 class NodeController(object):
     def __init__(self, name):
         self.name = name
-        node_q = Node.query.options(load_only('id', 'name'))\
-            .filter(Node.name == name)
-        self.node = node_q.first()
-        request.context['node_name'] = self.name
+
+        attempts = 20
+        while attempts > 0:
+            try:
+                node_q = Node.query.options(load_only('id', 'name'))\
+                    .filter(Node.name == name)
+                self.node = node_q.first()
+                request.context['node_name'] = self.name
+                break
+            except InvalidRequestError:
+                attempts -= 1
+                if attempts > 0:
+                    log.info("retrying after invalid request error (%s tries left)",
+                             attempts)
+                    rollback()
+                else:
+                    error('/errors/unavailable/', 'invalid request error. please retry')
 
     @expose(generic=True, template='json')
     def index(self):
