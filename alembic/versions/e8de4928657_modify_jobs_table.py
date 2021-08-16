@@ -31,7 +31,7 @@ def upgrade():
     op.add_column(u'jobs', sa.Column('user', sa.String(length=64), nullable=True))
     op.create_index(op.f('ix_jobs_job_id'), 'jobs', ['job_id'], unique=False)
     op.create_index(op.f('ix_jobs_teuthology_sha1'), 'jobs', ['teuthology_sha1'], unique=False)
-    op.execute(CreateSequence(Sequence('job_id_sequence')))
+    op.execute(CreateSequence(Sequence('jobs_id_seq')))
     op.drop_index('ix_jobs_archive_path', table_name='jobs')
 
 
@@ -39,7 +39,7 @@ def downgrade():
     op.create_index('ix_jobs_archive_path', 'jobs', ['archive_path'], unique=False)
     op.drop_index(op.f('ix_jobs_teuthology_sha1'), table_name='jobs')
     op.drop_index(op.f('ix_jobs_job_id'), table_name='jobs')
-    op.execute(DropSequence(Sequence('job_id_sequence')))
+    op.execute(DropSequence(Sequence('jobs_id_seq')))
     op.drop_column(u'jobs', 'user')
     op.drop_column(u'jobs', 'timestamp')
     op.drop_column(u'jobs', 'teuthology_sha1')

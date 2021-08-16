@@ -131,7 +131,7 @@ class JobsController(object):
                 else:
                     job_id = 1
             else:
-                job_id = Session.execute(Sequence('job_id_sequence'))
+                job_id = Session.execute(Sequence('jobs_id_seq'))
             job_id = str(job_id)
             data['job_id'] = job_id
             data['id'] = int(job_id)
