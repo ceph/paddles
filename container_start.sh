@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -ex
+trap exit TERM
 pecan populate config.py
 CURRENT=$(alembic current)
 if [ -z "$CURRENT" ]; then
