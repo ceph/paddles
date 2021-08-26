@@ -19,5 +19,6 @@ RUN pip3 install /paddles/.
 # Run the application:
 COPY config.py.in /paddles/config.py
 COPY alembic.ini.in /paddles/alembic.ini
+COPY container_start.sh /paddles/container_start.sh
 WORKDIR /paddles
-CMD pecan populate config.py && alembic stamp head && gunicorn_pecan config.py
+CMD bash container_start.sh
