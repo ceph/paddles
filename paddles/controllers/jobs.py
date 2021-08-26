@@ -147,7 +147,7 @@ class JobsController(object):
         job_id = data['job_id'] = str(job_id)
 
         self._create_job(job_id, data)
-        return dict()
+        return dict({'job_id':job_id})
 
     @retryOperation
     def _create_job(self, job_id, data):

@@ -111,6 +111,7 @@ class Job(Base):
         "pcp_grafana_url",
         "priority",
         "user",
+        "first_in_suite",
     )
 
     allowed_statuses = (

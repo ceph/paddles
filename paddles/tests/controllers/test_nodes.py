@@ -290,17 +290,19 @@ class TestNodeController(TestApp):
         job_ids = [1, 2, 3]
         target_name = 't1'
         targets = {'u@' + target_name: ''}
+        response_job_ids = []
         for job_id in job_ids:
-            self.app.post_json('/runs/{name}/jobs/'.format(name=run_name),
-                               dict(targets=targets,
+            response = self.app.post_json('/runs/{name}/jobs/'.format(name=run_name),
+                                    dict(targets=targets,
                                     status='running'))
+            response_job_ids.append(response.json['job_id'] )
 
         response = self.app.get('/nodes/{node}/jobs/'.format(
             node=target_name))
         result = response.json
-        assert result[0]['job_id'] == '3'
-        assert result[1]['job_id'] == '2'
-        assert result[2]['job_id'] == '1'
+        assert result[0]['job_id'] == response_job_ids[2]
+        assert result[1]['job_id'] == response_job_ids[1]
+        assert result[2]['job_id'] == response_job_ids[0]
 
     def test_update(self):
         node_name = 'kittens'

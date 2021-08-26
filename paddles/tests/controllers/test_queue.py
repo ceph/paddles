@@ -58,41 +58,41 @@ class TestQueueController(TestApp):
     
 
     def test_queue_stats(self):
-        self.app.post_json('/queue/', dict(machine_type="test_queue"))
-        self.app.post_json('/runs/', dict(name="testrun"))
-        self.app.post_json('/runs/testrun/jobs/', dict(
-            machine_type='test_queue',
+        self.app.post_json('/queue/', dict(machine_type="test_queue2"))
+        self.app.post_json('/runs/', dict(name="testrun2"))
+        self.app.post_json('/runs/testrun2/jobs/', dict(
+            machine_type='test_queue2',
             priority=10,
             status='queued',
             name='job1',
         ))
 
-        response = self.app.post_json('/queue/stats/', dict(machine_type="test_queue"))
+        response = self.app.post_json('/queue/stats/', dict(machine_type="test_queue2"))
         assert response.json['count'] == 1
     
 
     def test_pause_queue(self):
-        self.app.post_json('/queue/', dict(machine_type="test_queue"))
+        self.app.post_json('/queue/', dict(machine_type="test_queue3"))
         response = self.app.put_json('/queue/', dict(
-            machine_type="test_queue",
+            machine_type="test_queue3",
             paused=True,
             paused_by="tester",
             pause_duration=30,
         ))
         assert response.status_code == 200
-        response = self.app.get('/queue/?machine_type=test_queue')
+        response = self.app.get('/queue/?machine_type=test_queue3')
         assert response.json[0]['paused'] == True
         """
         Try unpausing queue with different paused_by parameter
         """
         response = self.app.put_json('/queue/', dict(
-            machine_type="test_queue",
+            machine_type="test_queue3",
             paused=False,
             paused_by="tester2",
         ), expect_errors=True)
         assert response.status_code == 403
         response = self.app.put_json('/queue/', dict(
-            machine_type="test_queue",
+            machine_type="test_queue3",
             paused=False,
             paused_by="tester",
         ))
@@ -100,31 +100,31 @@ class TestQueueController(TestApp):
 
     
     def test_get_queued_jobs(self):
-        self.app.post_json('/queue/', dict(machine_type="test_queue"))
-        self.app.post_json('/runs/', dict(name="testrun"))
-        self.app.post_json('/runs/testrun/jobs/', dict(
-            machine_type='test_queue',
+        self.app.post_json('/queue/', dict(machine_type="test_queue4"))
+        self.app.post_json('/runs/', dict(name="testrun4"))
+        self.app.post_json('/runs/testrun4/jobs/', dict(
+            machine_type='test_queue4',
             priority=10,
             status='queued',
             name='job1',
             user='tester',
         ))
-        self.app.post_json('/runs/testrun/jobs/', dict(
-            machine_type='test_queue',
+        self.app.post_json('/runs/testrun4/jobs/', dict(
+            machine_type='test_queue4',
             priority=15,
             status='queued',
             name='job2',
             user='tester',
         ))
-        self.app.post_json('/runs/testrun/jobs/', dict(
-            machine_type='test_queue',
+        self.app.post_json('/runs/testrun4/jobs/', dict(
+            machine_type='test_queue4',
             priority=15,
             name='job3',
             user='tester',
         ))
 
         response = self.app.post_json('/queue/queued_jobs/', dict(
-            machine_type='test_queue',
+            machine_type='test_queue4',
             user='tester'
         ))
         
