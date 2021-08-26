@@ -9,4 +9,4 @@ else
   echo "Current revision: $CURRENT - will attempt to migrate"
   alembic upgrade head
 fi
-gunicorn_pecan config.py
+gunicorn_pecan -c gunicorn_config.py config.py
