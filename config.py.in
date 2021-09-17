@@ -25,8 +25,14 @@ statsd = {
 }
 
 # These values will be specific to your site
-address = 'http://paddles.front.sepia.ceph.com'
-job_log_href_templ = 'http://qa-proxy.ceph.com/teuthology/{run_name}/{job_id}/teuthology.log'  # noqa
+address = os.environ.get(
+    'PADDLES_ADDRESS',
+    'http://paddles.front.sepia.ceph.com'
+)
+job_log_href_templ = os.environ.get(
+    'PADDLES_JOB_LOG_HREF_TEMPL',
+    'http://qa-proxy.ceph.com/teuthology/{run_name}/{job_id}/teuthology.log'
+)
 default_latest_runs_count = 25
 
 # Pecan Application Configurations
