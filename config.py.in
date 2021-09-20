@@ -20,8 +20,8 @@ server = {
 }
 
 statsd = {
-    'host': 'example.com',
-    'prefix': 'ceph.test.teuthology.your_lab',
+    'host': os.environ.get('PADDLES_STATSD_HOST', 'example.com'),
+    'prefix': os.environ.get('PADDLES_STATSD_PREFIX', 'ceph.test.teuthology.your_lab'),
 }
 
 # These values will be specific to your site
