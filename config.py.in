@@ -85,12 +85,12 @@ logging = {
     }
 }
 
+def get_sqlalchemy_url():
+    import subprocess
+    return subprocess.getoutput("pecan get_secret")
 
 sqlalchemy = {
-    # You may use SQLite for testing
-    'url': os.environ.get('PADDLES_SQLALCHEMY_URL', 'sqlite:///dev.db'),
-    # When you set up PostreSQL, it will look more like:
-    #'url': 'postgresql+psycopg2://USER:PASSWORD@DB_HOST/DB_NAME',
+    'url': get_sqlalchemy_url(),
     'echo':          True,
     'echo_pool':     True,
     'pool_recycle':  3600,
