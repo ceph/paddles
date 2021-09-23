@@ -10,4 +10,8 @@ else
   echo "Current revision: $CURRENT - will attempt to migrate"
   alembic upgrade head
 fi
-gunicorn_pecan -c gunicorn_config.py config.py
+if [ "$GUNICORN" = "false" ]; then
+  pecan serve config.py
+else
+  gunicorn_pecan -c gunicorn_config.py config.py
+fi
