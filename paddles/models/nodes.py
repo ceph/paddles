@@ -100,31 +100,34 @@ class Node(Base):
         exception.
         """
         locking = values.get('locked')
+        if locking not in (True, False):
+            return
         was_locked = self.locked
+        if was_locked is None:
+            return
         desc = values.get('description')
-        if locking in (True, False) and was_locked is not None:
-            to_lock_for = values.get('locked_by')
-            verb = {False: 'unlock', True: 'lock'}.get(locking)
-            if was_locked == locking:
-                if (self.locked_by != to_lock_for or desc is None or desc !=
-                        self.description):
-                    raise ForbiddenRequestError(
-                        "Cannot {verb} an already-{verb}ed node".format(
-                            verb=verb))
-            elif not to_lock_for:
-                raise InvalidRequestError(
-                    "Cannot {verb} without specifying locked_by".format(
-                        verb=verb))
-            elif (verb == 'unlock' and was_locked and to_lock_for !=
-                  self.locked_by):
+        to_lock_for = values.get('locked_by')
+        verb = {False: 'unlock', True: 'lock'}.get(locking)
+        if was_locked == locking:
+            if (self.locked_by != to_lock_for or desc is None or desc !=
+                    self.description):
                 raise ForbiddenRequestError(
-                    "Cannot {verb} - locked_by values must match".format(
+                    "Cannot {verb} an already-{verb}ed node".format(
                         verb=verb))
-            elif (verb == 'unlock' and was_locked and desc and desc !=
-                  self.description):
-                raise ForbiddenRequestError(
-                    "Cannot {verb} - description values must match".format(
-                        verb=verb))
+        elif not to_lock_for:
+            raise InvalidRequestError(
+                "Cannot {verb} without specifying locked_by".format(
+                    verb=verb))
+        elif (verb == 'unlock' and was_locked and to_lock_for !=
+              self.locked_by):
+            raise ForbiddenRequestError(
+                "Cannot {verb} - locked_by values must match".format(
+                    verb=verb))
+        elif (verb == 'unlock' and was_locked and desc and desc !=
+              self.description):
+            raise ForbiddenRequestError(
+                "Cannot {verb} - description values must match".format(
+                    verb=verb))
 
     @classmethod
     def lock_many(cls, count, locked_by, machine_type, description=None,
