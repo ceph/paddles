@@ -174,12 +174,6 @@ class NodesController(object):
         log.info("Unlocking {count} nodes for {locked_by}".format(
             count=len(names), locked_by=locked_by))
         result = []
-        for node in query.all():
-            result.append(
-                NodeController._lock(node,
-                                     dict(locked=False, locked_by=locked_by),
-                                     'unlock')
-            )
         return result
 
     @expose('json')
@@ -320,7 +314,6 @@ class NodeController(object):
             ))
         except PaddlesError as exc:
             error(exc.url, str(exc))
-        return node_obj.__json__()
 
     @expose('json')
     def jobs(self, name='', status='', count=0, page=1):
