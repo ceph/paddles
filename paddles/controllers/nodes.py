@@ -320,7 +320,11 @@ class NodeController(object):
             ))
         except PaddlesError as exc:
             error(exc.url, str(exc))
-        return node_obj.__json__()
+        return dict(
+            name=node_obj.name,
+            locked=node_obj.locked,
+            locked_by=node_obj.locked_by,
+        )
 
     @expose('json')
     def jobs(self, name='', status='', count=0, page=1):
