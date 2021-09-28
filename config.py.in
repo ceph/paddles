@@ -66,7 +66,7 @@ logging = {
     'loggers': {
         'root': {'level': 'INFO', 'handlers': ['console']},
         'paddles': {'level': 'DEBUG', 'handlers': ['console']},
-        'sqlalchemy': {'level': 'WARN'},
+        'sqlalchemy': {'level': 'WARN', 'handlers': ['console']},
         'py.warnings': {'handlers': ['console']},
         '__force_dict__': True
     },
@@ -91,8 +91,9 @@ def get_sqlalchemy_url():
 
 sqlalchemy = {
     'url': get_sqlalchemy_url(),
-    'echo':          True,
-    'echo_pool':     True,
+    # Uncomment to see SQL queries in logs
+    #'echo':          True,
+    #'echo_pool':     True,
     'pool_recycle':  3600,
     'encoding':      'utf-8',
     'isolation_level': 'SERIALIZABLE', # required for correct job reporting
