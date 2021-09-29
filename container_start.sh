@@ -12,6 +12,8 @@ else
 fi
 if [ "$GUNICORN" = "false" ]; then
   pecan serve config.py
+elif [ -n "$GUNICORN_CMD_ARGS" ]; then
+  gunicorn_pecan config.py
 else
   gunicorn_pecan -c gunicorn_config.py config.py
 fi
