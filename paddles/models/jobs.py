@@ -4,7 +4,7 @@ from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
 from sqlalchemy.orm import backref, deferred, load_only, relationship
 from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 from pecan import conf
-from paddles.models import Base
+from paddles.models import Base, Session
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
 from paddles.stats import get_client as get_statsd_client
@@ -153,7 +153,9 @@ class Job(Base):
             self.run.started = self.started
 
         target_nodes_q = self.target_nodes.options(load_only('id', 'name'))
-        if len(json_data.get('targets', {})) > len(target_nodes_q.all()):
+        with Session.no_autoflush:
+            target_node_count = target_nodes_q.count()
+        if len(json_data.get('targets', {})) > target_node_count:
             # Populate self.target_nodes, creating Node objects if necessary
             targets = json_data['targets']
             for target_key in targets.keys():
@@ -164,14 +166,16 @@ class Job(Base):
                 node_q = Node.query.options(load_only('id', 'name'))\
                     .filter(Node.name == hostname)
                 try:
-                    node = node_q.one()
+                    with Session.no_autoflush:
+                        node = node_q.one()
                 except NoResultFound:
                     node = Node(name=hostname)
                     mtype = json_data.get('machine_type')
                     if mtype:
                         node.machine_type = mtype
-                if node not in self.target_nodes:
-                    self.target_nodes.append(node)
+                with Session.no_autoflush:
+                    if node not in self.target_nodes:
+                        self.target_nodes.append(node)
 
         for k, v in json_data.items():
             key = k.replace('-', '_')
