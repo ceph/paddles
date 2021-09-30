@@ -6,7 +6,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import DateTime
 from pecan import conf
 from paddles.util import local_datetime_to_utc
-from paddles.models import Base
+from paddles.models import Base, Session
 from paddles.models.jobs import Job
 
 suite_names = ['big',
@@ -212,7 +212,9 @@ class Run(Base):
         return "%s/runs/%s/" % (conf.address, self.name),
 
     def get_results(self):
-        jobs_status = [value[0] for value in self.jobs.values(Job.status)]
+        with Session.no_autoflush:
+            jobs_status = [value[0] for value in self.jobs.values(Job.status)]
+            sha1 = next(self.jobs.values(Job.sha1), ['none'])[0]
         queued = jobs_status.count('queued')
         passing = jobs_status.count('pass')
         waiting = jobs_status.count('waiting')
@@ -221,7 +223,6 @@ class Run(Base):
         dead = jobs_status.count('dead')
         unknown = jobs_status.count(None) + jobs_status.count('unknown')
         total = len(jobs_status)
-        sha1 = next(self.jobs.values(Job.sha1), ['none'])[0]
         return {
             'queued': queued,
             'pass': passing,
