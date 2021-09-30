@@ -32,5 +32,6 @@ setup(
         import_nodes=paddles.commands.import_nodes:ImportNodesCommand
         queue_stats=paddles.commands.queue_stats:QueueStatsCommand
         node_stats=paddles.commands.node_stats:NodeStatsCommand
+        get_secret=paddles.commands.get_secret:GetSecretCommand
         """
 )

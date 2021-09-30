@@ -1,5 +1,5 @@
 from __future__ import with_statement
-import os
+import subprocess
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
@@ -9,9 +9,9 @@ from paddles import models
 # access to the values within the .ini file in use.
 config = context.config
 
-# take sqlalchemy.url from the env var if available
-if 'PADDLES_SQLALCHEMY_URL' in os.environ:
-    config.set_main_option('sqlalchemy.url', os.environ.get('PADDLES_SQLALCHEMY_URL'))
+config.set_main_option(
+    'sqlalchemy.url', subprocess.getoutput("pecan get_secret")
+)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

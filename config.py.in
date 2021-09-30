@@ -4,14 +4,16 @@
 
 import os
 import sentry_sdk
-from pecan.hooks import RequestViewerHook
 from paddles.hooks import IsolatedTransactionHook
 from paddles import models
 from paddles.hooks.cors import CorsHook
 
 sentry_dsn = os.environ.get("SENTRY_DSN")
 if sentry_dsn:
-    sentry_sdk.init(sentry_dsn)
+    sentry_sdk.init(
+        sentry_dsn,
+        traces_sample_rate=1,
+    )
 
 # Server Specific Configurations
 server = {
@@ -20,13 +22,19 @@ server = {
 }
 
 statsd = {
-    'host': 'example.com',
-    'prefix': 'ceph.test.teuthology.your_lab',
+    'host': os.environ.get('PADDLES_STATSD_HOST', 'example.com'),
+    'prefix': os.environ.get('PADDLES_STATSD_PREFIX', 'ceph.test.teuthology.your_lab'),
 }
 
 # These values will be specific to your site
-address = 'http://paddles.front.sepia.ceph.com'
-job_log_href_templ = 'http://qa-proxy.ceph.com/teuthology/{run_name}/{job_id}/teuthology.log'  # noqa
+address = os.environ.get(
+    'PADDLES_ADDRESS',
+    'http://paddles.front.sepia.ceph.com'
+)
+job_log_href_templ = os.environ.get(
+    'PADDLES_JOB_LOG_HREF_TEMPL',
+    'http://qa-proxy.ceph.com/teuthology/{run_name}/{job_id}/teuthology.log'
+)
 default_latest_runs_count = 25
 
 # Pecan Application Configurations
@@ -60,7 +68,7 @@ logging = {
     'loggers': {
         'root': {'level': 'INFO', 'handlers': ['console']},
         'paddles': {'level': 'DEBUG', 'handlers': ['console']},
-        'sqlalchemy': {'level': 'WARN'},
+        'sqlalchemy': {'level': 'WARN', 'handlers': ['console']},
         'py.warnings': {'handlers': ['console']},
         '__force_dict__': True
     },
@@ -79,14 +87,15 @@ logging = {
     }
 }
 
+def get_sqlalchemy_url():
+    import subprocess
+    return subprocess.getoutput("pecan get_secret")
 
 sqlalchemy = {
-    # You may use SQLite for testing
-    'url': os.environ.get('PADDLES_SQLALCHEMY_URL', 'sqlite:///dev.db'),
-    # When you set up PostreSQL, it will look more like:
-    #'url': 'postgresql+psycopg2://USER:PASSWORD@DB_HOST/DB_NAME',
-    'echo':          True,
-    'echo_pool':     True,
+    'url': get_sqlalchemy_url(),
+    # Uncomment to see SQL queries in logs
+    #'echo':          True,
+    #'echo_pool':     True,
     'pool_recycle':  3600,
     'encoding':      'utf-8',
     'isolation_level': 'SERIALIZABLE', # required for correct job reporting
