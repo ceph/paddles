@@ -4,7 +4,7 @@
 
 import os
 import sentry_sdk
-from paddles.hooks import IsolatedTransactionHook
+from paddles.hooks import IsolatedTransactionHook, SentryHook
 from paddles import models
 from paddles.hooks.cors import CorsHook
 
@@ -60,6 +60,7 @@ app = {
         #                  ['date', 'path', 'status', 'method', 'controller'],
         #                   }),
         CorsHook(),
+        SentryHook(),
     ],
 }
 
