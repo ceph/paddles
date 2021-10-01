@@ -6,7 +6,7 @@ from paddles.exceptions import PaddlesError, RaceConditionError
 from paddles.models import Job, Node, Session, rollback
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, load_only
-from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.exc import InvalidRequestError, OperationalError
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
@@ -39,17 +39,26 @@ class NodesController(object):
             if not count.isdigit() or isinstance(count, int):
                 error('/errors/invalid/', 'count must be an integer')
             query = query.limit(count)
-        attempts = 20
+        attempts = 5
         while attempts > 0:
             try:
                 return [node.__json__() for node in query.all()]
-            except InvalidRequestError:
+            except (InvalidRequestError, OperationalError):
                 attempts -= 1
+                params = query.statement.compile().params
                 if attempts > 0:
-                    log.info("retrying after invalid request error (%s tries left)",
-                             attempts)
+                    log.info(
+                        "Retrying to locate nodes after invalid request error "
+                        "(%s tries left); params: %s",
+                        attempts,
+                        params,
+                    )
                     rollback()
                 else:
+                    log.exception(
+                        "Failed to locate nodes with params: %s",
+                        params,
+                    )
                     error('/errors/unavailable/', 'invalid request error. please retry')
 
 
@@ -237,7 +246,7 @@ class NodeController(object):
     def __init__(self, name):
         self.name = name
 
-        attempts = 20
+        attempts = 5
         while attempts > 0:
             try:
                 node_q = Node.query.options(load_only('id', 'name'))\
@@ -245,13 +254,18 @@ class NodeController(object):
                 self.node = node_q.first()
                 request.context['node_name'] = self.name
                 break
-            except InvalidRequestError:
+            except (InvalidRequestError, OperationalError):
                 attempts -= 1
                 if attempts > 0:
-                    log.info("retrying after invalid request error (%s tries left)",
-                             attempts)
+                    log.info(
+                        "Retrying to lookup node after invalid request error "
+                        "(%s tries left); name: %s",
+                         attempts,
+                         name,
+                     )
                     rollback()
                 else:
+                    log.exception("Failed to lookup node %s", name)
                     error('/errors/unavailable/', 'invalid request error. please retry')
 
     @expose(generic=True, template='json')
