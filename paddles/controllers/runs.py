@@ -1,6 +1,7 @@
 import logging
 import datetime
 from sqlalchemy import Date, cast
+from sqlalchemy.exc import InvalidRequestError, OperationalError
 
 from pecan import abort, conf, expose, request
 from paddles.models import Job, Run, rollback, Session
@@ -54,8 +55,25 @@ def date_from_string(date_str, out_fmt=datetime_format, hours='00:00:00'):
 class RunController(object):
     def __init__(self, name):
         self.name = name
-        self.run = Run.query.filter_by(name=name).first()
         request.context['run_name'] = self.name
+        attempts = 5
+        while attempts > 0:
+            try:
+                self.run = Run.query.filter_by(name=name).first()
+                return
+            except (InvalidRequestError, OperationalError):
+                attempts -= 1
+                if attempts > 0:
+                    log.info(
+                        "Retrying to lookup run after invalid request error "
+                        "(%s tries left); name: %s",
+                         attempts,
+                         name,
+                     )
+                    rollback()
+                else:
+                    log.exception("Failed to lookup run %s", name)
+                    error('/errors/unavailable/', 'invalid request error. please retry')
 
     @expose(generic=True, template='json')
     def index(self):
