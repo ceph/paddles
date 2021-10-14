@@ -28,5 +28,6 @@ sqlalchemy = {
     'echo':         True,
     'echo_pool':    True,
     'pool_recycle': 3600,
-    'encoding':     'utf-8'
+    'encoding':     'utf-8',
+    'isolation_level': 'SERIALIZABLE', # required for correct job reporting
 }
