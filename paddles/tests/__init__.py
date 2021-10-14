@@ -21,25 +21,22 @@ class TestModel(object):
 
     @classmethod
     def setup_class(cls):
-        if TestModel.__db__ is None:
-            TestModel.__db__ = 'paddles_test'
+        # Bind and create the database tables
+        pmodels.clear()
 
-            # Bind and create the database tables
-            pmodels.clear()
+        db_engine = create_engine(
+            cls.engine_url,
+            encoding='utf-8',
+            poolclass=NullPool)
 
-            db_engine = create_engine(
-                cls.engine_url,
-                encoding='utf-8',
-                poolclass=NullPool)
+        # AKA models.start()
+        pmodels.Base.metadata.drop_all(db_engine)
+        pmodels.Session.bind = db_engine
+        pmodels.metadata.bind = pmodels.Session.bind
 
-            # AKA models.start()
-            pmodels.Base.metadata.drop_all(db_engine)
-            pmodels.Session.bind = db_engine
-            pmodels.metadata.bind = pmodels.Session.bind
-
-            pmodels.Base.metadata.create_all(db_engine)
-            pmodels.commit()
-            pmodels.clear()
+        pmodels.Base.metadata.create_all(db_engine)
+        pmodels.commit()
+        pmodels.clear()
 
     @classmethod
     def teardown_class(cls):
