@@ -201,9 +201,11 @@ class BranchController(RunFilterController):
 
 class DateController(RunFilterController):
     def get_subquery(self, query):
-        (self.date, self.date_str) = \
-            date_from_string(self.value, out_fmt=date_format)
-        return query.filter(cast(Run.scheduled, Date) == self.date_str)
+        (self.from_date, self.from_date_str) = \
+            date_from_string(self.value, hours='00:00:00')
+        (self.to_date, self.to_date_str) = \
+            date_from_string(self.value, hours='23:59:59')
+        return query.filter(Run.scheduled.between(self.from_date, self.to_date))
 
     @expose('json')
     def index(self, count=conf.default_latest_runs_count, page=1):

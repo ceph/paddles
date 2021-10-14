@@ -259,8 +259,9 @@ class TestRunControllerDateFilters(TestApp):
 
     def test_date_filter_finds_runs(self):
         response = self.app.get('/runs/date/2013-01-02/')
+        assert response.status_int == 200
         got_names = [run['name'] for run in response.json]
-        assert got_names == self.day2_runs
+        assert got_names == sorted(self.day2_runs, reverse=True)
 
     def test_bad_date_returns_error(self):
         response = self.app.get('/runs/date/2097-13-32/', expect_errors=True)
