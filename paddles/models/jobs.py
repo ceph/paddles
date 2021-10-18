@@ -4,7 +4,7 @@ from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
 from sqlalchemy.orm import backref, deferred, load_only, relationship
 from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 from pecan import conf
-from paddles.models import Base
+from paddles.models import Base, Session
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
 from paddles.stats import get_client as get_statsd_client
@@ -153,7 +153,8 @@ class Job(Base):
             self.run.started = self.started
 
         target_nodes_q = self.target_nodes.options(load_only('id', 'name'))
-        if len(json_data.get('targets', {})) > len(target_nodes_q.all()):
+        target_nodes = target_nodes_q.count()
+        if len(json_data.get('targets', {})) > target_nodes:
             # Populate self.target_nodes, creating Node objects if necessary
             targets = json_data['targets']
             for target_key in targets.keys():
@@ -204,6 +205,7 @@ class Job(Base):
 
     def update(self, json_data):
         self.set_or_update(json_data)
+        Session.flush()
 
     @property
     def href(self):
