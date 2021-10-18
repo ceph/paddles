@@ -1,6 +1,4 @@
 from __future__ import print_function
-from pytest import skip
-from pecan import conf
 
 from paddles.models import Run, Job
 from paddles.tests import TestApp
@@ -128,7 +126,6 @@ class TestRunController(TestApp):
         self.app.post_json('/runs/', dict(name=run_a_name))
         self.app.post_json('/runs/', dict(name=run_b_name))
         response = self.app.get('/runs/branch/master/status/empty/')
-        print(response.json)
         assert response.json[0]['name'] == run_b_name
 
     def test_runs_by_branch_then_suite(self):
@@ -261,12 +258,10 @@ class TestRunControllerDateFilters(TestApp):
             self.app.post_json('/runs/', dict(name=run))
 
     def test_date_filter_finds_runs(self):
-        if 'sqlite' in conf['sqlalchemy']['url']:
-            skip("sqlite does not support DATE")
-
         response = self.app.get('/runs/date/2013-01-02/')
+        assert response.status_int == 200
         got_names = [run['name'] for run in response.json]
-        assert got_names == self.day2_runs
+        assert got_names == sorted(self.day2_runs, reverse=True)
 
     def test_bad_date_returns_error(self):
         response = self.app.get('/runs/date/2097-13-32/', expect_errors=True)
@@ -274,9 +269,6 @@ class TestRunControllerDateFilters(TestApp):
             'date format must match')
 
     def test_date_range_filter_finds_runs(self):
-        if 'sqlite' in conf['sqlalchemy']['url']:
-            skip("sqlite does not support DATE")
-
         response = self.app.get('/runs/date/from/2013-01-02/to/2013-01-03/')
         got_names = [run['name'] for run in response.json]
         assert sorted(got_names) == sorted(self.day2_runs + self.day3_runs)
@@ -288,25 +280,16 @@ class TestRunControllerDateFilters(TestApp):
             'date format must match')
 
     def test_branch_and_since(self):
-        if 'sqlite' in conf['sqlalchemy']['url']:
-            skip("sqlite does not support DATE")
-
         response = self.app.get('/runs/branch/next/?since=2013-01-03')
         got_names = sorted(run['name'] for run in response.json)
         assert got_names == self.day3_runs[0:2] + self.day4_runs[0:2]
 
     def test_suite_and_since(self):
-        if 'sqlite' in conf['sqlalchemy']['url']:
-            skip("sqlite does not support DATE")
-
         response = self.app.get('/runs/suite/nfs/?since=2013-01-03')
         got_names = sorted(run['name'] for run in response.json)
         assert got_names == (self.day3_runs + self.day4_runs)[1::2]
 
     def test_suite_and_branch_and_since(self):
-        if 'sqlite' in conf['sqlalchemy']['url']:
-            skip("sqlite does not support DATE")
-
         response = self.app.get(
             '/runs/suite/nfs/branch/next/?since=2013-01-03')
         got_names = sorted(run['name'] for run in response.json)

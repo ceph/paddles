@@ -3,7 +3,7 @@ from pecan import expose
 from paddles.controllers.runs import RunsController
 from paddles.controllers.nodes import NodesController
 from paddles.controllers.errors import ErrorsController
-from paddles.models import Run, Job
+from paddles.models import Run, Job, Session
 from paddles.controllers.util import last_seen
 
 
@@ -17,18 +17,16 @@ class RootController(object):
         }
     }
 
-
     @expose('json')
     def index(self):
 
-        return dict(
-            _help_ = self._help,
-            last_run = last_seen(Run),
-            last_job = last_seen(Job),
-        )
+        with Session.no_autoflush:
+            return dict(
+                _help_=self._help,
+                last_run=last_seen(Run),
+                last_job=last_seen(Job),
+            )
 
     runs = RunsController()
     errors = ErrorsController()
     nodes = NodesController()
-
-

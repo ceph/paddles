@@ -362,6 +362,7 @@ class TestNodeController(TestApp):
         response = self.app.put_json(
             '/nodes/{name}/lock'.format(name=node_name),
             dict(locked=False, locked_by='me'))
+        assert response.status_int == 200
         assert response.json['locked'] is False and \
             response.json['locked_by'] is None
 
