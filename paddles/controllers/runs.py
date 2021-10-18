@@ -8,6 +8,7 @@ from paddles.models import Job, Run, rollback, Session
 from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.controllers import error
+from paddles.decorators import retryOperation
 
 log = logging.getLogger(__name__)
 
@@ -56,26 +57,14 @@ class RunController(object):
     def __init__(self, name):
         self.name = name
         request.context['run_name'] = self.name
-        attempts = 5
-        while attempts > 0:
-            try:
-                self.run = Run.query.filter_by(name=name).first()
-                return
-            except (InvalidRequestError, OperationalError):
-                attempts -= 1
-                if attempts > 0:
-                    log.info(
-                        "Retrying to lookup run after invalid request error "
-                        "(%s tries left); name: %s",
-                         attempts,
-                         name,
-                     )
-                    rollback()
-                else:
-                    log.exception("Failed to lookup run %s", name)
-                    error('/errors/unavailable/', 'invalid request error. please retry')
+        self.run = self._find_run(name)
+
+    @retryOperation(exceptions=(OperationalError, InvalidRequestError))
+    def _find_run(self, name):
+        return Run.query.filter_by(name=name).first()
 
     @expose(generic=True, template='json')
+    @retryOperation
     def index(self):
         if not self.run:
             abort(404)
@@ -108,6 +97,7 @@ class RunFilterIndexController(object):
         raise NotImplementedError
 
     @expose('json')
+    @retryOperation
     def index(self):
         query = request.context.get('query', Run.query)
         subquery = self.get_subquery(query)
@@ -169,6 +159,7 @@ class RunFilterController(RunFilterIndexController):
         request.context['query'] = subquery
 
     @expose('json')
+    @retryOperation
     def index(self, count=conf.default_latest_runs_count, page=1, since=None):
         query = request.context['query']
         if since:
@@ -345,11 +336,17 @@ class RunsController(object):
         if not name:
             error('/errors/invalid/', "could not find required key: 'name'")
         if not Run.query.filter_by(name=name).first():
-            log.info("Creating run: %s", name)
-            Run(name)
+            self._create_run(name)
             return dict()
         else:
             error('/errors/invalid/', "run with name %s already exists" % name)
+
+    @classmethod
+    @retryOperation
+    def _create_run(cls, name):
+        log.info("Creating run: %s", name)
+        Session.flush()
+        return Run(name)
 
     branch = BranchesController()
 
