@@ -65,7 +65,9 @@ class TestNodeModel(TestApp):
         user = 'cat@door'
         node = Node(name=node_name)
         node.update(dict(locked=True, locked_by=user))
-        assert (datetime.utcnow() - node.locked_since) < timedelta(0, 0, 100)
+        # This used to take <100us; since we started flushing on node updates,
+        # it takes around 2-3ms.
+        assert (datetime.utcnow() - node.locked_since) < timedelta(milliseconds=5)
 
     def test_locked_since_unlocked(self):
         node_name = 'cats'
