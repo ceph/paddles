@@ -39,25 +39,32 @@ class TestJobsControllerRace(object):
             headers = {'content-type': 'application/json'}
             run_uri = base_uri + '/runs/' + self.run + '/jobs/'
 
-            attempts = 5
+            created = False
+            attempts = 1
             while attempts > 0:
-                response = requests.post(
-                    run_uri,
-                    data=json.dumps(job_data),
-                    headers=headers,
-                )
-                print(job_data, response.status_code, response.text)
-                try:
-                    resp_json = response.json()
-                except ValueError:
-                    resp_json = dict()
+                msg = None
+                if not created:
+                    response = requests.post(
+                        run_uri,
+                        data=json.dumps(job_data),
+                        headers=headers,
+                    )
+                    if response.ok:
+                        created = True
+                    else:
+                        print(job_data, response.status_code, response.text)
+                    try:
+                        resp_json = response.json()
+                    except ValueError:
+                        resp_json = dict()
 
-                if resp_json:
-                    msg = resp_json.get('message', '')
-                else:
-                    msg = response.text
+                    if resp_json:
+                        msg = resp_json.get('message', '')
+                    else:
+                        msg = response.text
 
                 if msg and msg.endswith('already exists'):
+                    created = True
                     response = requests.put(
                         run_uri + str(job_id) + '/',
                         data=json.dumps(job_data),
@@ -65,9 +72,10 @@ class TestJobsControllerRace(object):
                     )
                 if response.ok:
                     break
-                print(f'Raced updating job {job_id} status, retries left: {attempts}')
                 attempts -= 1
-                time.sleep(random.uniform(0, 1))
+                print(f'Raced updating job {job_id} status, retries left: {attempts}')
+                if attempts:
+                    time.sleep(random.uniform(0, 1))
             response.raise_for_status()
 
             queue.put(dict(text=response.text,
@@ -100,4 +108,6 @@ class TestJobsControllerRace(object):
             job_resp = requests.get(base_uri + '/runs/' + self.run + '/jobs/' + str(job_id) + '/')
             assert job_resp.status_code == 200
             assert job_resp.json()['status'] == job_status_in_run
+        got_ids = [j['job_id'] for j in resp.json()]
         assert len(resp.json()) == len(job_ids)
+        assert sorted(list(map(int, got_ids))) == sorted(job_ids)
