@@ -4,8 +4,10 @@ from sqlalchemy.orm import load_only
 from pecan import expose, abort, request
 
 from paddles import models
-from paddles.models import Job, rollback
+from paddles.decorators import retryOperation
+from paddles.models import Job, rollback, Session
 from paddles.controllers import error
+import paddles.controllers.runs
 
 log = logging.getLogger(__name__)
 
@@ -39,6 +41,7 @@ class JobController(object):
         return self.job
 
     @index.when(method='PUT', template='json')
+    @retryOperation(attempts=100)
     def index_post(self):
         """
         We update a job here, it should obviously exist already but most likely
@@ -51,6 +54,7 @@ class JobController(object):
             )
         old_job_status = self.job.status
         self.job.update(request.json)
+        Session.commit()
         if self.job.status != old_job_status:
             log.info("Job %s/%s status changed from %s to %s", self.job.name,
                      self.job.job_id, old_job_status, self.job.status)
@@ -69,26 +73,24 @@ class JobController(object):
 
 
 class JobsController(object):
-
-    @property
-    def run(self):
-        run_name = request.context.get('run_name')
-        if not run_name:
-            error('/errors/notfound', 'associated run was not found and no name was provided to create one')  # noqa
+    @retryOperation
+    def _find_run(self):
+        self.run_name = run_name = request.context.get('run_name')
         run_q = models.Run.query.filter(models.Run.name == run_name)
-        if run_q.count() == 1:
-            run = run_q.one()
-            return run
-        elif run_q.count() > 1:
-            error('/errors/invalid/',
-                  'there are %s runs with that name!' % run_q.count())
-        elif run_q.count() == 0:
-            log.info("Creating run: %s", run_name)
-            run = models.Run(run_name)
-            return run
+        if run_q.count():
+            return run_q.one()
+        else:
+            return None
+
+    def _create_run(self):
+        self.run = run = paddles.controllers.runs.RunsController._create_run(self.run_name)
+        return run
 
     @expose(generic=True, template='json')
     def index(self, status='', fields=''):
+        self.run = self._find_run()
+        if not self.run:
+            error('/errors/notfound', 'associated run was not found')
         job_query = Job.filter_by(run=self.run)
         if status:
             job_query = job_query.filter_by(status=status)
@@ -117,8 +119,16 @@ class JobsController(object):
         # we allow empty data to be pushed
         if not job_id:
             error('/errors/invalid/', "could not find required key: 'job_id'")
+        self.run = self._find_run()
+        if not self.run: self._create_run()
+
         job_id = data['job_id'] = str(job_id)
 
+        self._create_job(job_id, data)
+        return dict()
+
+    @retryOperation
+    def _create_job(self, job_id, data):
         query = Job.query.options(load_only('id', 'job_id'))
         query = query.filter_by(job_id=job_id, run=self.run)
         if query.first():
@@ -128,7 +138,8 @@ class JobsController(object):
             log.info("Creating job: %s/%s", data.get('name', '<no name!>'),
                      job_id)
             self.job = Job(data, self.run)
-        return dict()
+            Session.commit()
+            return self.job
 
     @expose('json')
     def _lookup(self, job_id, *remainder):
