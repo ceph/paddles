@@ -2,7 +2,7 @@ from pecan import abort, expose, request
 from paddles.controllers import error
 from paddles.controllers.util import offset_query
 from paddles.decorators import isolation_level
-from paddles.exceptions import PaddlesError, RaceConditionError
+from paddles.exceptions import PaddlesError
 from paddles.models import Job, Node, Session, rollback
 from paddles.decorators import retryOperation
 from sqlalchemy import func
@@ -131,14 +131,6 @@ class NodesController(object):
                     desc_str=desc_str,
                 ))
                 return result
-            except RaceConditionError as exc:
-                log.warn("lock_many() detected race condition")
-                attempts -= 1
-                if attempts > 0:
-                    log.info("retrying after race avoidance (%s tries left)",
-                             attempts)
-                else:
-                    error(exc.url, str(exc))
             except PaddlesError as exc:
                 error(exc.url, str(exc))
 
