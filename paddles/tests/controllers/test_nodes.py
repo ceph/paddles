@@ -1,5 +1,5 @@
 from paddles.tests import TestApp
-from paddles.models import Node, start, commit
+from paddles.models import Node, Job, start, commit
 
 
 class TestNodesController(TestApp):
@@ -7,6 +7,7 @@ class TestNodesController(TestApp):
         # After each test in this class, delete all the Nodes we created
         start()
         Node.query.delete()
+        Job.query.delete()
         commit()
 
     def test_get_node_root(self):
@@ -261,6 +262,10 @@ class TestNodesController(TestApp):
 
 
 class TestNodeController(TestApp):
+    def teardown_method(self, meth):
+        start()
+        Node.query.delete()
+        commit()
 
     def test_get_nonexistent_node(self):
         response = self.app.get('/nodes/this_is_not_here/', expect_errors=True)
