@@ -6,8 +6,9 @@ from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 
 from paddles.exceptions import (InvalidRequestError, ForbiddenRequestError,
-                                RaceConditionError, ResourceUnavailableError)
-from paddles.models import Base, commit, rollback
+                                ResourceUnavailableError)
+from paddles.models import Base, Session, commit
+from paddles.decorators import retryOperation
 
 import logging
 log = logging.getLogger(__name__)
@@ -73,6 +74,13 @@ class Node(Base):
         self.mac_address = mac_address
         self.ssh_pub_key = ssh_pub_key
 
+    @retryOperation(
+        attempts=20,
+        exceptions=(
+            sqlalchemy.exc.InvalidRequestError,
+            sqlalchemy.exc.OperationalError,
+        )
+    )
     def update(self, values):
         """
         :param values: a dict.
@@ -93,6 +101,7 @@ class Node(Base):
                 self.locked_since = datetime.utcnow() if self.locked else None
             if not self.locked:
                 self.locked_by = None
+        Session.flush()
 
     def _check_for_update(self, values):
         """
@@ -162,13 +171,7 @@ class Node(Base):
                 "only {count} nodes available".format(count=nodes_avail))
         for node in nodes:
             node.update(update_dict)
-        try:
-            commit()
-        except (sqlalchemy.exc.DBAPIError, sqlalchemy.exc.InvalidRequestError):
-            rollback()
-            raise RaceConditionError(
-                "error locking nodes. please retry request."
-            )
+        commit()
         return nodes
 
     def __json__(self):

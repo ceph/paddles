@@ -1,10 +1,15 @@
 from __future__ import print_function
 
-from paddles.models import Run, Job
+from paddles.models import Run, Job, start, commit
 from paddles.tests import TestApp
 
 
 class TestRunController(TestApp):
+    def teardown_method(self, meth):
+        start()
+        Job.query.delete()
+        Run.query.delete()
+        commit()
 
     def test_get_root(self):
         response = self.app.get('/runs/')

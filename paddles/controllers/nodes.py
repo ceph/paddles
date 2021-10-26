@@ -2,8 +2,9 @@ from pecan import abort, expose, request
 from paddles.controllers import error
 from paddles.controllers.util import offset_query
 from paddles.decorators import isolation_level
-from paddles.exceptions import PaddlesError, RaceConditionError
+from paddles.exceptions import PaddlesError
 from paddles.models import Job, Node, Session, rollback
+from paddles.decorators import retryOperation
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, load_only
 from sqlalchemy.exc import InvalidRequestError, OperationalError
@@ -16,6 +17,7 @@ log = logging.getLogger(__name__)
 
 class NodesController(object):
     @expose(generic=True, template='json')
+    @retryOperation
     def index(self, locked=None, machine_type='', os_type=None,
               os_version=None, locked_by=None, up=None, count=None):
         query = Node.query
@@ -39,28 +41,11 @@ class NodesController(object):
             if not count.isdigit() or isinstance(count, int):
                 error('/errors/invalid/', 'count must be an integer')
             query = query.limit(count)
-        attempts = 5
-        while attempts > 0:
-            try:
-                return [node.__json__() for node in query.all()]
-            except (InvalidRequestError, OperationalError):
-                attempts -= 1
-                params = query.statement.compile().params
-                if attempts > 0:
-                    log.info(
-                        "Retrying to locate nodes after invalid request error "
-                        "(%s tries left); params: %s",
-                        attempts,
-                        params,
-                    )
-                    rollback()
-                else:
-                    log.exception(
-                        "Failed to locate nodes with params: %s",
-                        params,
-                    )
-                    error('/errors/unavailable/', 'invalid request error. please retry')
+        return [node.__json__() for node in self._find_nodes(query)]
 
+    @retryOperation(exceptions=(OperationalError, InvalidRequestError))
+    def _find_nodes(self, query):
+        return query.all()
 
     @index.when(method='POST', template='json')
     def index_post(self):
@@ -99,6 +84,7 @@ class NodesController(object):
 
     @isolation_level('SERIALIZABLE')
     @lock_many.when(method='POST', template='json')
+    @retryOperation
     def lock_many_post(self):
         req = request.json
         fields = set(('count', 'locked_by', 'machine_type', 'description'))
@@ -145,14 +131,6 @@ class NodesController(object):
                     desc_str=desc_str,
                 ))
                 return result
-            except RaceConditionError as exc:
-                log.warn("lock_many() detected race condition")
-                attempts -= 1
-                if attempts > 0:
-                    log.info("retrying after race avoidance (%s tries left)",
-                             attempts)
-                else:
-                    error(exc.url, str(exc))
             except PaddlesError as exc:
                 error(exc.url, str(exc))
 
@@ -162,6 +140,7 @@ class NodesController(object):
               "this URI only supports POST requests")
 
     @unlock_many.when(method='POST', template='json')
+    @retryOperation
     def unlock_many_post(self):
         req = request.json
         fields = ['names', 'locked_by']
@@ -245,28 +224,14 @@ class NodesController(object):
 class NodeController(object):
     def __init__(self, name):
         self.name = name
+        self.node = self._find_node(name)
+        request.context['node_name'] = self.name
 
-        attempts = 5
-        while attempts > 0:
-            try:
-                node_q = Node.query.options(load_only('id', 'name'))\
-                    .filter(Node.name == name)
-                self.node = node_q.first()
-                request.context['node_name'] = self.name
-                break
-            except (InvalidRequestError, OperationalError):
-                attempts -= 1
-                if attempts > 0:
-                    log.info(
-                        "Retrying to lookup node after invalid request error "
-                        "(%s tries left); name: %s",
-                         attempts,
-                         name,
-                     )
-                    rollback()
-                else:
-                    log.exception("Failed to lookup node %s", name)
-                    error('/errors/unavailable/', 'invalid request error. please retry')
+    @retryOperation(exceptions=(OperationalError, InvalidRequestError))
+    def _find_node(self, name):
+        node_q = Node.query.options(load_only('id', 'name'))\
+            .filter(Node.name == name)
+        return node_q.first()
 
     @expose(generic=True, template='json')
     def index(self):
@@ -293,10 +258,7 @@ class NodeController(object):
             node=self.node,
             data=update,
         ))
-        try:
-            self.node.update(update)
-        except PaddlesError as exc:
-            error(exc.url, str(exc))
+        self.node.update(update)
         return dict()
 
     @expose(template='json')
@@ -317,6 +279,7 @@ class NodeController(object):
         return self._lock(self.node, node_dict, verb)
 
     @staticmethod
+    @retryOperation
     def _lock(node_obj, node_dict, verb):
         locked_by = node_dict.get('locked_by')
         _verb = dict(lock='Lock', unlock='Unlock').get(verb, 'Check')
@@ -326,6 +289,7 @@ class NodeController(object):
             verb=_verb, node=node_obj, locked_by=locked_by, desc_str=desc_str))
         try:
             node_obj.update(node_dict)
+            Session.commit()
             log.info("{verb}ed {node} for {locked_by}{desc_str}".format(
                 verb=_verb,
                 node=node_obj,

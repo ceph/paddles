@@ -1,9 +1,15 @@
 from datetime import datetime
 from paddles.tests import TestApp
 from paddles.util import local_datetime_to_utc
+from paddles.models import Run, Job, start, commit
 
 
 class TestJobsController(TestApp):
+    def teardown_method(self, meth):
+        start()
+        Job.query.delete()
+        Run.query.delete()
+        commit()
 
     def test_get_root(self):
         response = self.app.get('/')

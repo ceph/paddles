@@ -80,7 +80,7 @@ class TestReadWriteDependency(object):
                 
                 req = dict(locked=False, up=True,
                         locked_by=resp_d.get('locked_by'))
-                attempts = 5
+                attempts = 1
                 while attempts > 0:
                     response = requests.put('%s/nodes/%s/lock/' % (base_uri, name),
                                         json.dumps(req),
@@ -89,7 +89,8 @@ class TestReadWriteDependency(object):
                         break
                     print(f'Raced updating node status, retries left: {attempts}')
                     attempts -= 1
-                    time.sleep(random.uniform(0, 1))
+                    if attempts:
+                        time.sleep(random.uniform(0, 1))
                 response.raise_for_status()
                 queue.put(dict(text=response.text,
                                status_int=response.status_code))
