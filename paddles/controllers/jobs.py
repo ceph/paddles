@@ -55,15 +55,21 @@ class JobController(object):
             )
         old_job_status = self.job.status
         old_priority = self.job.priority
-        self.job.update(request.json)
+        data = request.json
+        if 'priority' in data:
+            if data['priority'] != old_priority:
+                if self.job.status == "queued":
+                    log.info("Job %s/%s priority changed from %s to %s", self.job.name,
+                            self.job.job_id, old_priority, data['priority'])
+                else:
+                    log.info("Job status %s. Priority cannot be changed", self.job.status)
+                    data['priority'] = old_priority
+        self.job.update(data)
         Session.commit()
         if self.job.status != old_job_status:
             log.info("Job %s/%s status changed from %s to %s", self.job.name,
                      self.job.job_id, old_job_status, self.job.status)
-        
-        if self.job.priority != old_priority:
-            log.info("Job %s/%s priority changed from %s to %s", self.job.name,
-                     self.job.job_id, old_priority, self.job.priority)
+
         return dict()
 
     @index.when(method='DELETE', template='json')
@@ -122,9 +128,7 @@ class JobsController(object):
                 raise ValueError()
             config = dict(conf.sqlalchemy)
             if 'sqlite' in config['url']:
-                '''
-                Need this check since Sequence is not supported in SQLite
-                '''
+                # Need this check since Sequence is not supported in SQLite
                 job = Session.query(Job).order_by(Job.id.desc()).first()
                 if job:
                     job_id = job.id + 1
@@ -157,10 +161,8 @@ class JobsController(object):
             error('/errors/invalid/',
                   "job with job_id %s already exists" % job_id)
         else:
-            log.info("Job ID: %s", job_id)
-            log.info("Creating job: %s/%s", data.get('name', '<no name!>'),
+            log.info("Creating job: %s/ Job ID: %s", data.get('name', '<no name!>'),
                      job_id)
-            log.info(data)
             self.job = Job(data, self.run)
             Session.commit()
             return self.job
