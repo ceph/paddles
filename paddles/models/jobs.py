@@ -22,6 +22,7 @@ job_nodes_table = Table(
 
 log = logging.getLogger(__name__)
 
+
 class Job(Base):
 
     __tablename__ = 'jobs'
@@ -51,7 +52,7 @@ class Job(Base):
     os_version = Column(String(16))
     overrides = deferred(Column(JSONType()))
     owner = Column(String(128))
-    priority = Column(Integer)
+    priority = Column(Integer, index=True)
     pid = Column(String(32))
     repo = Column(String(256))
     roles = deferred(Column(JSONType()))
@@ -77,6 +78,7 @@ class Job(Base):
     issue_url = deferred(Column(Text))
     comment = deferred(Column(Text))
     pcp_grafana_url = Column(Text)
+    queue = Column(String(32), index=True)
 
     allowed_keys = (
         "archive_path",
@@ -112,6 +114,7 @@ class Job(Base):
         "priority",
         "user",
         "first_in_suite",
+        "queue",
     )
 
     allowed_statuses = (

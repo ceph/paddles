@@ -15,10 +15,7 @@ class RootController(object):
     def index(self):
         return dict()
 
-    
     runs = RunsController()
     errors = ErrorsController()
     nodes = NodesController()
     queue = QueuesController()
-
-

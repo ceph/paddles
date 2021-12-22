@@ -1,27 +1,25 @@
 from pecan import expose, request
 from paddles.controllers import error
 from paddles.exceptions import PaddlesError
-from paddles.models import Queue, Job, Session
+from paddles.models import Queue, Job, Run, Session
 
 import logging
 log = logging.getLogger(__name__)
 
+
 class QueuesController(object):
     @expose(generic=True, template='json')
-    def index(self, paused=None, machine_type='', paused_by=None):
+    def index(self, machine_type='', paused_by=None):
         query = Queue.query
-        if paused is not None:
-            query = query.filter(Queue.paused == paused)
         if machine_type:
             if '|' in machine_type:
-                machine_types = machine_type.split('|')
-                query = query.filter(Queue.machine_type.in_(machine_types))
+                query = query.filter(Queue.queue == 'multi')
             else:
-                query = query.filter(Queue.machine_type == machine_type)
+                query = query.filter(Queue.queue == machine_type)
         if paused_by:
             query = query.filter(Queue.paused_by == paused_by)
         return [queue.__json__() for queue in query.all()]
-    
+
     @index.when(method='POST', template='json')
     def index_post(self):
         """
@@ -29,17 +27,17 @@ class QueuesController(object):
         """
         try:
             data = request.json
-            machine_type = data.get('machine_type')
+            queue_name = data.get('queue')
         except ValueError:
             error('/errors/invalid/', 'could not decode JSON body')
-        if not machine_type:
-            error('/errors/invalid/', "could not find required key: 'machine_type'")
+        if not queue_name:
+            error('/errors/invalid/', "could not find required key: 'queue'")
 
-        if Queue.filter_by(machine_type=machine_type).first():
+        if Queue.filter_by(queue=queue_name).first():
             error('/errors/invalid/',
-                  "Queue for machine type %s already exists" % machine_type)
+                  "Queue %s already exists" % queue_name)
         else:
-            self.queue = Queue(machine_type=machine_type)
+            self.queue = Queue(queue=queue_name)
             try:
                 self.queue.update(data)
             except PaddlesError as exc:
@@ -57,12 +55,12 @@ class QueuesController(object):
         """
         try:
             data = request.json
-            machine_type = data.get('machine_type')
+            queue_name = data.get('queue')
         except ValueError:
             error('/errors/invalid', 'could not decode JSON body')
-        if not machine_type:
-            error('/errors/invalid/', "could not find required key: 'machine_type'")
-        queue = Queue.filter_by(machine_type=machine_type).first()
+        if not queue_name:
+            error('/errors/invalid/', "could not find required key: 'queue'")
+        queue = Queue.filter_by(queue=queue_name).first()
         if queue:
             self.queue = queue
             try:
@@ -74,72 +72,75 @@ class QueuesController(object):
                 data=data,
             ))
         else:
-            error('/errors/invalid', "queue for specified 'machine_type' does not exist")
+            error('/errors/invalid', "specified queue does not exist")
         return dict()
 
     @expose(template='json')
-    def pop_queue(self, machine_type):
-        job_query = Job.filter_by(status='queued').filter_by(machine_type=machine_type)
+    def pop_queue(self, queue):
+        queue_name = queue
+        queue = Queue.filter_by(queue=queue_name).first()
+        if queue.paused is True:
+            error('/errors/unavailable', "queue is paused, cannot retrieve job")
+            return
+        job_query = Job.filter_by(status='queued').filter_by(queue=queue_name)
         job = job_query.order_by(Job.priority).first()
         return job
-    
+
     @expose(template='json')
     def stats(self):
         try:
             data = request.json
-            machine_type = data.get('machine_type')
+            queue_name = data.get('queue')
         except ValueError:
             error('/errors/invalid', 'could not decode JSON body')
-        if not machine_type:
-            error('/errors/invalid/', "could not find required key: 'machine_type'")
-        queue = Queue.filter_by(machine_type=machine_type).first()
+        if not queue_name:
+            error('/errors/invalid/', "could not find required key: 'queue'")
+        queue = Queue.filter_by(queue=queue_name).first()
         if queue:
-            stats = Session.query(Queue, Job).\
-                filter(Queue.machine_type == Job.machine_type).\
-                filter(Job.status=='queued').\
-                filter(Queue.machine_type==machine_type).\
-                all()
+            stats = Job.filter_by(queue=queue_name).\
+                    filter_by(status='queued').\
+                    all()
             current_jobs_ready = len(stats)
-            pause_duration = Session.query(Queue.pause_duration).filter(Queue.machine_type==machine_type).first()[0]
-            return dict(
-                name=machine_type,
-                count=current_jobs_ready,
-                paused=pause_duration,
-            )
-        else:
-            error('/errors/invalid', "queue for specified 'machine_type' does not exist")
 
+            if queue.__json__()['paused'] is False:
+                return dict(
+                    name=queue_name,
+                    queued_jobs=current_jobs_ready,
+                    paused=queue.__json__()['paused']
+                )
+            else:
+                paused_stats = queue.__json__()
+                paused_stats.update(queued_jobs=current_jobs_ready)
+                return paused_stats
+        else:
+            error('/errors/invalid', "specified queue does not exist")
 
     @expose(template='json')
-    def queued_jobs(self):
+    def queued_jobs(self, user=None, run_name=None):
         """
         Retrieve all the queued jobs for a particular user or a particular run
         """
         try:
             data = request.json
-            machine_type = data.get('machine_type')
-            user = data.get('user')
-            run_name = data.get('run_name')
+            queue_name = data.get('queue')
         except ValueError:
             error('/errors/invalid', 'could not decode JSON body')
-        if not machine_type:
-            error('/errors/invalid/', "could not find required key: 'machine_type'")
-        if not user and not run_name:
-            error('/errors/invalid/', "'user' key or 'run_name' key is required")
-        queue = Queue.filter_by(machine_type=machine_type).first()
+        if not queue_name:
+            error('/errors/invalid/', "could not find required key: 'queue'")
+        queue = Queue.filter_by(queue=queue_name).first()
         if queue:
             if run_name:
                 jobs = Session.query(Job).\
-                    filter(Queue.machine_type==Job.machine_type).\
-                    filter(Queue.machine_type==machine_type).\
-                    filter(Job.status=='queued').\
-                    filter(Job.name==run_name)
+                    filter(Job.status == 'queued').\
+                    filter(Run.id == Job.run_id).\
+                    filter(Run.name == run_name)
+            elif user:
+                jobs = Job.filter_by(queue=queue_name).\
+                    filter_by(status='queued').\
+                    filter_by(user=user)
             else:
-                jobs = Session.query(Job).\
-                    filter(Queue.machine_type==Job.machine_type).\
-                    filter(Queue.machine_type==machine_type).\
-                    filter(Job.status=='queued').\
-                    filter(Job.user==user)
+                jobs = Job.filter_by(queue=queue_name).\
+                    filter_by(status='queued')
             return [job.__json__() for job in jobs.all()]
         else:
-            error('/errors/invalid', "queue for specified 'machine_type' does not exist")
+            error('/errors/invalid', "specified queue does not exist")
