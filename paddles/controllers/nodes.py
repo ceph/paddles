@@ -47,6 +47,7 @@ class NodesController(object):
     def _find_nodes(self, query):
         return query.all()
 
+    @retryOperation(exceptions=(OperationalError, InvalidRequestError))
     @index.when(method='POST', template='json')
     def index_post(self):
         """
