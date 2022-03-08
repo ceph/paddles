@@ -2,7 +2,10 @@ from sqlalchemy import create_engine, MetaData, event
 from sqlalchemy.orm import scoped_session, sessionmaker, object_session, mapper
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.interfaces import PoolListener
+from sqlalchemy.exc import InvalidRequestError, OperationalError
 from pecan import conf
+
+from paddles.controllers import error
 
 
 class _EntityBase(object):
@@ -105,7 +108,11 @@ def start_read_only():
 
 
 def commit():
-    Session.commit()
+    try:
+        Session.commit()
+    except (OperationalError, InvalidRequestError):
+        rollback()
+        error('/errors/unavailable', 'encountered a DB error; please retry')
 
 
 def rollback():
