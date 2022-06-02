@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine, MetaData, event
 from sqlalchemy.orm import scoped_session, sessionmaker, object_session, mapper
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.interfaces import PoolListener
 from sqlalchemy.exc import InvalidRequestError, OperationalError
 from sqlalchemy.pool import Pool
 from pecan import conf
