@@ -59,10 +59,13 @@ class Job(Base):
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
     branch = Column(String(64), index=True)
+    seed = Column(String(32))
     sha1 = Column(String(40), index=True)
     sleep_before_teardown = Column(Integer)
+    subset = Column(String(32))
     suite = Column(String(256))
     suite_branch = Column(String(64), index=True)
+    suite_path = Column(String(256))
     suite_relpath = Column(String(256))
     suite_repo = Column(String(256))
     suite_sha1 = Column(String(40), index=True)
@@ -103,8 +106,14 @@ class Job(Base):
         "status",
         "success",
         "branch",
+        "seed",
         "sha1",
+        "subset",
+        "suite",
         "suite_branch",
+        "suite_path",
+        "suite_relpath",
+        "suite_repo",
         "suite_sha1",
         "targets",
         "tasks",
@@ -175,25 +184,26 @@ class Job(Base):
 
         target_nodes_q = self.target_nodes.options(load_only('id', 'name'))
         target_nodes = target_nodes_q.count()
-        if len(json_data.get('targets', {})) > target_nodes:
-            # Populate self.target_nodes, creating Node objects if necessary
-            targets = json_data['targets']
-            for target_key in targets.keys():
-                if '@' in target_key:
-                    hostname = target_key.split('@')[1]
-                else:
-                    hostname = target_key
-                node_q = Node.query.options(load_only('id', 'name'))\
-                    .filter(Node.name == hostname)
-                try:
-                    node = node_q.one()
-                except NoResultFound:
-                    node = Node(name=hostname)
-                    mtype = json_data.get('machine_type')
-                    if mtype:
-                        node.machine_type = mtype
-                if node not in self.target_nodes:
-                    self.target_nodes.append(node)
+        if json_data.get('targets') is not None:
+            if len(json_data.get('targets', {})) > target_nodes:
+                # Populate self.target_nodes, creating Node objects if necessary
+                targets = json_data['targets']
+                for target_key in targets.keys():
+                    if '@' in target_key:
+                        hostname = target_key.split('@')[1]
+                    else:
+                        hostname = target_key
+                    node_q = Node.query.options(load_only('id', 'name'))\
+                        .filter(Node.name == hostname)
+                    try:
+                        node = node_q.one()
+                    except NoResultFound:
+                        node = Node(name=hostname)
+                        mtype = json_data.get('machine_type')
+                        if mtype:
+                            node.machine_type = mtype
+                    if node not in self.target_nodes:
+                        self.target_nodes.append(node)
 
         for k, v in json_data.items():
             key = k.replace('-', '_')

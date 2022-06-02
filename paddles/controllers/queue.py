@@ -87,12 +87,8 @@ class QueuesController(object):
         return job
 
     @expose(template='json')
-    def stats(self):
-        try:
-            data = request.json
-            queue_name = data.get('queue')
-        except ValueError:
-            error('/errors/invalid', 'could not decode JSON body')
+    def stats(self, queue):
+        queue_name = queue
         if not queue_name:
             error('/errors/invalid/', "could not find required key: 'queue'")
         queue = Queue.filter_by(queue=queue_name).first()
@@ -104,7 +100,7 @@ class QueuesController(object):
 
             if queue.__json__()['paused'] is False:
                 return dict(
-                    name=queue_name,
+                    queue=queue_name,
                     queued_jobs=current_jobs_ready,
                     paused=queue.__json__()['paused']
                 )
@@ -114,6 +110,7 @@ class QueuesController(object):
                 return paused_stats
         else:
             error('/errors/invalid', "specified queue does not exist")
+
 
     @expose(template='json')
     def queued_jobs(self, user=None, run_name=None):
