@@ -1,3 +1,5 @@
+import pytest
+
 from paddles.tests import TestApp
 from paddles.models import Node, Job, start, commit
 
@@ -312,6 +314,20 @@ class TestNodeController(TestApp):
                           dict(name=node_name, locked=True, locked_by=user))
         response = self.app.get('/nodes/{name}/'.format(name=node_name))
         assert response.json['locked'] is True
+
+    def test_delete(self):
+        node_name = 'a_node'
+        user = 'a_user'
+        self.app.post_json('/nodes/', dict(name=node_name))
+        response = self.app.get('/nodes/{name}/'.format(name=node_name))
+        assert response.json['name'] == node_name
+        response = self.app.delete('/nodes/{name}/'.format(name=node_name))
+        assert response.json == {}
+        response = self.app.get(
+            '/nodes/{name}/'.format(name=node_name),
+            expect_errors=True,
+            status=404
+        )
 
     def test_check(self):
         node_name = 'crabs'
