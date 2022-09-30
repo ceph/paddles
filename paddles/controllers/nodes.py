@@ -262,6 +262,17 @@ class NodeController(object):
         self.node.update(update)
         return dict()
 
+    @index.when(method='DELETE', template='json')
+    def index_delete(self):
+        if not self.node:
+            error(
+                '/errors/not_found/',
+                'node not found'
+            )
+        log.info("Deleting node %r", self.node)
+        self.node.delete()
+        return dict()
+
     @expose(template='json')
     def lock(self):
         if not self.node:
