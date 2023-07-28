@@ -1,5 +1,3 @@
-import pytest
-
 from paddles.tests import TestApp
 from paddles.models import Node, Job, start, commit
 
@@ -317,7 +315,6 @@ class TestNodeController(TestApp):
 
     def test_delete(self):
         node_name = 'a_node'
-        user = 'a_user'
         self.app.post_json('/nodes/', dict(name=node_name))
         response = self.app.get('/nodes/{name}/'.format(name=node_name))
         assert response.json['name'] == node_name
