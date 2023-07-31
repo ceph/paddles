@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 set -ex
 trap exit TERM
 pecan populate config.py
