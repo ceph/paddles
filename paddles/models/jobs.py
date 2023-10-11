@@ -139,8 +139,6 @@ class Job(Base):
     def __init__(self, json_data, run):
         self.run = run
         self.posted = datetime.utcnow()
-        self.id = json_data['id']
-        self.job_id = json_data['job_id']
         self.set_or_update(json_data)
 
     def set_or_update(self, json_data):

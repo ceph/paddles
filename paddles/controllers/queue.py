@@ -79,6 +79,9 @@ class QueuesController(object):
     def pop_queue(self, queue):
         queue_name = queue
         queue = Queue.filter_by(queue=queue_name).first()
+        if queue is None:
+            log.info("%s queue is empty! No jobs to retrieve", queue_name)
+            return None
         if queue.paused is True:
             error('/errors/unavailable', "queue is paused, cannot retrieve job")
             return
