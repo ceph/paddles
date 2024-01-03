@@ -42,12 +42,10 @@ class Job(Base):
     flavor = Column(String(128))
     job_id = Column(String(32), index=True)
     kernel = deferred(Column(JSONType()))
-    first_in_suite = Column(Boolean())
     last_in_suite = Column(Boolean())
     machine_type = Column(String(32))
     name = Column(String(512))
     nuke_on_error = Column(Boolean())
-    openstack = Column(JSONType())
     os_type = Column(String(32))
     os_version = Column(String(16))
     overrides = deferred(Column(JSONType()))
@@ -122,7 +120,6 @@ class Job(Base):
         "pcp_grafana_url",
         "priority",
         "user",
-        "first_in_suite",
         "queue",
     )
 

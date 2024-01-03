@@ -1,14 +1,14 @@
 """modify jobs table
 
 Revision ID: e8de4928657
-Revises: 11e2594da07b
+Revises: 266e6f3efd94
 Create Date: 2021-06-28 13:45:32.717585
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'e8de4928657'
-down_revision = '11e2594da07b'
+down_revision = '266e6f3efd94'
 
 from alembic import op
 from paddles.models.types import JSONType
@@ -18,8 +18,6 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.add_column(u'jobs', sa.Column('first_in_suite', sa.Boolean(), nullable=True))
-    op.add_column(u'jobs', sa.Column('openstack', JSONType(), nullable=True))
     op.add_column(u'jobs', sa.Column('priority', sa.Integer(), nullable=True))
     op.add_column(u'jobs', sa.Column('repo', sa.String(length=256), nullable=True))
     op.add_column(u'jobs', sa.Column('seed', sa.Integer(), nullable=True))
@@ -54,6 +52,4 @@ def downgrade():
     op.drop_column(u'jobs', 'sleep_before_teardown')
     op.drop_column(u'jobs', 'repo')
     op.drop_column(u'jobs', 'priority')
-    op.drop_column(u'jobs', 'openstack')
-    op.drop_column(u'jobs', 'first_in_suite')
 
