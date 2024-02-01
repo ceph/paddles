@@ -65,12 +65,20 @@ app = {
 }
 
 logging = {
+    'version': 1,
     'disable_existing_loggers': False,
+    'root': {'level': 'INFO', 'handlers': []},
     'loggers': {
         'root': {'level': 'INFO', 'handlers': ['console']},
         'paddles': {'level': 'DEBUG', 'handlers': ['console']},
         'sqlalchemy': {'level': 'WARN', 'handlers': ['console']},
         'py.warnings': {'handlers': ['console']},
+        'gunicorn.error': {
+            'level': 'INFO',
+            'handlers': ['console'],
+            'propagate': False,
+            'qualname': 'gunicorn.error'
+        },
         '__force_dict__': True
     },
     'handlers': {
