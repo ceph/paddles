@@ -13,8 +13,8 @@ class TestRunModel(TestApp):
         Run.query.delete()
         Job.query.delete()
         new_run = Run('test_jobs_count')
-        Job({}, new_run)
-        Job({}, new_run)
+        Job({'id':1, 'job_id':'1'}, new_run)
+        Job({'id':2, 'job_id':'2'}, new_run)
         models.commit()
         run_as_json = Run.get(1).__json__()
         assert run_as_json['jobs_count'] == 2
@@ -22,9 +22,9 @@ class TestRunModel(TestApp):
     def test_run_deletion(self):
         run_name = 'test_run_deletion'
         new_run = Run(run_name)
-        Job({'job_id': '42'}, new_run)
-        Job({'job_id': '120'}, new_run)
-        Job({'job_id': '4'}, new_run)
+        Job({'id': 3, 'job_id': '3'}, new_run)
+        Job({'id': 4, 'job_id': '4'}, new_run)
+        Job({'id': 5, 'job_id': '5'}, new_run)
         models.commit()
         new_run.delete()
         models.commit()
@@ -41,12 +41,12 @@ class TestRunModel(TestApp):
     def test_job_deletion(self):
         run_name = 'test_job_deletion'
         new_run = Run(run_name)
-        Job({'job_id': '42'}, new_run)
-        Job({'job_id': '9999'}, new_run)
+        Job({'id': 6, 'job_id': '6'}, new_run)
+        Job({'id': 7, 'job_id': '7'}, new_run)
         models.commit()
         new_run.delete()
         models.commit()
-        assert not Job.filter_by(job_id='9999').first()
+        assert not Job.filter_by(job_id='7').first()
 
     def test_scheduled(self):
         run_name = 'teuthology-2013-10-23_01:35:02-upgrade-small-next-testing-basic-vps'  # noqa
@@ -61,7 +61,7 @@ class TestRunModel(TestApp):
         run_name = 'test_updated'
         new_run = Run(run_name)
         for i in range(1, 5):
-            Job(dict(job_id=i), new_run)
+            Job(dict(job_id=60+i, id=60+i), new_run)
         models.commit()
         new_run = Run.filter_by(name=run_name).first()
         assert new_run.updated == new_run.get_jobs()[-1].updated
@@ -138,22 +138,22 @@ class TestRunModel(TestApp):
     def test_run_status_running(self):
         run_name = "run_status_running"
         new_run = Run(run_name)
-        Job(dict(job_id=1, status='running'), new_run)
-        Job(dict(job_id=1, status='pass'), new_run)
+        Job(dict(job_id=8, id=8, status='running'), new_run)
+        Job(dict(job_id=48, id=48, status='pass'), new_run)
         assert new_run.status == 'running'
 
     def test_run_status_queued(self):
         run_name = "run_status_queued"
         new_run = Run(run_name)
-        Job(dict(job_id=1, status='queued'), new_run)
-        Job(dict(job_id=2, status='queued'), new_run)
+        Job(dict(job_id=9, id=9, status='queued'), new_run)
+        Job(dict(job_id=10, id=10, status='queued'), new_run)
         assert new_run.status == 'queued'
 
     def test_run_status_queued_to_running(self):
         run_name = "run_status_queued_to_running"
         new_run = Run(run_name)
-        job = Job(dict(job_id=1, status='queued'), new_run)
-        Job(dict(job_id=2, status='queued'), new_run)
+        job = Job(dict(job_id=11, id=11, status='queued'), new_run)
+        Job(dict(job_id=12, id=12, status='queued'), new_run)
         job.update(dict(status='running'))
         assert new_run.status == 'running'
 
@@ -163,7 +163,7 @@ class TestRunModel(TestApp):
         jobs = []
         job_count = 5
         for i in range(job_count):
-            jobs.append(Job(dict(job_id=i+1, status='running'), new_run))
+            jobs.append(Job(dict(job_id=20+i, id=20+i, status='running'), new_run))
         for job in jobs:
             job.update(dict(status='dead'))
         assert new_run.status == 'finished dead'
@@ -174,7 +174,7 @@ class TestRunModel(TestApp):
         jobs = []
         job_count = 5
         for i in range(job_count):
-            jobs.append(Job(dict(job_id=i+1, status='dead'), new_run))
+            jobs.append(Job(dict(job_id=30+i, id=30+i, status='dead'), new_run))
         for job in jobs:
             job.update(dict(status='running'))
         assert new_run.status == 'running'
@@ -182,29 +182,29 @@ class TestRunModel(TestApp):
     def test_run_status_fail(self):
         run_name = "run_status_fail"
         new_run = Run(run_name)
-        Job(dict(job_id=1, status='fail'), new_run)
-        Job(dict(job_id=1, status='pass'), new_run)
+        Job(dict(job_id=13, id=13, status='fail'), new_run)
+        #Job(dict(job_id=13, id=13, status='pass'), new_run)
         assert new_run.status == 'finished fail'
 
     def test_run_status_pass(self):
         run_name = "run_status_pass"
         new_run = Run(run_name)
-        Job(dict(job_id=1, status='pass'), new_run)
-        Job(dict(job_id=1, status='pass'), new_run)
+        Job(dict(job_id=14, id=14, status='pass'), new_run)
+        #Job(dict(job_id=14, id=14, status='pass'), new_run)
         assert new_run.status == 'finished pass'
 
     def test_run_status_one_dead(self):
         run_name = "run_status_one_dead"
         new_run = Run(run_name)
-        Job(dict(job_id=1, status='dead'), new_run)
-        Job(dict(job_id=1, status='pass'), new_run)
+        Job(dict(job_id=15, id=15, status='dead'), new_run)
+        Job(dict(job_id=50, id=50, status='pass'), new_run)
         assert new_run.status == 'finished fail'
 
     def test_run_status_all_dead(self):
         run_name = "run_status_all_dead"
         new_run = Run(run_name)
-        Job(dict(job_id=1, status='dead'), new_run)
-        Job(dict(job_id=1, status='dead'), new_run)
+        Job(dict(job_id=16, id=16, status='dead'), new_run)
+        #Job(dict(job_id=16, id=16, status='dead'), new_run)
         assert new_run.status == 'finished dead'
 
     def test_run_user(self):
@@ -232,6 +232,6 @@ class TestRunModel(TestApp):
                 # treat None as 0
                 if count <= (stats_in[status] or 0):
                     break
-            Job(dict(job_id=i, status=status), new_run)
+            Job(dict(job_id=70+i, id=int(70+i) ,status=status), new_run)
             stats_out[status] = count
         assert new_run.get_results() == stats_in

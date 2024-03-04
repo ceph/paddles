@@ -53,11 +53,22 @@ class JobController(object):
                 'attempted to update a non-existent job'
             )
         old_job_status = self.job.status
-        self.job.update(request.json)
+        old_priority = self.job.priority
+        data = request.json
+        if 'priority' in data:
+            if data['priority'] != old_priority:
+                if self.job.status == "queued":
+                    log.info("Job %s/%s priority changed from %s to %s", self.job.name,
+                            self.job.job_id, old_priority, data['priority'])
+                else:
+                    log.info("Job status %s. Priority cannot be changed", self.job.status)
+                    data['priority'] = old_priority
+        self.job.update(data)
         Session.commit()
         if self.job.status != old_job_status:
             log.info("Job %s/%s status changed from %s to %s", self.job.name,
                      self.job.job_id, old_job_status, self.job.status)
+
         return dict()
 
     @index.when(method='DELETE', template='json')
@@ -112,33 +123,40 @@ class JobsController(object):
         """
         try:
             data = request.json
-            job_id = data.get('job_id')
+            if not data:
+                raise ValueError()
         except ValueError:
             rollback()
             error('/errors/invalid/', 'could not decode JSON body')
         # we allow empty data to be pushed
-        if not job_id:
-            error('/errors/invalid/', "could not find required key: 'job_id'")
         self.run = self._find_run()
         if not self.run: self._create_run()
 
-        job_id = data['job_id'] = str(job_id)
-
-        self._create_job(job_id, data)
-        return dict()
+        job = self._create_job(data)
+        return dict({'job_id':job.job_id})
 
     @retryOperation
-    def _create_job(self, job_id, data):
-        query = Job.query.options(load_only('id', 'job_id'))
-        query = query.filter_by(job_id=job_id, run=self.run)
-        if query.first():
-            error('/errors/invalid/',
-                  "job with job_id %s already exists" % job_id)
-        else:
-            log.info("Creating job: %s/%s", data.get('name', '<no name!>'),
+    def _create_job(self, data):
+        if "job_id" in data:
+            job_id = data['job_id']
+            job_id = str(job_id)
+            query = Job.query.options(load_only('id', 'job_id'))
+            query = query.filter_by(job_id=job_id, run=self.run)
+            if query.first():
+                error('/errors/invalid/',
+                      "job with job_id %s already exists" % job_id)
+            else:
+                log.info("Creating job: %s/%s", data.get('name', '<no name!>'),
                      job_id)
+                self.job = Job(data, self.run)
+                Session.commit()
+                return self.job
+        else:
+            # with paddles as queue backend, we generate job ID here
             self.job = Job(data, self.run)
+            self.job.job_id = self.job.id
             Session.commit()
+            log.info("Job ID of created job is %s", self.job.job_id)
             return self.job
 
     @expose('json')

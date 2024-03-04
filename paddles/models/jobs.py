@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
                         Table, Text)
@@ -18,6 +19,8 @@ job_nodes_table = Table(
     Column('job_id', Integer, ForeignKey('jobs.id'), primary_key=True,
            index=True)
 )
+
+log = logging.getLogger(__name__)
 
 
 class Job(Base):
@@ -47,23 +50,36 @@ class Job(Base):
     os_version = Column(String(16))
     overrides = deferred(Column(JSONType()))
     owner = Column(String(128))
+    priority = Column(Integer, index=True)
     pid = Column(String(32))
+    repo = Column(String(256))
     roles = deferred(Column(JSONType()))
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
     branch = Column(String(64), index=True)
+    seed = Column(String(32))
     sha1 = Column(String(40), index=True)
+    sleep_before_teardown = Column(Integer)
+    subset = Column(String(32))
+    suite = Column(String(256))
     suite_branch = Column(String(64), index=True)
+    suite_path = Column(String(256))
+    suite_relpath = Column(String(256))
+    suite_repo = Column(String(256))
     suite_sha1 = Column(String(40), index=True)
     targets = deferred(Column(JSONType()))
     target_nodes = relationship("Node", secondary=job_nodes_table,
                                 backref=backref('jobs'), lazy='dynamic')
     tasks = deferred(Column(JSONType()))
-    teuthology_branch = Column(String(32))
+    teuthology_branch = Column(String(64))
+    teuthology_sha1 = Column(String(40), index=True)
+    timestamp = Column(DateTime)
+    user = Column(String(64))
     verbose = Column(Boolean())
     issue_url = deferred(Column(Text))
     comment = deferred(Column(Text))
     pcp_grafana_url = Column(Text)
+    queue = Column(String(32), index=True)
 
     allowed_keys = (
         "archive_path",
@@ -88,14 +104,23 @@ class Job(Base):
         "status",
         "success",
         "branch",
+        "seed",
         "sha1",
+        "subset",
+        "suite",
         "suite_branch",
+        "suite_path",
+        "suite_relpath",
+        "suite_repo",
         "suite_sha1",
         "targets",
         "tasks",
         "teuthology_branch",
         "verbose",
         "pcp_grafana_url",
+        "priority",
+        "user",
+        "queue",
     )
 
     allowed_statuses = (
@@ -154,25 +179,26 @@ class Job(Base):
 
         target_nodes_q = self.target_nodes.options(load_only('id', 'name'))
         target_nodes = target_nodes_q.count()
-        if len(json_data.get('targets', {})) > target_nodes:
-            # Populate self.target_nodes, creating Node objects if necessary
-            targets = json_data['targets']
-            for target_key in targets.keys():
-                if '@' in target_key:
-                    hostname = target_key.split('@')[1]
-                else:
-                    hostname = target_key
-                node_q = Node.query.options(load_only('id', 'name'))\
-                    .filter(Node.name == hostname)
-                try:
-                    node = node_q.one()
-                except NoResultFound:
-                    node = Node(name=hostname)
-                    mtype = json_data.get('machine_type')
-                    if mtype:
-                        node.machine_type = mtype
-                if node not in self.target_nodes:
-                    self.target_nodes.append(node)
+        if json_data.get('targets') is not None:
+            if len(json_data.get('targets', {})) > target_nodes:
+                # Populate self.target_nodes, creating Node objects if necessary
+                targets = json_data['targets']
+                for target_key in targets.keys():
+                    if '@' in target_key:
+                        hostname = target_key.split('@')[1]
+                    else:
+                        hostname = target_key
+                    node_q = Node.query.options(load_only('id', 'name'))\
+                        .filter(Node.name == hostname)
+                    try:
+                        node = node_q.one()
+                    except NoResultFound:
+                        node = Node(name=hostname)
+                        mtype = json_data.get('machine_type')
+                        if mtype:
+                            node.machine_type = mtype
+                    if node not in self.target_nodes:
+                        self.target_nodes.append(node)
 
         for k, v in json_data.items():
             key = k.replace('-', '_')
@@ -199,6 +225,7 @@ class Job(Base):
         timezone, create a datetime object, convert it to UTC, and store it in
         self.updated.
         """
+        local_str = local_str.split(".")[0]
         local_dt = datetime.strptime(local_str, '%Y-%m-%d %H:%M:%S')
         utc_dt = local_datetime_to_utc(local_dt)
         self.run.updated = self.updated = utc_dt

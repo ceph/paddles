@@ -24,18 +24,16 @@ class TestNodesController(TestApp):
 
     def test_job_creates_nodes(self):
         run_name = 'job_creates_nodes'
-        job_id = 276
         target_names = ['t1', 't2', 't3']
         targets = {}
         for name in target_names:
             targets['u@' + name] = ''
         self.app.post_json('/runs/', dict(name=run_name))
         self.app.post_json('/runs/%s/jobs/' % run_name, dict(
-            job_id=job_id,
             targets=targets,
         ))
         response = self.app.get('/runs/{name}/jobs/{id}/'.format(
-            name=run_name, id=job_id))
+            name=run_name, id=1))
         response = self.app.get('/nodes/')
         got_target_names = [node['name'] for node in response.json]
         assert sorted(got_target_names) == sorted(target_names)
@@ -49,7 +47,7 @@ class TestNodesController(TestApp):
             targets['u@' + name] = ''
         for job_id in job_ids:
             self.app.post_json('/runs/{name}/jobs/'.format(name=run_name),
-                               dict(job_id=job_id, targets=targets,
+                               dict(targets=targets,
                                     status='fail'))
         result = {}
         for name in target_names:
@@ -278,7 +276,7 @@ class TestNodeController(TestApp):
         targets = {'u@' + target_name: ''}
         for job_id in job_ids:
             self.app.post_json('/runs/{name}/jobs/'.format(name=run_name),
-                               dict(job_id=job_id, targets=targets,
+                               dict(targets=targets,
                                     status='running'))
 
         result = {'running': len(job_ids), 'pass': 0, 'fail': 0, 'dead': 0,
@@ -292,17 +290,19 @@ class TestNodeController(TestApp):
         job_ids = [1, 2, 3]
         target_name = 't1'
         targets = {'u@' + target_name: ''}
+        response_job_ids = []
         for job_id in job_ids:
-            self.app.post_json('/runs/{name}/jobs/'.format(name=run_name),
-                               dict(job_id=job_id, targets=targets,
+            response = self.app.post_json('/runs/{name}/jobs/'.format(name=run_name),
+                                    dict(targets=targets,
                                     status='running'))
+            response_job_ids.append(response.json['job_id'] )
 
         response = self.app.get('/nodes/{node}/jobs/'.format(
             node=target_name))
         result = response.json
-        assert result[0]['job_id'] == '3'
-        assert result[1]['job_id'] == '2'
-        assert result[2]['job_id'] == '1'
+        assert result[0]['job_id'] == response_job_ids[2]
+        assert result[1]['job_id'] == response_job_ids[1]
+        assert result[2]['job_id'] == response_job_ids[0]
 
     def test_update(self):
         node_name = 'kittens'
