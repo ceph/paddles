@@ -7,6 +7,9 @@ server = {
 address = 'http://localhost:%s' % server['port']
 job_log_href_templ = 'http://qa-proxy.ceph.com/teuthology/{run_name}/{job_id}/teuthology.log'  # noqa
 
+backup_name_regex = \
+    '(?P<user>.*)-(?P<scheduled>[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-(?P<machine_type>.*?)'  # noqa
+
 default_latest_runs_count = 20
 
 # Pecan Application Configurations

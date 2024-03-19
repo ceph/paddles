@@ -37,6 +37,9 @@ job_log_href_templ = os.environ.get(
 )
 default_latest_runs_count = 25
 
+backup_name_regex = \
+    '(?P<user>.*)-(?P<scheduled>[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2})-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-(?P<machine_type>.*?)'  # noqa
+
 # Pecan Application Configurations
 app = {
     'root': 'paddles.controllers.root.RootController',
