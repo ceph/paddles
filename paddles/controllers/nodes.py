@@ -314,6 +314,8 @@ class NodeController(object):
             name=node_obj.name,
             locked=node_obj.locked,
             locked_by=node_obj.locked_by,
+            machine_type=node_obj.machine_type,
+            is_vm=node_obj.is_vm,
         )
 
     @expose('json')
