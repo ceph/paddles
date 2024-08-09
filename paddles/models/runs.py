@@ -270,6 +270,8 @@ class Run(Base):
         # all passing => pass
         elif results['pass'] == total:
             new_status = 'finished pass'
+        elif results['queued']:
+            new_status = 'queued'
         # this should not happen
         else:
             new_status = 'unknown'
