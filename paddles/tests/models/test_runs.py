@@ -207,6 +207,13 @@ class TestRunModel(TestApp):
         #Job(dict(job_id=16, id=16, status='dead'), new_run)
         assert new_run.status == 'finished dead'
 
+    def test_run_status_one_pass(self):
+        run_name = "run_status_one_pass"
+        new_run = Run(run_name)
+        Job(dict(job_id=15, id=15, status='queued'), new_run)
+        Job(dict(job_id=50, id=50, status='pass'), new_run)
+        assert new_run.status == 'queued'
+
     def test_run_user(self):
         run_name = "teuthology-2013-12-22_01:00:02-x-x-x-x-x"
         new_run = Run(run_name)
