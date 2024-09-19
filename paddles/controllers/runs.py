@@ -143,6 +143,14 @@ class SuitesController(RunFilterIndexController):
         return SuiteController
 
 
+class UsersController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.values(Run.user)
+
+    def get_lookup_controller(self):
+        return UserController
+
+
 class StatusesController(RunFilterIndexController):
     def get_subquery(self, query):
         return query.values(Run.status)
@@ -187,6 +195,8 @@ class BranchController(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
+        if field == 'user':
+            return UsersController()
 
 
 class DateController(RunFilterController):
@@ -213,6 +223,8 @@ class DateController(RunFilterController):
             return Sha1sController()
         if field == 'suite':
             return SuitesController()
+        if field == 'user':
+            return UsersController()
 
 
 class MachineTypeController(RunFilterController):
@@ -230,6 +242,8 @@ class MachineTypeController(RunFilterController):
             return Sha1sController()
         if field == 'suite':
             return SuitesController()
+        if field == 'user':
+            return UsersController()
 
 
 class StatusController(RunFilterController):
@@ -247,6 +261,8 @@ class StatusController(RunFilterController):
             return Sha1sController()
         if field == 'suite':
             return SuitesController()
+        if field == 'user':
+            return UsersController()
 
 
 class SuiteController(RunFilterController):
@@ -264,6 +280,27 @@ class SuiteController(RunFilterController):
             return Sha1sController()
         if field == 'status':
             return StatusesController()
+        if field == 'user':
+            return UsersController()
+
+
+class UserController(RunFilterController):
+    def get_subquery(self, query):
+        return query.filter(Run.user == self.value)
+
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'date':
+            return DatesController()
+        if field == 'machine_type':
+            return MachineTypesController()
+        if field == 'sha1':
+            return Sha1sController()
+        if field == 'status':
+            return StatusesController()
+        if field == 'suite':
+            return SuitesController()
 
 
 class DateRangeController(object):
@@ -316,6 +353,8 @@ class Sha1Controller(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
+        if field == 'user':
+            return UsersController()
 
 
 
@@ -360,6 +399,8 @@ class RunsController(object):
     queued = QueuedRunsController()
 
     sha1 = Sha1sController()
+
+    user = UsersController()
 
     @expose('json')
     def _lookup(self, name, *remainder):
