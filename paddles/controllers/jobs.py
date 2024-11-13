@@ -1,11 +1,13 @@
 import logging
 from sqlalchemy.orm import load_only
+from sqlalchemy import desc
 
 from pecan import expose, abort, request
 
 from paddles import models
 from paddles.decorators import retryOperation
 from paddles.models import Job, rollback, Session
+from paddles.controllers.util import offset_query
 from paddles.controllers import error
 import paddles.controllers.runs
 
@@ -162,3 +164,23 @@ class JobsController(object):
     @expose('json')
     def _lookup(self, job_id, *remainder):
         return JobController(job_id), remainder
+
+class JobsListController(object):
+    @expose('json')
+    def index(self, description='', status='', count=10, page=1):
+        """
+        List latest jobs. 
+        Filter by description and status. 
+        """
+        job_query = Job.query.order_by(desc(Job.posted))
+
+        if description:
+            job_query = job_query.filter(Job.description == description)
+
+        if status:
+            job_query = job_query.filter_by(status=status)
+
+        job_query = offset_query(job_query, page_size=count, page=page)
+        jobs = job_query.all()
+
+        return jobs
