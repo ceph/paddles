@@ -242,3 +242,9 @@ class TestRunModel(TestApp):
             Job(dict(job_id=70+i, id=int(70+i) ,status=status), new_run)
             stats_out[status] = count
         assert new_run.get_results() == stats_in
+
+    def test_run_priority(self):
+        run_name = "run_priority"
+        new_run = Run(run_name)
+        Job(dict(job_id=1, id=1, status='queued', priority=99), new_run)
+        assert new_run.priority == 99
