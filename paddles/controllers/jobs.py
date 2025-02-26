@@ -167,20 +167,37 @@ class JobsController(object):
 
 class JobsListController(object):
     @expose('json')
-    def index(self, description='', status='', count=10, page=1):
+    def index(self, description='', status='', sha1='', branch='', user='', posted_after='', posted_before='', count=10, page=1):
         """
         List latest jobs. 
-        Filter by description and status. 
+        Filter by sha1, branch, username, posted date (range:- posted_before:posted_after), description, and status. 
         """
         job_query = Job.query.order_by(desc(Job.posted))
 
         if description:
-            job_query = job_query.filter(Job.description == description)
+            job_query = job_query.filter(Job.description.contains(description))
 
         if status:
             job_query = job_query.filter_by(status=status)
+
+        if sha1:
+            job_query = job_query.filter_by(sha1=sha1)
+        elif branch:
+            job_query = job_query.filter_by(branch=branch)
+
+        if user:
+            job_query = job_query.filter_by(user=user)
+
+        if posted_after:
+            posted_after = paddles.controllers.runs.date_from_string(posted_after)[1]
+            job_query = job_query.filter(Job.posted > posted_after)
+
+        if posted_before:
+            posted_before  = paddles.controllers.runs.date_from_string(posted_before)[1]
+            job_query = job_query.filter(Job.posted < posted_before)
 
         job_query = offset_query(job_query, page_size=count, page=page)
         jobs = job_query.all()
 
         return jobs
+
