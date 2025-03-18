@@ -7,6 +7,8 @@ from pecan import conf
 
 from paddles.controllers import error
 
+TEUTHOLOGY_TIMESTAMP_FMT = "%Y-%m-%d_%H:%M:%S"
+
 
 class _EntityBase(object):
     """

@@ -4,7 +4,7 @@ from sqlalchemy import Date, cast
 from sqlalchemy.exc import InvalidRequestError, OperationalError
 
 from pecan import abort, conf, expose, request
-from paddles.models import Job, Run, rollback, Session
+from paddles.models import Job, Run, rollback, Session, TEUTHOLOGY_TIMESTAMP_FMT
 from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.controllers import error
@@ -13,7 +13,6 @@ from paddles.decorators import retryOperation
 log = logging.getLogger(__name__)
 
 date_format = '%Y-%m-%d'
-datetime_format = '%Y-%m-%d_%H:%M:%S'
 
 
 def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1):
@@ -30,7 +29,7 @@ def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1):
     return [run for run in runs]
 
 
-def date_from_string(date_str, out_fmt=datetime_format, hours='00:00:00'):
+def date_from_string(date_str, out_fmt=TEUTHOLOGY_TIMESTAMP_FMT, hours='00:00:00'):
         try:
             if date_str == 'today':
                 date = datetime.date.today()
@@ -42,7 +41,7 @@ def date_from_string(date_str, out_fmt=datetime_format, hours='00:00:00'):
             else:
                 date = datetime.datetime.strptime(date_str, date_format)
 
-            if out_fmt == datetime_format:
+            if out_fmt == TEUTHOLOGY_TIMESTAMP_FMT:
                 date_str = '{date}_{time}'.format(date=date_str, time=hours)
                 date = datetime.datetime.strptime(date_str, out_fmt)
 
