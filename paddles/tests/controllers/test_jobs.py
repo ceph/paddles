@@ -166,7 +166,7 @@ class TestJobsController(TestApp):
         self.app.post_json('/runs/%s/jobs/' % run_name, dict(
             updated=time_stamp,
         ))
-        local_dt = datetime.strptime(time_stamp, '%Y-%m-%d %H:%M:%S')
+        local_dt = datetime.fromisoformat(time_stamp)
         utc_dt = local_datetime_to_utc(local_dt)
         response = self.app.get('/runs/%s/jobs/%s/' % (run_name, 1))
         assert response.json['updated'] == str(utc_dt)
