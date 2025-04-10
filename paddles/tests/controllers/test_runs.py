@@ -5,7 +5,7 @@ from paddles.tests import TestApp
 
 
 class TestRunController(TestApp):
-    def teardown_method(self, meth):
+    def teardown_method(self):
         start()
         Job.query.delete()
         Run.query.delete()
@@ -225,8 +225,8 @@ class TestRunController(TestApp):
 
 class TestRunControllerDateFilters(TestApp):
 
-    def setup(self):
-        TestApp.setup(self)
+    def setup_method(self):
+        super().setup_method()
         self.day1_runs = [
             'teuthology-2013-01-01_00:00:00-rados-next-testing-basic-plana',
             'teuthology-2013-01-01_00:00:01-nfs-next-testing-basic-plana',

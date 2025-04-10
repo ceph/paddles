@@ -6,7 +6,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import DateTime
 from pecan import conf
 from paddles.util import local_datetime_to_utc
-from paddles.models import Base
+from paddles.models import Base, TEUTHOLOGY_TIMESTAMP_FMT
 from paddles.models.jobs import Job
 
 suite_names = ['big',
@@ -95,7 +95,6 @@ def get_name_regexes(timestamp_regex, suite_names, distros, machine_types):
 class Run(Base):
     timestamp_regex = \
         '[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}_[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}'
-    timestamp_format = '%Y-%m-%d_%H:%M:%S'
     name_regexes = get_name_regexes(timestamp_regex, suite_names, distros,
                                     machine_types)
     backup_name_regex = '(?P<user>.*)-(?P<scheduled>%s)-(?P<suite>.*)-(?P<branch>.*)-.*?-.*?-(?P<machine_type>.*?)' % timestamp_regex  # noqa
@@ -182,7 +181,7 @@ class Run(Base):
                 match_dict[key] = value.strip(' -')
 
             match_dict['scheduled'] = datetime.strptime(
-                match_dict['scheduled'], cls.timestamp_format)
+                match_dict['scheduled'], TEUTHOLOGY_TIMESTAMP_FMT)
             return match_dict
         return dict()
 

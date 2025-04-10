@@ -38,12 +38,7 @@ class TestModel(object):
         pmodels.commit()
         pmodels.clear()
 
-    @classmethod
-    def teardown_class(cls):
-        pmodels.rollback()
-        pmodels.clear()
-
-    def setup(self):
+    def setup_method(self):
         config = deepcopy(self.config)
 
         # Add the appropriate connection string to the app config.
@@ -60,8 +55,7 @@ class TestModel(object):
     def load_test_app(self, config):
         return load_test_app(config)
 
-    def teardown(self):
-        # Tear down and dispose the DB binding
+    def teardown_method(self):
         pmodels.rollback()
         pmodels.clear()
 

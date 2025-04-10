@@ -67,15 +67,19 @@ class TestQueueController(TestApp):
 
     def test_pause_queue(self):
         self.app.post_json('/queue/', dict(queue="test_queue3"))
+        pause_duration = 0.05
         response = self.app.put_json('/queue/', dict(
             queue="test_queue3",
             paused_by="tester",
-            pause_duration=10,
+            pause_duration=pause_duration,
         ))
         assert response.status_code == 200
         response = self.app.get('/queue/?machine_type=test_queue3')
         assert response.json[0]['paused'] is True
-        time.sleep(10)
+        time.sleep(pause_duration / 2)
+        response = self.app.get('/queue/?machine_type=test_queue3')
+        assert response.json[0]['paused'] is True
+        time.sleep(pause_duration / 2)
         response = self.app.get('/queue/?machine_type=test_queue3')
         assert response.json[0]['paused'] is False
 

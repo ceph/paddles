@@ -96,7 +96,7 @@ class TestJobModel(TestApp):
         time_stamp = '2014-03-31 21:25:43'
         Job(dict(job_id=11, id=11, updated=time_stamp), run)
         models.commit()
-        local_dt = datetime.strptime(time_stamp, '%Y-%m-%d %H:%M:%S')
+        local_dt = datetime.fromisoformat(time_stamp)
         utc_dt = local_datetime_to_utc(local_dt)
         job = Run.query.filter(Run.name == run.name).one().jobs[0]
         assert str(job.updated) == str(utc_dt)

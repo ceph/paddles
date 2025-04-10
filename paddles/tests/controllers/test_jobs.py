@@ -1,7 +1,7 @@
 from datetime import datetime
 from paddles.tests import TestApp
 from paddles.util import local_datetime_to_utc
-from paddles.models import Run, Job, start, commit
+from paddles.models import Run, Job, start, commit, TEUTHOLOGY_TIMESTAMP_FMT
 
 
 class TestJobsController(TestApp):
@@ -166,7 +166,7 @@ class TestJobsController(TestApp):
         self.app.post_json('/runs/%s/jobs/' % run_name, dict(
             updated=time_stamp,
         ))
-        local_dt = datetime.strptime(time_stamp, '%Y-%m-%d %H:%M:%S')
+        local_dt = datetime.fromisoformat(time_stamp)
         utc_dt = local_datetime_to_utc(local_dt)
         response = self.app.get('/runs/%s/jobs/%s/' % (run_name, 1))
         assert response.json['updated'] == str(utc_dt)
@@ -180,3 +180,20 @@ class TestJobsController(TestApp):
                           dict(success=True, status='pass'))
         response = self.app.get('/runs/filter_running/jobs/?status=running')
         assert len(response.json) == 1
+
+    def test_timestamp_fields(self):
+        timestamp = datetime.now().replace(microsecond=0)
+        self.app.post_json(
+            '/runs/RUN/jobs/',
+            dict(
+                status='queued',
+                timestamp=timestamp.strftime(TEUTHOLOGY_TIMESTAMP_FMT),
+            ),
+        )
+        response = self.app.get('/runs/RUN/jobs/')
+        jobs = response.json
+        for job in jobs:
+            assert datetime.fromisoformat(job['posted'])
+            assert datetime.fromisoformat(job['updated'])
+            assert datetime.fromisoformat(job['timestamp'])
+            assert datetime.fromisoformat(job['timestamp']) == timestamp

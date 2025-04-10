@@ -5,7 +5,7 @@ from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
 from sqlalchemy.orm import backref, deferred, load_only, relationship
 from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 from pecan import conf
-from paddles.models import Base, Session
+from paddles.models import Base, Session, TEUTHOLOGY_TIMESTAMP_FMT
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
 from paddles.stats import get_client as get_statsd_client
@@ -24,7 +24,6 @@ log = logging.getLogger(__name__)
 
 
 class Job(Base):
-
     __tablename__ = 'jobs'
     id = Column(Integer, primary_key=True)
     posted = Column(DateTime, index=True)
@@ -115,6 +114,7 @@ class Job(Base):
         "suite_sha1",
         "targets",
         "tasks",
+        "timestamp",
         "teuthology_branch",
         "verbose",
         "pcp_grafana_url",
@@ -142,6 +142,12 @@ class Job(Base):
         # Set self.updated, and more importantly, self.run.updated, to avoid
         # deadlocks when lots of jobs are updated at once.
         self.run.updated = self.updated = datetime.utcnow()
+
+        if 'timestamp' in json_data:
+            self.timestamp = datetime.strptime(
+                json_data.pop('timestamp'),
+                TEUTHOLOGY_TIMESTAMP_FMT,
+            )
 
         status_map = {True: 'pass',
                       False: 'fail',
