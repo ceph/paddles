@@ -167,6 +167,7 @@ class Run(Base):
             suite=self.suite,
             machine_type=self.machine_type,
             sha1=results['sha1'],
+            priority=self.priority,
         )
 
     @classmethod
@@ -209,6 +210,11 @@ class Run(Base):
     @property
     def href(self):
         return "%s/runs/%s/" % (conf.address, self.name),
+
+    @property
+    def priority(self):
+        if self.jobs.count():
+            return self.jobs[0].priority
 
     def get_results(self):
         jobs_status = [value[0] for value in self.jobs.values(Job.status)]
