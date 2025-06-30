@@ -248,3 +248,9 @@ class TestRunModel(TestApp):
         new_run = Run(run_name)
         Job(dict(job_id=1, id=1, status='queued', priority=99), new_run)
         assert new_run.priority == 99
+
+    def test_run_flavor(self):
+        run_name = "run_flavor"
+        new_run = Run(run_name)
+        Job(dict(job_id=1, id=1, status='queued', flavor="blah"), new_run)
+        assert new_run.flavor == "blah"

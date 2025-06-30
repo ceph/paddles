@@ -168,6 +168,7 @@ class Run(Base):
             machine_type=self.machine_type,
             sha1=results['sha1'],
             priority=self.priority,
+            flavor=self.flavor,
         )
 
     @classmethod
@@ -215,6 +216,11 @@ class Run(Base):
     def priority(self):
         if self.jobs.count():
             return self.jobs[0].priority
+
+    @property
+    def flavor(self):
+        if self.jobs.count():
+            return self.jobs[0].flavor
 
     def get_results(self):
         jobs_status = [value[0] for value in self.jobs.values(Job.status)]
