@@ -134,6 +134,14 @@ class MachineTypesController(RunFilterIndexController):
         return MachineTypeController
 
 
+class FlavorsController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.values(Run.flavor) # would this work?
+
+    def get_lookup_controller(self):
+        return FlavorController
+
+
 class SuitesController(RunFilterIndexController):
     def get_subquery(self, query):
         return query.values(Run.suite)
@@ -196,6 +204,8 @@ class BranchController(RunFilterController):
             return SuitesController()
         if field == 'user':
             return UsersController()
+        if field == 'flavor':
+            return FlavorController()
 
 
 class DateController(RunFilterController):
@@ -224,6 +234,8 @@ class DateController(RunFilterController):
             return SuitesController()
         if field == 'user':
             return UsersController()
+        if field == 'flavor':
+            return FlavorController()
 
 
 class MachineTypeController(RunFilterController):
@@ -243,6 +255,8 @@ class MachineTypeController(RunFilterController):
             return SuitesController()
         if field == 'user':
             return UsersController()
+        if field == 'flavor':
+            return FlavorController()
 
 
 class StatusController(RunFilterController):
@@ -262,6 +276,8 @@ class StatusController(RunFilterController):
             return SuitesController()
         if field == 'user':
             return UsersController()
+        if field == 'flavor':
+            return FlavorController()
 
 
 class SuiteController(RunFilterController):
@@ -281,6 +297,8 @@ class SuiteController(RunFilterController):
             return StatusesController()
         if field == 'user':
             return UsersController()
+        if field == 'flavor':
+            return FlavorController()
 
 
 class UserController(RunFilterController):
@@ -300,6 +318,29 @@ class UserController(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
+        if field == 'flavor':
+            return FlavorController()
+
+
+class FlavorController(RunFilterController):
+    def get_subquery(self, query):
+        return query.filter(Run.user == self.value)
+
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'date':
+            return DatesController()
+        if field == 'machine_type':
+            return MachineTypesController()
+        if field == 'sha1':
+            return Sha1sController()
+        if field == 'status':
+            return StatusesController()
+        if field == 'suite':
+            return SuitesController()
+        if field == 'user':
+            return UsersController()
 
 
 class DateRangeController(object):
@@ -354,6 +395,8 @@ class Sha1Controller(RunFilterController):
             return SuitesController()
         if field == 'user':
             return UsersController()
+        if field == 'flavor':
+            return FlavorController()
 
 
 
@@ -400,6 +443,8 @@ class RunsController(object):
     sha1 = Sha1sController()
 
     user = UsersController()
+
+    flavors = FlavorsController()
 
     @expose('json')
     def _lookup(self, name, *remainder):
