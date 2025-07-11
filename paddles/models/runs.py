@@ -168,6 +168,7 @@ class Run(Base):
             machine_type=self.machine_type,
             sha1=results['sha1'],
             priority=self.priority,
+            flavor=results['flavor'],
         )
 
     @classmethod
@@ -227,6 +228,7 @@ class Run(Base):
         unknown = jobs_status.count(None) + jobs_status.count('unknown')
         total = len(jobs_status)
         sha1 = next(self.jobs.values(Job.sha1), ['none'])[0]
+        flavor = next(self.jobs.values(Job.flavor), ['none'])[0]
         return {
             'queued': queued,
             'pass': passing,
@@ -237,6 +239,7 @@ class Run(Base):
             'unknown': unknown,
             'total': total,
             'sha1': sha1,
+            'flavor': flavor,
         }
 
     def set_status(self, results=None):

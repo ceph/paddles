@@ -228,7 +228,7 @@ class TestRunModel(TestApp):
         run_name = 'teuthology-2014-03-27_00:00:00-x-x-x-x-x'
         new_run = Run(run_name)
         stats_in = {'pass': 9, 'fail': 1, 'dead': 6, 'running': 5, 'sha1': None,
-                    'waiting': 1, 'unknown': 1, 'queued': 1}
+                    'waiting': 1, 'unknown': 1, 'queued': 1, 'flavor': None}
         statuses = stats_in.keys()
         stats_in['total'] = sum(_ for _ in stats_in.values() if _)
         stats_out = {}
@@ -248,3 +248,10 @@ class TestRunModel(TestApp):
         new_run = Run(run_name)
         Job(dict(job_id=1, id=1, status='queued', priority=99), new_run)
         assert new_run.priority == 99
+
+    def test_run_flavor(self):
+        run_name = "run_flavor"
+        new_run = Run(run_name)
+        Job(dict(job_id=1, id=1, status='queued', flavor="blah"), new_run)
+        run_result = new_run.get_results()
+        assert run_result.get('flavor') == "blah"
