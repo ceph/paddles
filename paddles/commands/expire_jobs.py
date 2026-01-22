@@ -60,7 +60,7 @@ class ExpireJobsCommand(BaseCommand):
     def expire_running(self):
         delta = self.running_delta
         now = datetime.utcnow()
-        running = Job.query.filter(Job.status.in_(['running', 'waiting']))
+        running = Job.query.filter(Job.status.in_(['running', 'waiting', 'unknown']))
         to_expire = running.filter(~Job.updated.between(now - delta, now))
         self._do_expire(to_expire, 'running')
 
