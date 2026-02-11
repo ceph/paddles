@@ -1,45 +1,35 @@
-from sqlalchemy import create_engine, MetaData, event
-from sqlalchemy.orm import scoped_session, sessionmaker, object_session, mapper
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.exc import InvalidRequestError, OperationalError
-from sqlalchemy.pool import Pool
-from pecan import conf
+import logging
 
-from paddles.controllers import error
+import sqlalchemy
+from sqlalchemy import MetaData, create_engine, event
+from sqlalchemy.exc import IntegrityError, InvalidRequestError, OperationalError
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    scoped_session,
+    sessionmaker,
+)
+from sqlalchemy.pool import Pool
+
+from paddles import conf
+
+# from paddles.controllers import error
+
+log = logging.getLogger(__name__)
 
 TEUTHOLOGY_TIMESTAMP_FMT = "%Y-%m-%d_%H:%M:%S"
 
+Session = scoped_session(sessionmaker())
+metadata = MetaData()
 
-class _EntityBase(object):
-    """
-    A custom declarative base that provides some Elixir-inspired shortcuts.
-    """
 
-    @classmethod
-    def filter_by(cls, *args, **kwargs):
-        return cls.query.filter_by(*args, **kwargs)
-
-    @classmethod
-    def get(cls, *args, **kwargs):
-        return cls.query.get(*args, **kwargs)
-
-    def flush(self, *args, **kwargs):
-        object_session(self).flush([self], *args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        object_session(self).delete(self, *args, **kwargs)
-
-    def as_dict(self):
-        return dict((k, v) for k, v in self.__dict__.items()
-                    if not k.startswith('_'))
-
+class Base(DeclarativeBase):
     def slice(self, fields_str):
-        sep = ','
+        sep = ","
         fields = fields_str.strip(sep).split(sep)
 
         obj_slice = dict()
         for field in fields:
-            if field.startswith('_'):
+            if field.startswith("_"):
                 continue
             value = getattr(self, field)
             if callable(value):
@@ -48,17 +38,26 @@ class _EntityBase(object):
         return obj_slice
 
 
-Session = scoped_session(sessionmaker())
-metadata = MetaData()
-Base = declarative_base(cls=_EntityBase)
-Base.query = Session.query_property()
-
-
 # Listeners:
+# @event.listens_for(mapper, 'init')
+# def auto_add(target, args, kwargs):
+#     Session.add(target)
 
-@event.listens_for(mapper, 'init')
-def auto_add(target, args, kwargs):
-    Session.add(target)
+
+def sqlite_connect(**kw):
+    dbapi_con = kw["dbapi_connection"]
+    dbapi_con.execute("PRAGMA journal_mode=MEMORY")
+    dbapi_con.execute("PRAGMA synchronous=OFF")
+
+
+def get_engine(sqlalchemy_conf) -> sqlalchemy.Engine:
+    engine = create_engine(**sqlalchemy_conf)
+    if "sqlite" in sqlalchemy_conf["url"]:
+        event.listen(Pool, "connect", sqlite_connect, named=True)
+    return engine
+
+
+engine = get_engine(conf["sqlalchemy"])
 
 
 def init_model():
@@ -77,47 +76,34 @@ def init_model():
         Base.metadata.create_all(conf.sqlalchemy.engine)
 
     """
-    conf.sqlalchemy.engine = _engine_from_config(conf.sqlalchemy)
-    config = dict(conf.sqlalchemy)
-    if 'sqlite' in config['url']:
-        event.listen(Pool, 'connect', sqlite_connect, named=True)
-
-
-def sqlite_connect(**kw):
-    dbapi_con = kw['dbapi_connection']
-    dbapi_con.execute('PRAGMA journal_mode=MEMORY')
-    dbapi_con.execute('PRAGMA synchronous=OFF')
-
-
-def _engine_from_config(configuration):
-    configuration = dict(configuration)
-    url = configuration.pop('url')
-    return create_engine(url, **configuration)
+    conf["sqlalchemy"]["engine"] = engine
 
 
 def bind(engine):
-    Session.bind = engine
-    metadata.bind = engine
+    Session.bind = engine.connect()
+    # metadata.bind = engine
 
 
 def start(isolation_level=None):
-    if isolation_level:
-        bind(conf.sqlalchemy.engine.execution_options(
-            isolation_level=isolation_level))
-    else:
-        bind(conf.sqlalchemy.engine)
+    bind(conf["sqlalchemy"]["engine"])
+    # if isolation_level:
+    #     bind(conf.sqlalchemy.engine.execution_options(
+    #         isolation_level=isolation_level))
+    # else:
+    #     bind(conf.sqlalchemy.engine)
 
 
 def start_read_only():
-    bind(conf.sqlalchemy.engine)
+    bind(conf["sqlalchemy"]["engine"])
 
 
 def commit():
     try:
         Session.commit()
-    except (OperationalError, InvalidRequestError):
-        rollback()
-        error('/errors/unavailable', 'encountered a DB error; please retry')
+    except (OperationalError, InvalidRequestError, IntegrityError):
+        # rollback()
+        raise
+        # error("/errors/unavailable", "encountered a DB error; please retry")
 
 
 def rollback():
@@ -130,6 +116,7 @@ def clear():
 
 def flush():
     Session.flush()
+
 
 from .runs import Run  # noqa
 from .jobs import Job  # noqa
