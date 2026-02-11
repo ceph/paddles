@@ -6,14 +6,30 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
+install_requires = [
+    "alembic==1.7.7",
+    "pecan==1.7.0",
+    "psycopg[binary]==3.3.3",
+    "pytz==2023.3",
+    "requests==2.32.3",
+    "SQLAlchemy>2.0",
+    "tzlocal==1.2",
+    "gunicorn==20.0.4",
+    "sentry-sdk==1.3.1",
+]
+
 setup(
     name='paddles',
     version='0.1',
     description='',
     author='',
     author_email='',
-    install_requires=[
-        "pecan",
+    install_requires=install_requires,
+    tests_require=[
+        "WebTest==3.0.0",
+        "pytest==8.3.5",
+        "pytest-asyncio==0.25.3",
+        "httpx==0.28.1",
     ],
     test_suite='paddles',
     zip_safe=False,

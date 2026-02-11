@@ -15,7 +15,7 @@ config = context.config
 # retrieving the connection string via pecan.
 if 'PGPASS' in os.environ:
     config.set_main_option('sqlalchemy.url',
-        f'postgresql+psycopg2://paddles:{os.environ["PGPASS"]}@localhost/paddles')
+        f'postgresql+psycopg://paddles:{os.environ["PGPASS"]}@localhost/paddles')
 else:
     config.set_main_option(
         'sqlalchemy.url',

@@ -1,6 +1,5 @@
 from __future__ import print_function
 from pecan.commands.base import BaseCommand
-from pecan import conf
 
 from paddles import models
 
@@ -22,7 +21,7 @@ class PopulateCommand(BaseCommand):
         try:
             out("STARTING A TRANSACTION...")
             models.start()
-            models.Base.metadata.create_all(conf.sqlalchemy.engine)
+            models.Base.metadata.create_all(models.engine)
         except:
             models.rollback()
             out("ROLLING BACK... ")
