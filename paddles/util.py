@@ -1,11 +1,12 @@
-import tzlocal
-import pytz
+import datetime
 
+import pytz
+import tzlocal
 
 localtz = tzlocal.get_localzone()
 
 
-def local_datetime_to_utc(local_dt):
+def local_datetime_to_utc(local_dt) -> datetime.datetime:
     """
     Given a datetime object in the local timezone, convert it to UTC.
     """

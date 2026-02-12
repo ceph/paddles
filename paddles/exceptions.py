@@ -1,19 +1,18 @@
-
 class PaddlesError(Exception):
-    pass
+    url = ""
 
 
 class InvalidRequestError(PaddlesError, ValueError):
-    url = '/errors/invalid/'
+    url = "/errors/invalid/"
 
 
 class ForbiddenRequestError(PaddlesError, RuntimeError):
-    url = '/errors/forbidden/'
+    url = "/errors/forbidden/"
 
 
 class ResourceNotFoundError(PaddlesError, ValueError):
-    url = '/errors/not_found/'
+    url = "/errors/not_found/"
 
 
 class ResourceUnavailableError(PaddlesError, RuntimeError):
-    url = '/errors/unavailable/'
+    url = "/errors/unavailable/"
