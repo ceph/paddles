@@ -222,6 +222,39 @@ class TestRunController(TestApp):
         result_names = sorted([r['name'] for r in result])
         assert result_names == sorted(run_names)
 
+    def test_create_run_with_tag(self):
+        self.app.post_json('/runs/', dict(name="tagged_run", tag="squid"))
+        new_run = Run.get(1)
+        assert new_run.tag == 'squid'
+
+    def test_create_run_without_tag(self):
+        self.app.post_json('/runs/', dict(name="untagged_run"))
+        new_run = Run.get(1)
+        assert new_run.tag is None
+
+    def test_filter_by_tag_query_param(self):
+        self.app.post_json('/runs/', dict(name="run_a", tag="alpha"))
+        self.app.post_json('/runs/', dict(name="run_b", tag="beta"))
+        self.app.post_json('/runs/', dict(name="run_c"))
+        response = self.app.get('/runs/?tag=alpha')
+        assert len(response.json) == 1
+        assert response.json[0]['name'] == 'run_a'
+
+    def test_filter_by_tag_url_path(self):
+        self.app.post_json('/runs/', dict(name="run_a", tag="alpha"))
+        self.app.post_json('/runs/', dict(name="run_b", tag="beta"))
+        self.app.post_json('/runs/', dict(name="run_c"))
+        response = self.app.get('/runs/tag/alpha/')
+        assert len(response.json) == 1
+        assert response.json[0]['name'] == 'run_a'
+
+    def test_list_tags(self):
+        self.app.post_json('/runs/', dict(name="run_a", tag="alpha"))
+        self.app.post_json('/runs/', dict(name="run_b", tag="beta"))
+        self.app.post_json('/runs/', dict(name="run_c"))
+        response = self.app.get('/runs/tag/')
+        assert sorted(response.json) == ['alpha', 'beta']
+
 
 class TestRunControllerDateFilters(TestApp):
 
