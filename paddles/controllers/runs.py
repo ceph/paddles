@@ -15,8 +15,11 @@ log = logging.getLogger(__name__)
 date_format = '%Y-%m-%d'
 
 
-def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1):
-    query = Run.query.order_by(Run.posted.desc())
+def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1, tag=None):
+    query = Run.query
+    if tag:
+        query = query.filter(Run.tag == tag)
+    query = query.order_by(Run.posted.desc())
     query = offset_query(query, page_size=count, page=page)
     runs = list(query)
     if fields:
@@ -150,6 +153,14 @@ class SuitesController(RunFilterIndexController):
         return SuiteController
 
 
+class TagsController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.values(Run.tag)
+
+    def get_lookup_controller(self):
+        return TagController
+
+
 class UsersController(RunFilterIndexController):
     def get_subquery(self, query):
         return query.values(Run.user)
@@ -202,6 +213,8 @@ class BranchController(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
+        if field == 'tag':
+            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -232,6 +245,8 @@ class DateController(RunFilterController):
             return Sha1sController()
         if field == 'suite':
             return SuitesController()
+        if field == 'tag':
+            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -253,6 +268,8 @@ class MachineTypeController(RunFilterController):
             return Sha1sController()
         if field == 'suite':
             return SuitesController()
+        if field == 'tag':
+            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -274,6 +291,8 @@ class StatusController(RunFilterController):
             return Sha1sController()
         if field == 'suite':
             return SuitesController()
+        if field == 'tag':
+            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -295,6 +314,31 @@ class SuiteController(RunFilterController):
             return Sha1sController()
         if field == 'status':
             return StatusesController()
+        if field == 'tag':
+            return TagsController()
+        if field == 'user':
+            return UsersController()
+        if field == 'flavor':
+            return FlavorsController()
+
+
+class TagController(RunFilterController):
+    def get_subquery(self, query):
+        return query.filter(Run.tag == self.value)
+
+    def get_lookup_controller(self, field):
+        if field == 'branch':
+            return BranchesController()
+        if field == 'date':
+            return DatesController()
+        if field == 'machine_type':
+            return MachineTypesController()
+        if field == 'sha1':
+            return Sha1sController()
+        if field == 'status':
+            return StatusesController()
+        if field == 'suite':
+            return SuitesController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -318,6 +362,8 @@ class UserController(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
+        if field == 'tag':
+            return TagsController()
         if field == 'flavor':
             return FlavorsController()
 
@@ -339,6 +385,8 @@ class FlavorController(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
+        if field == 'tag':
+            return TagsController()
         if field == 'user':
             return UsersController()
 
@@ -393,6 +441,8 @@ class Sha1Controller(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
+        if field == 'tag':
+            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -402,31 +452,36 @@ class Sha1Controller(RunFilterController):
 
 class RunsController(object):
     @expose(generic=True, template='json')
-    def index(self, fields='', count=conf.default_latest_runs_count, page=1):
-        return latest_runs(fields=fields, count=count, page=page)
+    def index(self, fields='', count=conf.default_latest_runs_count, page=1, tag=None):
+        return latest_runs(fields=fields, count=count, page=page, tag=tag)
 
     @index.when(method='POST', template='json')
     def index_post(self):
-        # save to DB here
         try:
             name = request.json.get('name')
+            # 1. Grab the tag from the incoming JSON
+            tag = request.json.get('tag')
         except ValueError:
             rollback()
             error('/errors/invalid/', 'could not decode JSON body')
+
         if not name:
             error('/errors/invalid/', "could not find required key: 'name'")
+
         if not Run.query.filter_by(name=name).first():
-            self._create_run(name)
+            # 2. Pass the tag to the internal creator
+            self._create_run(name, tag=tag)
             return dict()
         else:
             error('/errors/invalid/', "run with name %s already exists" % name)
 
     @classmethod
     @retryOperation
-    def _create_run(cls, name):
-        log.info("Creating run: %s", name)
+    def _create_run(cls, name, tag=None):
+        # 3. Log it and pass it to the Run model __init__
+        log.info("Creating run: %s with tag: %r", name, tag)
         Session.flush()
-        return Run(name)
+        return Run(name, tag=tag)
 
     branch = BranchesController()
 
@@ -437,6 +492,8 @@ class RunsController(object):
     status = StatusesController()
 
     suite = SuitesController()
+
+    tag = TagsController()
 
     queued = QueuedRunsController()
 
