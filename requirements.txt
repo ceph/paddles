@@ -7,7 +7,6 @@ SQLAlchemy>2.0
 tzlocal==1.2
 WebTest==3.0.0
 gunicorn==20.0.4
-python-statsd==2.0.0
 mock==2.0.0
 pytest==8.3.5
 pytest-asyncio
