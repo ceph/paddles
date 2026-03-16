@@ -128,11 +128,9 @@ class Job(Base):
     def __init__(self, json_data, run):
         self.run = run
         self.posted = datetime.now(timezone.utc)
-        if status := json_data.pop("status", "unknown"):
-            self.status = status
         targets = json_data.pop("targets", {})
         updated = json_data.pop("updated", None)
-        self.set_or_update(json_data)
+        self.update(json_data)
         if targets:
             self.targets = targets
         if updated:
@@ -140,12 +138,25 @@ class Job(Base):
         else:
             self.updated = datetime.now(timezone.utc)
 
-    def set_or_update(self, data):
+    def update(self, data):
+        data.pop("run", None)
+        if status := data.pop("status", None):
+            data.pop("success", None)
+            self.status = status
+        elif (success := data.pop("success", None)) is not None:
+            self.success = success
+            self.status = self.status_map[success]
+        else:
+            self.status = "unknown"
         for k, v in data.items():
             key = k.replace("-", "_")
             if key in ["posted", "started", "updated", "run_id"]:
                 continue
-            setattr(self, key, v)
+            try:
+                setattr(self, key, v)
+            except Exception:
+                log.exception(f"{key=} {v=}")
+                raise
 
     def set_updated(self, value: str):
         """
@@ -156,10 +167,6 @@ class Job(Base):
         self.run.updated = self.updated = local_datetime_to_utc(
             datetime.strptime(value.split(".")[0], "%Y-%m-%d %H:%M:%S")
         )
-
-    def update(self, json_data):
-        self.set_or_update(json_data)
-        Session.flush()
 
     @validates("status")
     def validate_status(self, key, status):
@@ -227,11 +234,11 @@ def status_cb(target: Job, value, oldvalue, initiator):
         target.run.started = target.started
 
 
-@event.listens_for(Job.success, "set")
-def success_cb(target: Job, value, oldvalue, initiator):
-    log.info(f"success_cb job_id={target.job_id} {oldvalue=} {value=} {target.status=}")
-    if target.status not in ["dead"]:
-        target.status = Job.status_map[value]
+# @event.listens_for(Job.success, "set")
+# def success_cb(target: Job, value, oldvalue, initiator):
+#     log.info(f"success_cb job_id={target.job_id} {oldvalue=} {value=} {target.status=}")
+#     if target.status not in ["dead"]:
+#         target.status = Job.status_map[value]
 
 
 @event.listens_for(Job.timestamp, "set", retval=True)
@@ -274,10 +281,10 @@ def targets_cb(target: Job, value, oldvalue, initiator):
             target.target_nodes.append(node)
 
 
-@event.listens_for(Job, "before_update")
-def job_update(mapper, connection, target):
-    log.info(f"job_update {target=}")
-    target.updated = datetime.now(timezone.utc)
+# @event.listens_for(Job, "before_update")
+# def job_update(mapper, connection, target):
+#     log.info(f"job_update {target=}")
+#     target.updated = datetime.now(timezone.utc)
 
 
 @event.listens_for(Job, "init")

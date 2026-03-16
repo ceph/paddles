@@ -79,7 +79,8 @@ class TestJobModel(TestModel):
         new_run = Run(run_name)
         job_data = job_conf
         job_data.update(targets=targets)
-        new_job = Job(job_data, new_run)
+        with Session.no_autoflush:
+            new_job = Job(job_data, new_run)
         Session.add_all([new_run, new_job])
         assert sorted(Session.scalars(select(Node.name)).all()) == node_names
 
