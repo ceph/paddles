@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import DateTime, Integer, String, event
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from paddles.exceptions import ForbiddenRequestError, InvalidRequestError
 from paddles.models import Base
@@ -56,6 +56,9 @@ class Queue(Base):
                 raise ForbiddenRequestError(f"Cannot {verb} an already-{verb}d queue")
             elif not to_pause_for:
                 raise InvalidRequestError(f"Cannot {verb} without specifying paused_by")
+
+    # @validates("paused_by")
+    # def validate_paused_by(self, key, value):
 
     @property
     def paused(self):

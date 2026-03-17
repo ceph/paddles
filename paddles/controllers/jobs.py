@@ -205,7 +205,6 @@ class JobsController(object):
                 Session.add(self.job)
                 try:
                     models.commit()
-
                 except Exception as e:
                     log.error(
                         f"failed to create job {job_id=} name={data['name']} {str(e).split()[0]}"
@@ -219,14 +218,17 @@ class JobsController(object):
             if "queue" not in data:
                 error("/errors/invalid/", "job must contain either job_id or queue")
             # with paddles as queue backend, we generate job ID here
-            self.job = Job(data, self.run)
+            with Session.no_autoflush:
+                self.job = Job(data, self.run)
             Session.add(self.job)
+            # self.job.job_id = max(
+            #     [job.job_id for job in self.run.jobs if job.job_id is not None] or [1]
+            # )
             try:
                 Session.commit()
             except Exception as e:
                 log.error(f"failed to create job {str(e)=}")
                 error("/errors/invalid", str(e.args[0]))
-            self.job.job_id = str(self.job.id)
             log.info("Job ID of created job is %s", self.job.job_id)
             return self.job
 

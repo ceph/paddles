@@ -47,6 +47,7 @@ class TestQueueController(TestApp):
                 name="job1",
             ),
         )
+        assert response.json["job_id"] is not None
         self.app.post_json(
             "/runs/testrun/jobs/",
             job_conf_no_id
