@@ -8,6 +8,7 @@ from pecan import conf
 from paddles.util import local_datetime_to_utc
 from paddles.models import Base, TEUTHOLOGY_TIMESTAMP_FMT
 from paddles.models.jobs import Job
+from paddles.models.types import JSONType
 
 suite_names = ['big',
                'ceph-deploy',
@@ -110,7 +111,7 @@ class Run(Base):
     machine_type = Column(String(32), index=True)
     posted = Column(DateTime, index=True)
     started = Column(DateTime, index=True)
-    tag = Column(String(256), index=True, nullable=True)
+    tags = Column(JSONType(), nullable=True)
     updated = Column(DateTime, index=True)
     jobs = relationship('Job',
                         backref=backref('run'),
@@ -129,9 +130,9 @@ class Run(Base):
                         'finished fail',
                         )
 
-    def __init__(self, name, tag=None):
+    def __init__(self, name, tags=None):
         self.name = name
-        self.tag = tag
+        self.tags = tags or []
         self.posted = datetime.utcnow()
         parsed_name = self.parse_name()
         self.user = parsed_name.get('user', '')
@@ -156,7 +157,7 @@ class Run(Base):
         status = self.set_status(results)
         return dict(
             name=self.name,
-            tag=self.tag,
+            tags=self.tags or [],
             href=self.href,
             user=self.user,
             status=status,

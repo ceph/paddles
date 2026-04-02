@@ -1,6 +1,6 @@
 import logging
 import datetime
-from sqlalchemy import Date, cast
+from sqlalchemy import Date, cast, UnicodeText
 from sqlalchemy.exc import InvalidRequestError, OperationalError
 
 from pecan import abort, conf, expose, request
@@ -18,7 +18,13 @@ date_format = '%Y-%m-%d'
 def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1, tag=None):
     query = Run.query
     if tag:
-        query = query.filter(Run.tag == tag)
+        # JSONType uses process_bind_param (json.dumps) for bind params and
+        # process_result_value (json.loads) when reading rows. The read path
+        # is fine; the filter RHS here is a bind param, so it would be
+        # JSON-encoded unless we compare as plain text:
+        tags_text = cast(Run.tags, UnicodeText)
+        for t in tag.split(','):
+            query = query.filter(tags_text.contains('"%s"' % t.strip()))
     query = query.order_by(Run.posted.desc())
     query = offset_query(query, page_size=count, page=page)
     runs = list(query)
@@ -73,6 +79,26 @@ class RunController(object):
         json_run = self.run.__json__()
         json_run['jobs'] = self.run.get_jobs()
         return json_run
+
+    @index.when(method='PUT', template='json')
+    def index_put(self):
+        if not self.run:
+            error('/errors/not_found/',
+                  'attempted to update a non-existent run')
+        try:
+            data = request.json
+        except ValueError:
+            rollback()
+            error('/errors/invalid/', 'could not decode JSON body')
+
+        if 'tags' in data:
+            tags = data['tags']
+            if not isinstance(tags, list):
+                error('/errors/invalid/', "'tags' must be a list of strings")
+            self.run.tags = tags
+
+        log.info("Updated run: %r", self.run)
+        return {}
 
     @index.when(method='DELETE', template='json')
     def index_delete(self):
@@ -155,7 +181,18 @@ class SuitesController(RunFilterIndexController):
 
 class TagsController(RunFilterIndexController):
     def get_subquery(self, query):
-        return query.values(Run.tag)
+        return query.values(Run.tags)
+
+    @expose('json')
+    @retryOperation
+    def index(self):
+        query = request.context.get('query', Run.query)
+        all_tags = set()
+        for (tags_value,) in self.get_subquery(query):
+            if tags_value:
+                for tag in tags_value:
+                    all_tags.add(tag)
+        return sorted(all_tags)
 
     def get_lookup_controller(self):
         return TagController
@@ -324,7 +361,10 @@ class SuiteController(RunFilterController):
 
 class TagController(RunFilterController):
     def get_subquery(self, query):
-        return query.filter(Run.tag == self.value)
+        # Same as latest_runs: compare as UnicodeText so the filter bind param
+        # is not run through JSONType.process_bind_param (json.dumps).
+        return query.filter(
+            cast(Run.tags, UnicodeText).contains('"%s"' % self.value))
 
     def get_lookup_controller(self, field):
         if field == 'branch':
@@ -459,8 +499,7 @@ class RunsController(object):
     def index_post(self):
         try:
             name = request.json.get('name')
-            # 1. Grab the tag from the incoming JSON
-            tag = request.json.get('tag')
+            tags = request.json.get('tags')
         except ValueError:
             rollback()
             error('/errors/invalid/', 'could not decode JSON body')
@@ -468,20 +507,21 @@ class RunsController(object):
         if not name:
             error('/errors/invalid/', "could not find required key: 'name'")
 
+        if tags is not None and not isinstance(tags, list):
+            error('/errors/invalid/', "'tags' must be a list of strings")
+
         if not Run.query.filter_by(name=name).first():
-            # 2. Pass the tag to the internal creator
-            self._create_run(name, tag=tag)
+            self._create_run(name, tags=tags)
             return dict()
         else:
             error('/errors/invalid/', "run with name %s already exists" % name)
 
     @classmethod
     @retryOperation
-    def _create_run(cls, name, tag=None):
-        # 3. Log it and pass it to the Run model __init__
-        log.info("Creating run: %s with tag: %r", name, tag)
+    def _create_run(cls, name, tags=None):
+        log.info("Creating run: %s with tags: %r", name, tags)
         Session.flush()
-        return Run(name, tag=tag)
+        return Run(name, tags=tags)
 
     branch = BranchesController()
 
