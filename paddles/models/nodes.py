@@ -104,7 +104,7 @@ class Node(Base):
         vm_host=None,
         description="",
         mac_address="",
-        ssh_pub_key="",
+        ssh_pub_key=None,
     ):
         self.name = name
         self.machine_type = machine_type
