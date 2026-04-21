@@ -42,7 +42,9 @@ class Node(Base):
         String(256), nullable=False, unique=True, index=True
     )
     description: Mapped[str] = mapped_column(nullable=True)
-    up: Mapped[bool] = mapped_column(Boolean(), index=True)
+    up: Mapped[bool] = mapped_column(
+        Boolean(), nullable=False, default=False, index=True
+    )
 
     machine_type: Mapped[str] = mapped_column(String(32), index=True)
     arch: Mapped[str] = mapped_column(String(16), nullable=True)
@@ -215,6 +217,7 @@ class Node(Base):
         if arch:
             query = query.filter(Node.arch == arch)
 
+        query = query.filter(Node.up.is_(True))
         query = query.filter(Node.locked.is_(False))
         query = query.limit(count)
         query = query.with_for_update()
