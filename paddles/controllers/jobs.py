@@ -1,7 +1,6 @@
 import logging
 
-import psycopg2.errorcodes
-import psycopg2.errors
+import psycopg.errors
 from pecan import abort, expose, request
 from sqlalchemy import desc, func, select
 from sqlalchemy.exc import IntegrityError
@@ -178,7 +177,7 @@ class JobsController(object):
             except IntegrityError as e:
                 Session.rollback()
                 if isinstance(
-                    e.orig, psycopg2.errors.lookup(psycopg2.errorcodes.UNIQUE_VIOLATION)
+                    e.orig, psycopg.errors.UniqueViolation
                 ):
                     log.info(f"tried to create job {job_id} but it exists already")
                     error(
