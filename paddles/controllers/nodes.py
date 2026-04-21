@@ -12,6 +12,7 @@ from paddles.controllers.util import offset_query
 from paddles.decorators import isolation_level, retryOperation
 from paddles.exceptions import PaddlesError
 from paddles.models import Job, Node, Session, rollback
+from paddles.util import coerce_bool
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +30,8 @@ class NodesController(object):
         up=None,
         count=None,
     ):
+        locked = coerce_bool(locked)
+        up = coerce_bool(up)
         query = select(Node)
         if locked is not None:
             query = query.filter(Node.locked == locked)
