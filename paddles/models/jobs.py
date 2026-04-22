@@ -149,7 +149,7 @@ class Job(Base):
             self.success = success
             self.status = self.status_map[success]
         elif self.status is None:
-            self.status = "unknown"
+            self.status = "queued"
         for k, v in data.items():
             key = k.replace("-", "_")
             if key in ["posted", "started", "updated", "run_id"]:
