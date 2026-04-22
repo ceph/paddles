@@ -91,10 +91,10 @@ class TestJobsController(TestApp):
         response = self.app.get("/runs/RUN/jobs/1/")
         assert response.json.get("status") == "dead"
 
-    def test_null_success_means_null_status(self, job_conf):
-        self.app.post_json("/runs/RUN/jobs/", job_conf)
+    def test_null_success_means_status_queued(self, job_conf):
+        self.app.post_json("/runs/RUN/jobs/", job_conf | {"success": None})
         response = self.app.get("/runs/RUN/jobs/1/")
-        assert response.json.get("status") == "unknown"
+        assert response.json.get("status") == "queued"
 
     def test_success_true_means_status_pass(self, job_conf):
         self.app.post_json("/runs/RUN/jobs/", job_conf | {"success": True})
