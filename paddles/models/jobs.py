@@ -64,7 +64,7 @@ class Job(Base):
     email: Mapped[str] = mapped_column(String(128), nullable=True)
     failure_reason: Mapped[str] = deferred(mapped_column(Text))
     flavor: Mapped[str] = mapped_column(String(128), nullable=True)
-    job_id: Mapped[str | None] = mapped_column(String(32), index=True)
+    job_id: Mapped[str | None] = mapped_column(String(32), index=True, nullable=False)
     kernel = deferred(mapped_column(JSONType()))
     last_in_suite = mapped_column(Boolean())
     machine_type: Mapped[str] = mapped_column(String(32), nullable=True)
