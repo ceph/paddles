@@ -146,7 +146,7 @@ class Job(Base):
         elif (success := data.pop("success", None)) is not None:
             self.success = success
             self.status = self.status_map[success]
-        else:
+        elif self.status is None:
             self.status = "unknown"
         for k, v in data.items():
             key = k.replace("-", "_")
