@@ -50,14 +50,14 @@ def sqlite_connect(**kw):
     dbapi_con.execute("PRAGMA synchronous=OFF")
 
 
-def get_engine(sqlalchemy_url: str) -> sqlalchemy.Engine:
-    engine = create_engine(sqlalchemy_url)
-    if "sqlite" in sqlalchemy_url:
+def get_engine(sqlalchemy_conf) -> sqlalchemy.Engine:
+    engine = create_engine(**sqlalchemy_conf)
+    if "sqlite" in sqlalchemy_conf["url"]:
         event.listen(Pool, "connect", sqlite_connect, named=True)
     return engine
 
 
-engine = get_engine(conf["sqlalchemy"]["url"])
+engine = get_engine(conf["sqlalchemy"])
 
 
 def init_model():
