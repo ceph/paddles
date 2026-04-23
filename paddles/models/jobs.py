@@ -259,7 +259,9 @@ def updated_cb(target: Job, value: datetime, oldvalue, initiator, retval=True):
             )
         else:
             target.run.updated = value
-    log.info(f"updated_cb job_id={target.job_id} {oldvalue=} {value=} {target.status=}")
+    # log.info(
+    #     f"updated_cb id={target.id} job_id={target.job_id} {oldvalue=} {value=} {target.status=}"
+    # )
     return value
 
 
