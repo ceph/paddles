@@ -179,7 +179,7 @@ class JobsController(object):
                 if isinstance(
                     e.orig, psycopg.errors.UniqueViolation
                 ):
-                    log.info(f"tried to create job {job_id} but it exists already")
+                    # log.info(f"tried to create job {job_id} but it exists already")
                     error(
                         "/errors/invalid/", f"job with job_id {job_id} already exists"
                     )
