@@ -67,9 +67,7 @@ class RunController(object):
     def index(self):
         if not self.run:
             abort(404)
-        json_run = self.run.__json__()
-        json_run['jobs'] = self.run.get_jobs()
-        return json_run
+        return self.run.__json__()
 
     @index.when(method='DELETE', template='json')
     def index_delete(self):
