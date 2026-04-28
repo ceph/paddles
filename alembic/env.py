@@ -10,7 +10,8 @@ from paddles import models
 config = context.config
 
 config.set_main_option(
-    'sqlalchemy.url', subprocess.getoutput("pecan get_secret")
+    'sqlalchemy.url',
+    subprocess.run(["pecan", "get_secret"], stdout=subprocess.PIPE).stdout.decode().strip().replace("%", "%%")
 )
 
 # Interpret the config file for Python logging.
