@@ -1,7 +1,7 @@
-# import os
+import os
 import multiprocessing
 
-workers = multiprocessing.cpu_count()
+workers = os.environ.get("PADDLES_WORKER_COUNT", multiprocessing.cpu_count())
 max_requests = 10000
 timeout = 60
 # loglevel = 'debug'
