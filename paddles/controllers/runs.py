@@ -114,6 +114,9 @@ class BranchesController(RunFilterIndexController):
     def get_lookup_controller(self):
         return BranchController
 
+    def index(self):
+        return []
+
 
 class DatesController(RunFilterIndexController):
     def get_subquery(self, query):
