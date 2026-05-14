@@ -139,8 +139,7 @@ class Run(Base):
         back_populates="run",
         cascade="all,delete",
         order_by="Job.job_id",
-        # remote_side="Job.id",
-        # lazy="dynamic",
+        lazy="dynamic",
     )
 
     allowed_statuses = (

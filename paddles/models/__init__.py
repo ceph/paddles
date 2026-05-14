@@ -7,6 +7,7 @@ from sqlalchemy.orm import (
     DeclarativeBase,
     scoped_session,
     sessionmaker,
+    mapper,
 )
 from sqlalchemy.pool import Pool
 
@@ -23,6 +24,15 @@ metadata = MetaData()
 
 
 class Base(DeclarativeBase):
+    @classmethod
+    @property
+    def query(cls):
+        return Session.query(cls)
+    
+    @classmethod
+    def get(cls, id):
+        return Session.get(cls, id)
+    
     def slice(self, fields_str):
         sep = ","
         fields = fields_str.strip(sep).split(sep)
@@ -39,9 +49,9 @@ class Base(DeclarativeBase):
 
 
 # Listeners:
-# @event.listens_for(mapper, 'init')
-# def auto_add(target, args, kwargs):
-#     Session.add(target)
+@event.listens_for(mapper, 'init')
+def auto_add(target, args, kwargs):
+    Session.add(target)
 
 
 def sqlite_connect(**kw):
@@ -80,7 +90,7 @@ def init_model():
 
 
 def bind(engine):
-    Session.bind = engine.connect()
+    Session.configure(bind=engine)
     # metadata.bind = engine
 
 
@@ -101,7 +111,7 @@ def commit():
     try:
         Session.commit()
     except (OperationalError, InvalidRequestError, IntegrityError):
-        # rollback()
+        rollback()
         raise
         # error("/errors/unavailable", "encountered a DB error; please retry")
 
