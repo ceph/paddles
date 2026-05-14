@@ -246,8 +246,11 @@ class Run(Base):
 
     @hybrid_property
     def total_jobs(self):
+        # If the run hasn't been persisted yet, we can't query jobs
+        if self.id is None:
+            return 0
         with Session.no_autoflush:
-            return len(self.jobs)
+            return self.jobs.count()
 
     @total_jobs.inplace.expression
     def _total_jobs_expr(cls):
@@ -256,11 +259,18 @@ class Run(Base):
     @hybrid_property
     def results(self):
         result = {key: 0 for key in Job.allowed_statuses}
-        for job in self.jobs:
+        # If the run hasn't been persisted yet, return empty results
+        if self.id is None:
+            result["total"] = 0
+            result["sha1"] = None
+            result["flavor"] = None
+            return result
+        for job in self.jobs.all():
             result[job.status] = result.get(job.status, 0) + 1
-        result["total"] = len(self.jobs)
-        result["sha1"] = self.jobs[0].sha1 if self.jobs else None
-        result["flavor"] = self.jobs[0].flavor if self.jobs else None
+        result["total"] = self.jobs.count()
+        first_job = self.jobs.first()
+        result["sha1"] = first_job.sha1 if first_job else None
+        result["flavor"] = first_job.flavor if first_job else None
         return result
 
     @results.inplace.expression
