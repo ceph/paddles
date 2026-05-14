@@ -9,6 +9,33 @@ import requests
 
 
 @pytest.fixture
+def single_test_node(machine_type, paddles_server):
+    name = "single-lock-race-node"
+    response = requests.post(
+        f"{paddles_server}/nodes/",
+        json.dumps(dict(name=name, machine_type=machine_type, up=True, locked=False)),
+    )
+    assert response.ok, f"{response.status_code} {response.text}"
+    yield name
+    response = requests.delete(f"{paddles_server}/nodes/{name}/")
+    assert response.ok, f"{response.status_code} {response.text}"
+
+
+def _lock_single_node(paddles_server, node_name, locked_by, description):
+    return requests.post(
+        f"{paddles_server}/nodes/{node_name}/lock/",
+        json.dumps(
+            dict(
+                locked=True,
+                locked_by=locked_by,
+                description=description,
+            )
+        ),
+        headers={"content-type": "application/json"},
+    )
+
+
+@pytest.fixture
 def user_count():
     return 20
 
@@ -144,6 +171,75 @@ class TestNodesLockingRace(object):
             assert node["locked"] is True, f"{node['name']} not locked as expected"
         assert len(response.json()) == node_count
         assert set([node["locked"] for node in response.json()]) == {True}
+
+
+class TestSingleNodeLockingRace(object):
+    def test_single_node_lock_race_threaded(
+        self, paddles_server, machine_type, single_test_node
+    ):
+        """
+        Concurrent single-node locking should allow only one client to succeed.
+
+        This test repeatedly races two lock requests against the same node and
+        asserts the invariant that each round yields one success and one
+        rejection. On buggy implementations, a round may allow two successes.
+        """
+
+        rounds = 100
+
+        for round_num in range(rounds):
+            current_node = requests.get(f"{paddles_server}/nodes/{single_test_node}/").json()
+            if current_node["locked"]:
+                unlock_response = requests.post(
+                    f"{paddles_server}/nodes/{single_test_node}/lock/",
+                    json.dumps(
+                        dict(
+                            locked=False,
+                            locked_by=current_node["locked_by"],
+                            description=current_node["description"],
+                        )
+                    ),
+                    headers={"content-type": "application/json"},
+                )
+                assert unlock_response.ok, unlock_response.text
+
+            results = Queue()
+            start_barrier = threading.Barrier(3)
+
+            def lock_attempt(user):
+                start_barrier.wait()
+                response = _lock_single_node(
+                    paddles_server=paddles_server,
+                    node_name=single_test_node,
+                    locked_by=user,
+                    description=f"lock by {user} round {round_num}",
+                )
+                results.put(
+                    {
+                        "user": user,
+                        "status": response.status_code,
+                        "body": response.text,
+                    }
+                )
+
+            workers = [
+                threading.Thread(target=lock_attempt, args=("user-a",)),
+                threading.Thread(target=lock_attempt, args=("user-b",)),
+            ]
+            for worker in workers:
+                worker.start()
+
+            start_barrier.wait()
+
+            for worker in workers:
+                worker.join()
+
+            responses = [results.get(), results.get()]
+            statuses = [response["status"] for response in responses]
+            assert statuses.count(200) == 1, (
+                f"round {round_num} expected exactly one successful lock; "
+                f"got responses={responses}"
+            )
 
 
 class TestNodesControllerNew(object):
