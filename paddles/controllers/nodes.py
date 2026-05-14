@@ -11,7 +11,7 @@ from paddles.controllers import error
 from paddles.controllers.util import offset_query
 from paddles.decorators import isolation_level, retryOperation
 from paddles.exceptions import PaddlesError
-from paddles.models import Job, Node, Session, rollback
+from paddles.models import Job, Node, Session, commit, rollback
 from paddles.util import coerce_bool
 
 log = logging.getLogger(__name__)
@@ -322,13 +322,16 @@ class NodeController(object):
                 verb=_verb, node=node_obj, locked_by=locked_by, desc_str=desc_str
             )
         )
+        locked_node = Session.scalars(
+            select(Node).where(Node.id == node_obj.id).with_for_update()
+        ).one()
         try:
-            node_obj.update(node_dict)
-            Session.commit()
+            locked_node.update(node_dict)
+            commit()
             log.info(
                 "{verb}ed {node} for {locked_by}{desc_str}".format(
                     verb=_verb,
-                    node=node_obj,
+                    node=locked_node,
                     locked_by=locked_by,
                     desc_str=desc_str,
                 )
@@ -336,11 +339,11 @@ class NodeController(object):
         except PaddlesError as exc:
             error(exc.url, str(exc))
         return dict(
-            name=node_obj.name,
-            locked=node_obj.locked,
-            locked_by=node_obj.locked_by,
-            machine_type=node_obj.machine_type,
-            is_vm=node_obj.is_vm,
+            name=locked_node.name,
+            locked=locked_node.locked,
+            locked_by=locked_node.locked_by,
+            machine_type=locked_node.machine_type,
+            is_vm=locked_node.is_vm,
         )
 
     @expose("json")
