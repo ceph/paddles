@@ -1,5 +1,5 @@
 alembic==1.7.7
-pecan==1.7.0
+pecan==1.8.0
 psycopg[binary] == 3.3.3
 pytz==2023.3
 requests==2.32.3
