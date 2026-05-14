@@ -146,8 +146,8 @@ class Job(Base):
         elif (success := data.pop("success", None)) is not None:
             self.success = success
             self.status = self.status_map[success]
-        # elif self.status is None:
-        #     self.status = "unknown"
+        elif self.status is None:
+            self.status = "unknown"
         for k, v in data.items():
             key = k.replace("-", "_")
             if key in ["posted", "started", "updated", "run_id"]:
@@ -251,12 +251,17 @@ def timestamp_cb(target: Job, value, oldvalue, initiator):
 
 @event.listens_for(Job.updated, "set")
 def updated_cb(target: Job, value: datetime, oldvalue, initiator, retval=True):
-    if target.run:
+    if target.run and value:
+        # Ensure value is timezone-aware
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        
         if target.run.updated:
-            target.run.updated = max(
-                target.run.updated.astimezone(timezone.utc),
-                value.astimezone(timezone.utc),
-            )
+            run_updated = target.run.updated
+            # Ensure run.updated is timezone-aware
+            if run_updated.tzinfo is None:
+                run_updated = run_updated.replace(tzinfo=timezone.utc)
+            target.run.updated = max(run_updated, value)
         else:
             target.run.updated = value
     # log.info(

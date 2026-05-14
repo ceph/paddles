@@ -220,9 +220,13 @@ class JobsController(object):
             with Session.no_autoflush:
                 self.job = Job(data, self.run)
             Session.add(self.job)
-            # self.job.job_id = max(
-            #     [job.job_id for job in self.run.jobs if job.job_id is not None] or [1]
-            # )
+            # Generate job_id based on existing jobs in the run
+            # With lazy='select', self.run.jobs is a regular list
+            existing_job_ids = [
+                int(job.job_id) for job in self.run.jobs
+                if job.job_id is not None and job.job_id.isdigit()
+            ]
+            self.job.job_id = str(max(existing_job_ids or [0]) + 1)
             try:
                 Session.commit()
             except Exception as e:

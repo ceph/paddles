@@ -49,9 +49,12 @@ class Base(DeclarativeBase):
 
 
 # Listeners:
-@event.listens_for(mapper, 'init')
-def auto_add(target, args, kwargs):
-    Session.add(target)
+# NOTE: auto_add disabled for SQLAlchemy 2.x compatibility
+# The auto-add pattern doesn't work well with relationship cascades in SA 2.x
+# Objects must be explicitly added to the session
+# @event.listens_for(mapper, 'init')
+# def auto_add(target, args, kwargs):
+#     Session.add(target)
 
 
 def sqlite_connect(**kw):

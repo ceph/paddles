@@ -137,9 +137,9 @@ class Run(Base):
     jobs: Mapped[List["Job"]] = relationship(
         "Job",
         back_populates="run",
-        cascade="all,delete",
+        cascade="all, delete-orphan",
         order_by="Job.job_id",
-        lazy="dynamic",
+        lazy="select",
     )
 
     allowed_statuses = (
@@ -217,7 +217,8 @@ class Run(Base):
         return self._parse_name(self.name)
 
     def get_jobs(self):
-        return [job for job in self.jobs]
+        # With lazy='selectin', jobs is already a list
+        return list(self.jobs)
 
     def get_jobs_by_description(self):
         jobs = self.get_jobs()
@@ -239,18 +240,15 @@ class Run(Base):
 
     @property
     def priority(self):
-        jobs = self.jobs
-        if jobs:
-            job = jobs[0]
-            return job.priority
+        # With lazy='selectin', jobs is a regular list
+        if self.jobs:
+            return self.jobs[0].priority
+        return None
 
     @hybrid_property
     def total_jobs(self):
-        # If the run hasn't been persisted yet, we can't query jobs
-        if self.id is None:
-            return 0
-        with Session.no_autoflush:
-            return self.jobs.count()
+        # With lazy='selectin', jobs is a regular list
+        return len(self.jobs)
 
     @total_jobs.inplace.expression
     def _total_jobs_expr(cls):
@@ -259,18 +257,20 @@ class Run(Base):
     @hybrid_property
     def results(self):
         result = {key: 0 for key in Job.allowed_statuses}
-        # If the run hasn't been persisted yet, return empty results
-        if self.id is None:
-            result["total"] = 0
-            result["sha1"] = None
-            result["flavor"] = None
-            return result
-        for job in self.jobs.all():
-            result[job.status] = result.get(job.status, 0) + 1
-        result["total"] = self.jobs.count()
-        first_job = self.jobs.first()
-        result["sha1"] = first_job.sha1 if first_job else None
-        result["flavor"] = first_job.flavor if first_job else None
+        result["total"] = 0
+        result["sha1"] = None
+        result["flavor"] = None
+        
+        # With lazy='selectin', jobs is a regular list
+        for job in self.jobs:
+            if job.status:
+                result[job.status] = result.get(job.status, 0) + 1
+        
+        result["total"] = len(self.jobs)
+        if self.jobs:
+            result["sha1"] = self.jobs[0].sha1
+            result["flavor"] = self.jobs[0].flavor
+        
         return result
 
     @results.inplace.expression
@@ -316,7 +316,7 @@ class Run(Base):
                 select(func.count(1))
                 .select_from(Job)
                 .where(Job.run_id == cls.id)
-                .where(Job.status == "running")
+                .where(Job.status == status)  # Fixed: use the status parameter
                 .scalar_subquery()
             )
 
