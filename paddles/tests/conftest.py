@@ -33,7 +33,13 @@ def paddles_url() -> str:
 @pytest.fixture
 def paddles_server(paddles_url) -> Iterator[str]:
     try:
-        requests.get(f"{paddles_url}/").raise_for_status()
+        response = requests.get(f"{paddles_url}/")
+        response.raise_for_status()
+        # Verify it's actually the Paddles server by checking for JSON response
+        # (not HTML from another application)
+        content_type = response.headers.get("content-type", "")
+        if "application/json" not in content_type:
+            pytest.skip("Server at URL is not Paddles (wrong content-type); skipping")
         yield paddles_url
     except Exception:
         pytest.skip("Cannot find paddles server; skipping")
