@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
-                        Table, Text)
+                        Table, Text, Index)
 from sqlalchemy.orm import backref, deferred, load_only, relationship
 from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 from pecan import conf
@@ -17,7 +17,8 @@ job_nodes_table = Table(
     Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True,
            index=True),
     Column('job_id', Integer, ForeignKey('jobs.id'), primary_key=True,
-           index=True)
+           index=True),
+    Index('ix_job_nodes_node_id_job_id', 'node_id', 'job_id'),
 )
 
 log = logging.getLogger(__name__)
