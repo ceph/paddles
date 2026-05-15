@@ -1,5 +1,6 @@
 from __future__ import with_statement
 import subprocess
+import os
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
@@ -9,10 +10,17 @@ from paddles import models
 # access to the values within the .ini file in use.
 config = context.config
 
-config.set_main_option(
-    'sqlalchemy.url',
-    subprocess.run(["pecan", "get_secret"], stdout=subprocess.PIPE).stdout.decode().strip().replace("%", "%%")
-)
+# If PGPASS is set, use it to connect to the database directly (e.g. when
+# port-forwarding to Crunchy DB on OpenShift). Otherwise, fall back to
+# retrieving the connection string via pecan.
+if 'PGPASS' in os.environ:
+    config.set_main_option('sqlalchemy.url',
+        f'postgresql+psycopg2://paddles:{os.environ["PGPASS"]}@localhost/paddles')
+else:
+    config.set_main_option(
+        'sqlalchemy.url',
+        subprocess.run(["pecan", "get_secret"], stdout=subprocess.PIPE).stdout.decode().strip().replace("%", "%%")
+    )
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
