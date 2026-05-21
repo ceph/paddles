@@ -27,6 +27,54 @@ To install and use paddles:
 #. To get `teuthology <https://github.com/ceph/teuthology/>`_ talking to paddles add a line like this to your ``~/.teuthology.yaml``: ``results_server: http://paddles.example.com/``
 
 
+Running Alembic Migrations
+==========================
+
+Alembic tracks database schema changes (indexes, columns, constraints) as
+migration files in ``alembic/versions/``. When you change a model or need
+to add an index, you create a migration file and apply it.
+
+Example: adding an index
+------------------------
+
+#. Create the migration file::
+
+        alembic revision -m "jobs: add index on branch"
+
+#. Open the generated file in ``alembic/versions/`` and fill in the
+   ``upgrade`` and ``downgrade`` functions::
+
+        from alembic import op
+
+        def upgrade():
+            with op.get_context().autocommit_block():
+                op.create_index('ix_jobs_branch', 'jobs', ['branch'],
+                                postgresql_concurrently=True)
+
+        def downgrade():
+            with op.get_context().autocommit_block():
+                op.drop_index('ix_jobs_branch', table_name='jobs',
+                              postgresql_concurrently=True)
+
+   .. note::
+      Always use ``postgresql_concurrently=True`` for index operations on
+      large tables. This allows reads and writes to continue while the
+      index builds. Always wrap these in ``autocommit_block()``.
+
+#. Preview what will run without touching the database::
+
+        alembic upgrade head --sql
+
+#. Port-forward pgBouncer in a separate terminal::
+
+        oc -n paddles-db port-forward svc/paddles-db-pgbouncer 5432:5432
+
+#. Fetch the database password and apply the migration::
+
+        export PGPASS=$(oc -n paddles-db get secret paddles-db-pguser-paddles \
+          -o jsonpath='{.data.password}' | base64 -d)
+        alembic upgrade head
+
 
 ``/runs/``
 ========

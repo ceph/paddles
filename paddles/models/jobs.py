@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
-                        Table, Text)
+                        Table, Text, Index)
 from sqlalchemy.orm import backref, deferred, load_only, relationship
 from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 from pecan import conf
@@ -17,7 +17,8 @@ job_nodes_table = Table(
     Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True,
            index=True),
     Column('job_id', Integer, ForeignKey('jobs.id'), primary_key=True,
-           index=True)
+           index=True),
+    Index('ix_job_nodes_node_id_job_id', 'node_id', 'job_id'),
 )
 
 log = logging.getLogger(__name__)
@@ -55,13 +56,13 @@ class Job(Base):
     roles = deferred(Column(JSONType()))
     sentry_event = Column(String(128))
     success = Column(Boolean(), index=True)
-    branch = Column(String(64), index=True)
-    seed = Column(String(32))
+    branch = Column(String(128), index=True)
+    seed = Column(Integer)
     sha1 = Column(String(40), index=True)
     sleep_before_teardown = Column(Integer)
     subset = Column(String(32))
     suite = Column(String(256))
-    suite_branch = Column(String(64), index=True)
+    suite_branch = Column(String(128), index=True)
     suite_path = Column(String(256))
     suite_relpath = Column(String(256))
     suite_repo = Column(String(256))
