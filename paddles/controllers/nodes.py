@@ -9,9 +9,10 @@ from sqlalchemy.orm import aliased, load_only
 
 from paddles.controllers import error
 from paddles.controllers.util import offset_query
-from paddles.decorators import isolation_level, retryOperation
+from paddles.decorators import retryOperation
 from paddles.exceptions import PaddlesError
-from paddles.models import Job, Node, Session, rollback
+from paddles.models import Job, Node
+from paddles.models.job_nodes import job_nodes_table
 from paddles.util import coerce_bool
 
 log = logging.getLogger(__name__)
@@ -50,14 +51,16 @@ class NodesController(object):
         if up is not None:
             query = query.filter(Node.up == up)
         if count is not None:
-            if not count.isdigit() or isinstance(count, int):
+            try:
+                count = int(count)
+            except (TypeError, ValueError):
                 error("/errors/invalid/", "count must be an integer")
             query = query.limit(count)
         return [node.__json__() for node in self._find_nodes(query)]
 
     @retryOperation(exceptions=(OperationalError, InvalidRequestError))
     def _find_nodes(self, query):
-        return Session.scalars(query).all()
+        return request.session.scalars(query).all()
 
     @retryOperation(exceptions=(OperationalError, InvalidRequestError))
     @index.when(method="POST", template="json")
@@ -65,17 +68,18 @@ class NodesController(object):
         """
         Create a new node
         """
+        session = request.session
         try:
             data = request.json
             name = data.get("name")
         except ValueError:
-            rollback()
+            session.rollback()
             error("/errors/invalid/", "could not decode JSON body")
         # we allow empty data to be pushed
         if not name:
             error("/errors/invalid/", "could not find required key: 'name'")
 
-        if Session.execute(select(Node).filter_by(name=name)).first():
+        if session.execute(select(Node).filter_by(name=name)).first():
             error("/errors/invalid/", "Node with name %s already exists" % name)
         else:
             self.node = Node(name=name)
@@ -83,7 +87,8 @@ class NodesController(object):
                 self.node.update(data)
             except PaddlesError as exc:
                 error(exc.url, str(exc))
-            Session.add(self.node)
+            session.add(self.node)
+            session.commit()
             log.info(
                 "Created {node}: {data}".format(
                     node=self.node,
@@ -96,7 +101,6 @@ class NodesController(object):
     def lock_many(self):
         error("/errors/invalid/", "this URI only supports POST requests")
 
-    @isolation_level("SERIALIZABLE")
     @lock_many.when(method="POST", template="json")
     @retryOperation
     def lock_many_post(self):
@@ -150,9 +154,17 @@ class NodesController(object):
                         desc_str=desc_str,
                     )
                 )
+                request.session.commit()
                 return result
             except PaddlesError as exc:
                 error(exc.url, str(exc))
+                raise
+                # request.session.rollback()
+            except (OperationalError, InvalidRequestError):
+                attempts -= 1
+                request.session.rollback()
+                if attempts <= 0:
+                    raise
 
     @expose(generic=True, template="json")
     def unlock_many(self):
@@ -161,6 +173,7 @@ class NodesController(object):
     @unlock_many.when(method="POST", template="json")
     @retryOperation
     def unlock_many_post(self):
+        session = request.session
         req = request.json
         fields = ["names", "locked_by"]
         if sorted(req.keys()) != sorted(fields):
@@ -173,7 +186,7 @@ class NodesController(object):
             )
 
         # if len(result) != len(names):
-        if Session.scalar(
+        if session.scalar(
             select(func.count()).select_from(Node).where(Node.name.in_(names))
         ) != len(names):
             error("/errors/invalid/", "Could not find all nodes!")
@@ -184,7 +197,7 @@ class NodesController(object):
             )
         )
         result = []
-        for node in Session.scalars(select(Node).filter(Node.name.in_(names))).all():
+        for node in session.scalars(select(Node).filter(Node.name.in_(names))).all():
             # for node in result:
             result.append(
                 NodeController._lock(
@@ -204,8 +217,12 @@ class NodesController(object):
         recent_jobs = select(Job).where(Job.posted.between(past, now)).subquery()
         RecentJob = aliased(Job, recent_jobs)
 
-        query = Session.query(Node.name, RecentJob.status, func.count("*"))
-        # query = select(func.count()).select_from(Job).where(Job.posted.between(past, now))
+        query = (
+            select(Node.name, RecentJob.status, func.count())
+            .select_from(Node)
+            .join(job_nodes_table, Node.id == job_nodes_table.c.node_id)
+            .join(RecentJob, RecentJob.id == job_nodes_table.c.job_id)
+        )
 
         if machine_type:
             # Note: filtering by Job.machine_type (as below) greatly improves
@@ -213,15 +230,13 @@ class NodesController(object):
             # are being scheduled using mixed machine types. We work around
             # this by including the 'multi' machine type (which is the name of
             # the queue Inktank uses for such jobs.
-            query = query.where(Job.machine_type.in_((machine_type, "multi")))
+            query = query.where(RecentJob.machine_type.in_((machine_type, "multi")))
             query = query.where(Node.machine_type == machine_type)
 
-        query = (
-            query.join(RecentJob.target_nodes).group_by(Node).group_by(RecentJob.status)
-        )
+        query = query.group_by(Node.name, RecentJob.status)
 
         all_stats = {}
-        results = query.all()
+        results = request.session.execute(query).all()
         for name, status, count in results:
             node_stats = all_stats.get(name, {})
             node_stats[status] = count
@@ -238,12 +253,12 @@ class NodesController(object):
     @expose("json")
     def machine_types(self):
         query = select(Node).with_only_columns(Node.machine_type)
-        result = Session.execute(query).all()
+        result = request.session.execute(query).all()
         return sorted(list(set([item[0] for item in result if item[0]])))
 
     @expose("json")
     def _lookup(self, name, *remainder):
-        return NodeController(name), remainder
+        return NodeController(name), remainder or ("",)
 
 
 class NodeController(object):
@@ -259,7 +274,7 @@ class NodeController(object):
             .options(load_only(Node.id, Node.name))
             .filter(Node.name == name)
         )
-        return Session.scalars(node_q).one_or_none()
+        return request.session.scalars(node_q).one_or_none()
 
     @expose(generic=True, template="json")
     def index(self):
@@ -283,15 +298,17 @@ class NodeController(object):
             )
         )
         self.node.update(update)
+        request.session.commit()
         return dict()
 
     @index.when(method="DELETE", template="json")
     def index_delete(self):
+        session = request.session
         if not self.node:
             error("/errors/not_found/", "node not found")
         log.info("Deleting node %r", self.node)
-        Session.delete(self.node)
-        Session.commit()
+        session.delete(self.node)
+        session.commit()
         return dict()
 
     @expose(template="json")
@@ -307,7 +324,6 @@ class NodeController(object):
         node_dict = request.json
         verb_dict = {False: "unlock", True: "lock", None: "check"}
         verb = verb_dict[node_dict.get("locked")]
-
         return self._lock(self.node, node_dict, verb)
 
     @staticmethod
@@ -324,7 +340,7 @@ class NodeController(object):
         )
         try:
             node_obj.update(node_dict)
-            Session.commit()
+            request.session.commit()
             log.info(
                 "{verb}ed {node} for {locked_by}{desc_str}".format(
                     verb=_verb,
@@ -358,7 +374,7 @@ class NodeController(object):
             jobs = jobs.filter(Job.status == status)
         if count:
             jobs = offset_query(jobs, count, page)
-        return [job.__json__() for job in Session.scalars(jobs).all()]
+        return [job.__json__() for job in request.session.scalars(jobs).all()]
 
     @expose("json")
     def job_stats(self):
@@ -371,5 +387,5 @@ class NodeController(object):
         )
         stats = dict()
         for status in Job.allowed_statuses:
-            stats[status] = Session.scalar(all_jobs.filter(Job.status == status))
+            stats[status] = request.session.scalar(all_jobs.filter(Job.status == status))
         return stats

@@ -64,7 +64,7 @@ class Queue(Base):
     def paused(self):
         if self.paused_until is None:
             return False
-        if datetime.now(timezone.utc) > self.paused_until:
+        if datetime.now(timezone.utc) > self.paused_until.replace(tzinfo=timezone.utc):
             return False
         return True
 
@@ -92,4 +92,3 @@ def pause_duration_cb(target: Queue, value, oldvalue, initiator):
         )
     else:
         log.info(f"not pausing {value=}")
-    log.info(f"{target.paused=} {target.paused_since=} {target.paused_until=}")

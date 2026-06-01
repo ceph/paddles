@@ -5,6 +5,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 from paddles import models
+from paddles.db import normalize_url
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -19,7 +20,9 @@ if 'PGPASS' in os.environ:
 else:
     config.set_main_option(
         'sqlalchemy.url',
-        subprocess.run(["pecan", "get_secret"], stdout=subprocess.PIPE).stdout.decode().strip().replace("%", "%%")
+        normalize_url(
+            subprocess.run(["pecan", "get_secret"], stdout=subprocess.PIPE).stdout.decode().strip()
+        ).replace("%", "%%")
     )
 
 # Interpret the config file for Python logging.

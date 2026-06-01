@@ -20,7 +20,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from paddles import conf
-from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base, Session
+from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base
 from paddles.models.jobs import Job
 from paddles.util import local_datetime_to_utc
 
@@ -247,8 +247,7 @@ class Run(Base):
 
     @hybrid_property
     def total_jobs(self):
-        with Session.no_autoflush:
-            return len(self.jobs)
+        return len(self.jobs)
 
     @total_jobs.inplace.expression
     def _total_jobs_expr(cls):
