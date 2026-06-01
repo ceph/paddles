@@ -1,3 +1,4 @@
+import json
 import time
 
 from paddles.tests import TestApp
@@ -136,11 +137,11 @@ class TestQueueController(TestApp):
             ),
         )
 
-        response = self.app.post_json(
-            "/queue/queued_jobs/?user=tester", dict(queue="test_queue4")
+        response = self.app.get(
+            "/queue/queued_jobs/?user=tester&queue=test_queue4",
         )
 
         assert response.status_code == 200
-        assert len(response.json) == 2
+        assert len(response.json) == 3
         assert response.json[0]["user"] == "tester"
         assert response.json[1]["user"] == "tester"

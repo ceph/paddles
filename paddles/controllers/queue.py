@@ -122,37 +122,20 @@ class QueuesController(object):
             error("/errors/invalid", "specified queue does not exist")
 
     @expose(template="json")
-    def queued_jobs(self, user=None, run_name=None):
+    def queued_jobs(self, queue, user=None, run_name=None):
         """
         Retrieve all the queued jobs for a particular user or a particular run
         """
-        try:
-            data = request.json
-            queue_name = data.get("queue")
-        except ValueError:
-            error("/errors/invalid", "could not decode JSON body")
+        queue_name = queue
         if not queue_name:
             error("/errors/invalid/", "could not find required key: 'queue'")
         queue = Session.scalars(select(Queue).filter_by(queue=queue_name)).first()
-        if queue:
-            if run_name:
-                jobs = (
-                    Session.query(Job)
-                    .filter(Job.status == "queued")
-                    .filter(Run.id == Job.run_id)
-                    .filter(Run.name == run_name)
-                )
-            elif user:
-                jobs = (
-                    select(Job)
-                    .filter_by(queue=queue_name)
-                    .filter_by(status="queued")
-                    .filter_by(user=user)
-                )
-            else:
-                jobs = (
-                    select(Job).filter_by(queue=queue_name).filter_by(status="queued")
-                )
-            return [job.__json__() for job in Session.scalars(jobs).all()]
-        else:
+        if not queue:
             error("/errors/invalid", "specified queue does not exist")
+        else:
+            jobs_query = select(Job).where(Job.status == "queued").where(Job.queue == queue_name)
+            if run_name:
+                jobs_query = jobs_query.where(Run.name == run_name).where(Run.id == Job.run_id)
+            elif user:
+                jobs_query = jobs_query.where(Job.user == user)
+            return [job.__json__() for job in Session.scalars(jobs_query).all()]
