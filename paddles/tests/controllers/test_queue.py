@@ -129,16 +129,17 @@ class TestQueueController:
             | dict(
                 queue="test_queue4",
                 priority=15,
+                status="queued",
                 name="job3",
                 user="tester",
             ),
         )
 
-        response = app.post_json(
-            "/queue/queued_jobs/?user=tester", dict(queue="test_queue4")
+        response = app.get(
+            "/queue/queued_jobs/?user=tester&queue=test_queue4",
         )
 
         assert response.status_code == 200
-        assert len(response.json) == 2
+        assert len(response.json) == 3
         assert response.json[0]["user"] == "tester"
         assert response.json[1]["user"] == "tester"
