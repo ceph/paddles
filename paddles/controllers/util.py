@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy.orm import Query
+from sqlalchemy.sql.selectable import Select
 
 
-def offset_query(query, page_size, page) -> Query:
+def offset_query(query, page_size, page) -> Select:
     count = int(page_size)
     page = int(page)
     if page > 1:

@@ -1,38 +1,34 @@
 import concurrent.futures
 import json
+import pytest
 import random
 import threading
 import time
 from datetime import datetime
 from queue import Queue
 
-import pytest
 import requests
-
-base_uri = "http://localhost:8080"
 
 
 class TestJobsControllerRace(object):
-    def setup_class(cls):
+    @pytest.fixture()
+    def create_run(self, paddles_server_url):
         try:
-            assert requests.get(base_uri + "/runs/").ok
+            assert requests.get(paddles_server_url + "/runs/").ok
+            self.run = "test-jobs-" + datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
+            resp = requests.post(
+                paddles_server_url + "/runs/",
+                data=json.dumps(dict(name=self.run)),
+                headers={"content-type": "application/json"},
+            )
+            resp.raise_for_status()
+            yield
         except Exception:
             pytest.skip("Cannot find paddles server; skipping")
-
-    def setup_method(self, meth):
-        self.run = "test-jobs-" + datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        resp = requests.post(
-            base_uri + "/runs/",
-            data=json.dumps(dict(name=self.run)),
-            headers={"content-type": "application/json"},
-        )
+        resp = requests.delete(paddles_server_url + "/runs/" + self.run + "/")
         resp.raise_for_status()
 
-    def teardown_method(self, meth):
-        resp = requests.delete(base_uri + "/runs/" + self.run + "/")
-        resp.raise_for_status()
-
-    def test_job_create_threaded(self):
+    def test_job_create_threaded(self, paddles_server_url, create_run):
         def job_update(job_id, status):
             job_data_minimal = dict(
                 job_id=job_id,
@@ -46,7 +42,7 @@ class TestJobsControllerRace(object):
                 os_version="ver",
             )
             headers = {"content-type": "application/json"}
-            run_uri = base_uri + "/runs/" + self.run + "/jobs/"
+            run_uri = paddles_server_url + "/runs/" + self.run + "/jobs/"
 
             created = False
             attempts = 1
@@ -120,7 +116,7 @@ class TestJobsControllerRace(object):
         # check for duplicate rows by looking at status in at the run
         # and job level - this can be different when there are
         # duplicate rows created due to a race
-        resp = requests.get(base_uri + "/runs/" + self.run + "/jobs/")
+        resp = requests.get(paddles_server_url + "/runs/" + self.run + "/jobs/")
         assert resp.status_code == 200
         jobs = resp.json()
         assert len(jobs) == len(job_ids)
@@ -129,7 +125,7 @@ class TestJobsControllerRace(object):
             job_status_in_run = job["status"]
             assert job_status_in_run == "running", f"{job_id=} status incorrect"
             job_resp = requests.get(
-                base_uri + "/runs/" + self.run + "/jobs/" + str(job_id) + "/"
+                paddles_server_url + "/runs/" + self.run + "/jobs/" + str(job_id) + "/"
             )
             assert job_resp.status_code == 200
             print(f"{job_id=} {job_resp.json()['status']}")

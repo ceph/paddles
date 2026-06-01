@@ -17,16 +17,17 @@ date_format = "%Y-%m-%d"
 def error(url, msg=None):
     if msg:
         request.context["error_message"] = msg
-    url = path.join(url, "?error_message=%s" % msg)
+        url = path.join(url, "?error_message=%s" % msg)
     redirect(url, internal=True)
 
 
 @retryOperation
 def create_run(name) -> paddles.models.Run:
+    session = request.session
     log.info("Creating run: %s", name)
-    with paddles.models.Session.no_autoflush:
+    with session.no_autoflush:
         run = paddles.models.Run(name)
-        paddles.models.Session.add(run)
+        session.add(run)
         return run
 
 

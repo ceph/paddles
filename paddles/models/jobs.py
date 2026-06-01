@@ -21,6 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     LoaderCallableStatus,
     Mapped,
+    Session,
     deferred,
     load_only,
     mapped_column,
@@ -29,7 +30,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 
-from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base, Session
+from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
 from paddles.util import local_datetime_to_utc
@@ -246,23 +247,24 @@ def updated_cb(target: Job, value: datetime, oldvalue, initiator, retval=True):
             target.run.updated = value
     return value
 
-
-@event.listens_for(Job.targets, "set")
-def targets_cb(target: Job, value, oldvalue, initiator):
-    if oldvalue == value:
-        return
-    for name in value.keys():
-        name = name.split("@")[-1]
-        node_query = (
-            select(Node).options(load_only(Node.id, Node.name)).where(Node.name == name)
-        )
-        try:
-            node = Session.scalars(node_query).one()
-        except NoResultFound:
-            node = Node(name=name, machine_type=target.machine_type)
-            Session.add(node)
-        if node not in target.target_nodes:
-            target.target_nodes.append(node)
+@event.listens_for(Session, "before_flush")
+def before_flush(session, flush_context, instances):
+    for obj in session.new:
+        if isinstance(obj, Job):
+            if not obj.targets:
+                continue
+            for key in obj.targets:
+                node_name = key.split("@")[-1]
+                node_query = (
+                    select(Node).options(load_only(Node.id, Node.name)).where(Node.name == node_name)
+                )
+                try:
+                    node = session.scalars(node_query).one()
+                except NoResultFound:
+                    node = Node(name=node_name, machine_type=obj.machine_type)
+                    session.add(node)
+                if node not in obj.target_nodes:
+                    obj.target_nodes.append(node)
 
 
 @event.listens_for(Job, "init")

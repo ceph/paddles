@@ -1,44 +1,41 @@
-import json
 import time
 
-from paddles.tests import TestApp
 
-
-class TestQueueController(TestApp):
-    def test_get_root(self):
-        response = self.app.get("/")
+class TestQueueController:
+    def test_get_root(self, app):
+        response = app.get("/")
         assert response.status_int == 200
 
-    def test_create_queue(self):
-        response = self.app.post_json("/queue/", dict(queue="test_queue"))
+    def test_create_queue(self, app):
+        response = app.post_json("/queue/", dict(queue="test_queue"))
         assert response.status_code == 200
 
-    def test_create_existing_queue(self):
-        self.app.post_json("/queue/", dict(queue="test_queue"))
-        response = self.app.post_json(
+    def test_create_existing_queue(self, app):
+        app.post_json("/queue/", dict(queue="test_queue"))
+        response = app.post_json(
             "/queue/", dict(queue="test_queue"), expect_errors=True
         )
         assert response.status_code == 400
 
-    def test_get_queue(self):
-        self.app.post_json("/queue/", dict(queue="test_queue"))
-        response = self.app.get("/queue/")
+    def test_get_queue(self, app):
+        app.post_json("/queue/", dict(queue="test_queue"))
+        response = app.get("/queue/")
         assert len(response.json) == 1
         assert response.json[0]["queue"] == "test_queue"
         assert response.status_code == 200
 
-    def test_fail_create_queue(self):
-        response = self.app.post_json("/queue/", expect_errors=True)
+    def test_fail_create_queue(self, app):
+        response = app.post_json("/queue/", expect_errors=True)
         assert response.status_code == 400
 
-    def test_priority_queue(self, job_conf_no_id):
+    def test_priority_queue(self, app, job_conf_no_id):
         """
         Add 2 jobs with different priorities
         Check if popping the queue returns the higher priority job
         """
-        self.app.post_json("/queue/", dict(queue="test_queue"))
-        self.app.post_json("/runs/", dict(name="testrun"))
-        response = self.app.post_json(
+        app.post_json("/queue/", dict(queue="test_queue"))
+        app.post_json("/runs/", dict(name="testrun"))
+        response = app.post_json(
             "/runs/testrun/jobs/",
             job_conf_no_id
             | dict(
@@ -49,7 +46,7 @@ class TestQueueController(TestApp):
             ),
         )
         assert response.json["job_id"] is not None
-        self.app.post_json(
+        app.post_json(
             "/runs/testrun/jobs/",
             job_conf_no_id
             | dict(
@@ -60,13 +57,13 @@ class TestQueueController(TestApp):
             ),
         )
 
-        top_job = self.app.get("/queue/pop_queue?queue=test_queue")
+        top_job = app.get("/queue/pop_queue?queue=test_queue")
         assert response.json["job_id"] == top_job.json["job_id"]
 
-    def test_queue_stats(self, job_conf_no_id):
-        self.app.post_json("/queue/", dict(queue="test_queue2"))
-        self.app.post_json("/runs/", dict(name="testrun2"))
-        self.app.post_json(
+    def test_queue_stats(self, app, job_conf_no_id):
+        app.post_json("/queue/", dict(queue="test_queue2"))
+        app.post_json("/runs/", dict(name="testrun2"))
+        app.post_json(
             "/runs/testrun2/jobs/",
             job_conf_no_id
             | dict(
@@ -77,13 +74,13 @@ class TestQueueController(TestApp):
             ),
         )
 
-        response = self.app.post_json("/queue/stats/", dict(queue="test_queue2"))
+        response = app.post_json("/queue/stats/", dict(queue="test_queue2"))
         assert response.json["queued_jobs"] == 1
 
-    def test_pause_queue(self):
-        self.app.post_json("/queue/", dict(queue="test_queue3"))
+    def test_pause_queue(self, app):
+        app.post_json("/queue/", dict(queue="test_queue3"))
         pause_duration = 0.05
-        response = self.app.put_json(
+        response = app.put_json(
             "/queue/",
             dict(
                 queue="test_queue3",
@@ -92,19 +89,19 @@ class TestQueueController(TestApp):
             ),
         )
         assert response.status_code == 200
-        response = self.app.get("/queue/?machine_type=test_queue3")
+        response = app.get("/queue/?machine_type=test_queue3")
         assert response.json[0]["paused"] is True
         time.sleep(pause_duration / 2)
-        response = self.app.get("/queue/?machine_type=test_queue3")
+        response = app.get("/queue/?machine_type=test_queue3")
         assert response.json[0]["paused"] is True
         time.sleep(pause_duration / 2)
-        response = self.app.get("/queue/?machine_type=test_queue3")
+        response = app.get("/queue/?machine_type=test_queue3")
         assert response.json[0]["paused"] is False
 
-    def test_get_queued_jobs(self, job_conf_no_id):
-        self.app.post_json("/queue/", dict(queue="test_queue4"))
-        self.app.post_json("/runs/", dict(name="testrun4"))
-        self.app.post_json(
+    def test_get_queued_jobs(self, app, job_conf_no_id):
+        app.post_json("/queue/", dict(queue="test_queue4"))
+        app.post_json("/runs/", dict(name="testrun4"))
+        app.post_json(
             "/runs/testrun4/jobs/",
             job_conf_no_id
             | dict(
@@ -115,7 +112,7 @@ class TestQueueController(TestApp):
                 user="tester",
             ),
         )
-        self.app.post_json(
+        app.post_json(
             "/runs/testrun4/jobs/",
             job_conf_no_id
             | dict(
@@ -126,7 +123,7 @@ class TestQueueController(TestApp):
                 user="tester",
             ),
         )
-        self.app.post_json(
+        app.post_json(
             "/runs/testrun4/jobs/",
             job_conf_no_id
             | dict(
@@ -137,7 +134,7 @@ class TestQueueController(TestApp):
             ),
         )
 
-        response = self.app.get(
+        response = app.get(
             "/queue/queued_jobs/?user=tester&queue=test_queue4",
         )
 

@@ -1,6 +1,7 @@
 ## 2.x
 import logging
 from datetime import datetime, timezone
+from pecan import request
 from typing import TYPE_CHECKING, List, Optional
 
 # pre 2.x
@@ -13,9 +14,13 @@ from sqlalchemy import (
     String,
     Text,
     select,
-    update,
+    # update,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from paddles.decorators import retryOperation
@@ -24,7 +29,7 @@ from paddles.exceptions import (
     InvalidRequestError,
     ResourceUnavailableError,
 )
-from paddles.models import Base, Session, commit
+from paddles.models import Base
 
 from .job_nodes import job_nodes_table
 
@@ -136,11 +141,11 @@ class Node(Base):
 
         for k, v in values.items():
             if k in self.allowed_update_keys:
-                if k == "vm_host":
-                    vm_host_name = v
-                    v = Session.scalars(
-                        select(Node).where(Node.name == vm_host_name)
-                    ).one()
+                # if k == "vm_host":
+                #     vm_host_name = v
+                #     v = self.session.scalars(
+                #         select(Node).where(Node.name == vm_host_name)
+                #     ).one()
                 setattr(self, k, v)
 
         if "locked" in values:
@@ -148,7 +153,7 @@ class Node(Base):
                 self.locked_since = datetime.now(timezone.utc) if self.locked else None
             if not self.locked:
                 self.locked_by = None
-        Session.flush()
+        # self.session.flush()
 
     def _check_for_update(self, values):
         """
@@ -197,6 +202,7 @@ class Node(Base):
         os_version=None,
         arch=None,
     ):
+        session = request.session
         update_dict = dict(
             locked=True,
             locked_by=locked_by,
@@ -204,7 +210,7 @@ class Node(Base):
             description=description,
         )
 
-        query = select(Node.id)
+        query = select(Node)
         if "|" in machine_type:
             machine_types = machine_type.split("|")
             query = query.filter(Node.machine_type.in_(machine_types))
@@ -219,25 +225,18 @@ class Node(Base):
 
         query = query.filter(Node.up.is_(True))
         query = query.filter(Node.locked.is_(False))
+        query = query.order_by(Node.id)
         query = query.limit(count)
         query = query.with_for_update()
-        log.info(f"{Session.execute(query).scalars().all()=}")
-        stmt = (
-            update(Node)
-            .returning(Node)
-            .values(**update_dict)
-            .where(Node.id.in_(query.scalar_subquery()))
-        )
-        res = Session.execute(stmt).freeze()
-
-        nodes = [r for r in res().scalars().all()]
+        nodes = [n for n in session.execute(query).scalars().all()]
+        log.info(f"before update: {nodes=}")
         if (nodes_avail := len(nodes)) < count:
-            Session.rollback()
             raise ResourceUnavailableError(
                 "only {count} nodes available".format(count=nodes_avail)
             )
-        else:
-            commit()
+        for node in nodes:
+            node.update(update_dict)
+        log.info(f"after update: {nodes=}")
         log.info(f"locked {nodes=}")
         return nodes
 

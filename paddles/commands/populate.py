@@ -1,7 +1,7 @@
-from __future__ import print_function
+from pecan import configuration
 from pecan.commands.base import BaseCommand
 
-from paddles import models
+from paddles import db, models
 
 
 def out(string):
@@ -15,17 +15,19 @@ class PopulateCommand(BaseCommand):
 
     def run(self, args):
         super(PopulateCommand, self).run(args)
+        config = configuration.conf_from_file(args.config_file).to_dict()
+        engine = db.get_engine(config["sqlalchemy"]["url"])
+        session = db.get_session(engine)
         out("LOADING ENVIRONMENT")
         self.load_app()
         out("BUILDING SCHEMA")
         try:
             out("STARTING A TRANSACTION...")
-            models.start()
-            models.Base.metadata.create_all(models.engine)
+            models.Base.metadata.create_all(engine)
         except:
-            models.rollback()
+            session.rollback()
             out("ROLLING BACK... ")
             raise
         else:
             out("COMMITING... ")
-            models.commit()
+            session.commit()

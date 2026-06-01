@@ -7,20 +7,21 @@ from paddles.controllers import create_run, date_format, date_from_string, error
 from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.decorators import retryOperation
-from paddles.models import Job, Run, Session, rollback
+from paddles.models import Job, Run
 
 log = logging.getLogger(__name__)
 
 
 def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1):
+    session = request.session
     query = select(Run).order_by(Run.posted.desc())
     query = offset_query(query, page_size=count, page=page)
-    runs = Session.scalars(query).all()
+    runs = session.scalars(query).all()
     if fields:
         try:
             return [run.slice(fields) for run in runs]
         except AttributeError:
-            rollback()
+            session.rollback()
             error("/errors/invalid/", "an invalid field was specified")
     return runs
 
@@ -33,7 +34,7 @@ class RunController(object):
 
     # @retryOperation(exceptions=(OperationalError, InvalidRequestError))
     def _find_run(self, name):
-        return Session.scalars(select(Run).filter_by(name=name)).first()
+        return request.session.scalars(select(Run).filter_by(name=name)).first()
 
     @expose(generic=True, template="json")
     @retryOperation
@@ -49,7 +50,8 @@ class RunController(object):
         if not self.run:
             error("/errors/not_found/", "attempted to delete a non-existent run")
         log.info("Deleting run: %r", self.run)
-        Session.delete(self.run)
+        request.session.delete(self.run)
+        request.session.commit()
         return dict()
 
     jobs = JobsController()
@@ -71,7 +73,7 @@ class RunFilterIndexController(object):
     @retryOperation
     def index(self):
         query = request.context.get("query", select(Run))
-        return sorted(list(Session.scalars(self.get_subquery(query))))
+        return sorted(list(request.session.scalars(self.get_subquery(query))))
 
     @expose("json")
     def _lookup(self, value, *remainder):
@@ -155,7 +157,7 @@ class RunFilterController(object):
             since = date_from_string(since, out_fmt=date_format)[0]
             query = query.filter(Run.scheduled > since)
         query = query.order_by(Run.scheduled.desc())
-        return list(Session.scalars(offset_query(query, count, page)))
+        return list(request.session.scalars(offset_query(query, count, page)))
 
     def get_lookup_controller(self, field: str):
         raise NotImplementedError
@@ -199,7 +201,7 @@ class DateController(RunFilterController):
     @expose("json")
     def index(self, count=conf.default_latest_runs_count, page=1):
         query = request.context["query"].order_by(Run.scheduled.desc())
-        return list(Session.scalars(offset_query(query, count, page)))
+        return list(request.session.scalars(offset_query(query, count, page)))
 
     def get_lookup_controller(self, field: str):
         if field == "branch":
@@ -338,20 +340,20 @@ class DateRangeController(object):
         request.context["query"] = base_query.filter(
             Run.scheduled.between(self.from_date, self.to_date)
         )
-        return Session.scalars(request.context["query"]).all()
+        return request.session.scalars(request.context["query"]).all()
 
 
 class QueuedRunsController(object):
     @expose("json")
     def index(self):
         query = (
-            Session.query(Run)
+            select(Run)
             .join(Job)
-            .filter(Job.status == "queued")
+            .where(Job.status == "queued")
             .group_by(Run)
             .order_by(Run.scheduled)
         )
-        return query.all()
+        return request.session.scalars(query).all()
 
 
 class Sha1sController(RunFilterIndexController):
@@ -391,15 +393,17 @@ class RunsController(object):
     @index.when(method="POST", template="json")
     def index_post(self):
         # save to DB here
+        session = request.session
         try:
             name = request.json.get("name")
         except ValueError:
-            rollback()
+            session.rollback()
             error("/errors/invalid/", "could not decode JSON body")
         if not name:
             error("/errors/invalid/", "could not find required key: 'name'")
-        if not Session.scalars(select(Run).filter_by(name=name)).first():
+        if not request.session.scalars(select(Run).filter_by(name=name)).first():
             create_run(name)
+            request.session.commit()
             return dict()
         else:
             error("/errors/invalid/", "run with name %s already exists" % name)
@@ -407,10 +411,11 @@ class RunsController(object):
     @classmethod
     @retryOperation
     def _create_run(cls, name):
+        session = request.session
         log.info("Creating run: %s", name)
-        with Session.no_autoflush:
+        with session.no_autoflush:
             run = Run(name)
-            Session.add(run)
+            session.add(run)
             return run
 
     branch = BranchesController()

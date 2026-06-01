@@ -34,21 +34,21 @@ def machine_type():
 
 
 @pytest.fixture
-def test_nodes(node_names, machine_type, paddles_server):
+def nodes(node_names, machine_type, paddles_server_url):
     for name in node_names:
         response = requests.post(
-            f"{paddles_server}/nodes/",
+            f"{paddles_server_url}/nodes/",
             json.dumps(
                 dict(name=name, machine_type=machine_type, up=True, locked=False)
             ),
         )
         assert response.ok, f"{response.status_code} {response.text}"
-    assert len(requests.get(f"{paddles_server}/nodes/").json()) == len(node_names)
+    assert len(requests.get(f"{paddles_server_url}/nodes/").json()) == len(node_names)
     yield
     for name in node_names:
-        response = requests.delete(f"{paddles_server}/nodes/{name}/")
+        response = requests.delete(f"{paddles_server_url}/nodes/{name}/")
         assert response.ok, f"{response.status_code} {response.text}"
-    assert requests.get(f"{paddles_server}/nodes/").json() == []
+    assert requests.get(f"{paddles_server_url}/nodes/").json() == []
 
 
 class TestNodesLockingRace(object):
@@ -59,12 +59,12 @@ class TestNodesLockingRace(object):
     @pytest.mark.asyncio
     async def test_node_lock_race_async(
         self,
-        paddles_server,
+        paddles_server_url,
         user_count,
         user_names,
         machine_type,
         node_count,
-        test_nodes,
+        nodes,
     ):
         attempts_remaining = {user: self.attempts_per_user for user in user_names}
         requests_ = []
@@ -72,7 +72,7 @@ class TestNodesLockingRace(object):
             while sum(attempts_remaining.values()):
                 for user in attempts_remaining.keys():
                     request = client.post(
-                        f"{paddles_server}/nodes/lock_many/",
+                        f"{paddles_server_url}/nodes/lock_many/",
                         json=dict(
                             count=self.nodes_per_attempt,
                             machine_type=machine_type,
@@ -84,16 +84,27 @@ class TestNodesLockingRace(object):
                     attempts_remaining[user] -= 1
             responses = await asyncio.gather(*requests_)
 
+        statuses = [r.status_code for r in responses]
         expected_successes = min(
             (node_count / self.nodes_per_attempt),
             (user_count * self.attempts_per_user),
         )
-        assert (
-            len([resp for resp in responses if resp.status_code == 200])
-            == expected_successes
-        )
+        assert statuses.count(200) == expected_successes
+        assert statuses.count(503) == user_count * self.attempts_per_user - expected_successes
+        assert statuses.count(500) == 0
+        seen = set()
+        for resp in responses:
+            if resp.status_code != 200:
+                continue
+            for node in resp.json():
+                assert node["name"] not in seen, node["name"]
+                seen.add(node["name"])
+        assert len(seen) == node_count
+        for resp in responses:
+            if resp.status_code == 200:
+                assert len(resp.json()) == self.nodes_per_attempt
 
-        response = requests.get(f"{paddles_server}/nodes/")
+        response = requests.get(f"{paddles_server_url}/nodes/")
         assert response.ok
         nodes = response.json()
         assert len(nodes) == node_count
@@ -101,11 +112,11 @@ class TestNodesLockingRace(object):
             assert node["locked"] is True, f"{node['name']} not locked as expected"
 
     def test_node_lock_race_threaded(
-        self, paddles_server, user_names, machine_type, node_count, test_nodes
+        self, paddles_server_url, user_names, machine_type, node_count, nodes
     ):
         def lock_attempt(user, count):
             response = requests.post(
-                f"{paddles_server}/nodes/lock_many/",
+                f"{paddles_server_url}/nodes/lock_many/",
                 json.dumps(
                     dict(
                         count=count,
@@ -136,7 +147,7 @@ class TestNodesLockingRace(object):
         threading.Thread(target=worker, daemon=True).start()
 
         in_queue.join()
-        response = requests.get(f"{paddles_server}/nodes/")
+        response = requests.get(f"{paddles_server_url}/nodes/")
         assert response.ok
         nodes = response.json()
         assert len(nodes) == node_count
@@ -148,13 +159,13 @@ class TestNodesLockingRace(object):
 
 class TestNodesControllerNew(object):
     def test_lock_many_threaded(
-        self, paddles_server, user_names, machine_type, node_count, test_nodes
+        self, paddles_server_url, user_names, machine_type, node_count, nodes
     ):
         num_per_attempt = node_count
 
         def lock_attempt(user, queue):
             response = requests.post(
-                f"{paddles_server}/nodes/lock_many/",
+                f"{paddles_server_url}/nodes/lock_many/",
                 json.dumps(
                     dict(
                         count=num_per_attempt,
@@ -184,7 +195,7 @@ class TestNodesControllerNew(object):
         should_succeed = min(len(user_names), int(node_count / num_per_attempt))
         assert statuses.count(200) == should_succeed
         got_nodes = requests.get(
-            f"{paddles_server}/nodes/?machine_type={machine_type}"
+            f"{paddles_server_url}/nodes/?machine_type={machine_type}"
         ).json()
         statuses = [node["locked"] for node in got_nodes]
         print(statuses)

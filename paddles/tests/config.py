@@ -24,7 +24,7 @@ app = {
 }
 
 sqlalchemy = {
-    'url': 'sqlite:////tmp/test.db',
+    # 'url': 'sqlite:////tmp/test.db',
     #'url': 'postgresql+psycopg2://paddles:paddles@localhost/',
     'echo':         True,
     'echo_pool':    True,
