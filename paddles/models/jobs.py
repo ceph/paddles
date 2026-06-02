@@ -45,7 +45,7 @@ log = logging.getLogger(__name__)
 
 class Job(Base):
     __tablename__ = "jobs"
-    __table_args__ = (UniqueConstraint("run_id", "job_id"),)
+    __table_args__ = (UniqueConstraint("run_id", "job_id", name="uq_jobs_run_id_job_id"),)
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     posted: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=True)
     started: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=True)
