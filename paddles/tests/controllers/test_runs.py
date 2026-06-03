@@ -251,20 +251,20 @@ class TestRunController(TestApp):
         response = self.app.get('/runs/')
         assert sorted(response.json[0]['tags']) == ['reef', 'squid']
 
-    def test_filter_by_tag_query_param(self):
+    def test_filter_by_tags_query_param(self):
         self.app.post_json('/runs/', dict(name="run_a", tags=["reef"]))
         self.app.post_json('/runs/', dict(name="run_b", tags=["squid"]))
         self.app.post_json('/runs/', dict(name="run_c"))
-        response = self.app.get('/runs/?tag=reef')
+        response = self.app.get('/runs/?tags=reef')
         assert len(response.json) == 1
         assert response.json[0]['name'] == 'run_a'
 
-    def test_filter_by_tag_query_param_multi(self):
+    def test_filter_by_tags_query_param_multi(self):
         self.app.post_json('/runs/', dict(name="run_a",
                                           tags=["reef", "squid"]))
         self.app.post_json('/runs/', dict(name="run_b", tags=["squid"]))
         self.app.post_json('/runs/', dict(name="run_c", tags=["tentacle"]))
-        response = self.app.get('/runs/?tag=squid')
+        response = self.app.get('/runs/?tags=squid')
         assert len(response.json) == 2
         got_names = sorted(r['name'] for r in response.json)
         assert got_names == ['run_a', 'run_b']
@@ -274,9 +274,15 @@ class TestRunController(TestApp):
                                           tags=["reef", "squid"]))
         self.app.post_json('/runs/', dict(name="run_b", tags=["squid"]))
         self.app.post_json('/runs/', dict(name="run_c", tags=["tentacle"]))
-        response = self.app.get('/runs/?tag=reef,squid')
+        response = self.app.get('/runs/?tags=reef,squid')
         assert len(response.json) == 1
         assert response.json[0]['name'] == 'run_a'
+
+    def test_filter_by_tags_no_substring_false_positive(self):
+        self.app.post_json('/runs/', dict(name="run_abc", tags=["abc"]))
+        self.app.post_json('/runs/', dict(name="run_xyz", tags=["xyz"]))
+        response = self.app.get('/runs/?tags=bc')
+        assert response.json == []
 
     def test_filter_by_tag_url_path(self):
         self.app.post_json('/runs/', dict(name="run_a", tags=["reef"]))

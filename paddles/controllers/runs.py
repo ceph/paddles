@@ -1,6 +1,6 @@
 import logging
 import datetime
-from sqlalchemy import Date, cast, UnicodeText
+from sqlalchemy import Date, cast, or_, UnicodeText
 from sqlalchemy.exc import InvalidRequestError, OperationalError
 
 from pecan import abort, conf, expose, request
@@ -15,16 +15,43 @@ log = logging.getLogger(__name__)
 date_format = '%Y-%m-%d'
 
 
-def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1, tag=None):
+def run_tags_text_has_element(tags_text, tag):
+    """
+    Match one tag in JSON-serialized Run.tags (json.dumps output).
+
+    Plain contains('"bc"') would match inside '"abc"'. We match json.dumps
+    array element boundaries instead (e.g. '["reef", "squid"]').
+    """
+    tag = tag.strip()
+    if not tag:
+        return True
+    quoted = '"%s"' % tag.replace('"', '')
+    return or_(
+        tags_text.contains('[%s,' % quoted),
+        tags_text.contains(', %s,' % quoted),
+        tags_text.contains(', %s]' % quoted),
+        tags_text.contains('[%s]' % quoted),
+    )
+
+
+def filter_query_by_tags(query, tags_param):
+    """
+    Filter runs that contain all comma-separated tags in tags_param.
+
+    tags_param is the ?tags= query string value.
+    """
+    tags_text = cast(Run.tags, UnicodeText)
+    for t in tags_param.split(','):
+        t = t.strip()
+        if t:
+            query = query.filter(run_tags_text_has_element(tags_text, t))
+    return query
+
+
+def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1, tags=None):
     query = Run.query
-    if tag:
-        # JSONType uses process_bind_param (json.dumps) for bind params and
-        # process_result_value (json.loads) when reading rows. The read path
-        # is fine; the filter RHS here is a bind param, so it would be
-        # JSON-encoded unless we compare as plain text:
-        tags_text = cast(Run.tags, UnicodeText)
-        for t in tag.split(','):
-            query = query.filter(tags_text.contains('"%s"' % t.strip()))
+    if tags:
+        query = filter_query_by_tags(query, tags)
     query = query.order_by(Run.posted.desc())
     query = offset_query(query, page_size=count, page=page)
     runs = list(query)
@@ -361,10 +388,8 @@ class SuiteController(RunFilterController):
 
 class TagController(RunFilterController):
     def get_subquery(self, query):
-        # Same as latest_runs: compare as UnicodeText so the filter bind param
-        # is not run through JSONType.process_bind_param (json.dumps).
-        return query.filter(
-            cast(Run.tags, UnicodeText).contains('"%s"' % self.value))
+        tags_text = cast(Run.tags, UnicodeText)
+        return query.filter(run_tags_text_has_element(tags_text, self.value))
 
     def get_lookup_controller(self, field):
         if field == 'branch':
@@ -492,8 +517,9 @@ class Sha1Controller(RunFilterController):
 
 class RunsController(object):
     @expose(generic=True, template='json')
-    def index(self, fields='', count=conf.default_latest_runs_count, page=1, tag=None):
-        return latest_runs(fields=fields, count=count, page=page, tag=tag)
+    def index(self, fields='', count=conf.default_latest_runs_count, page=1,
+              tags=None):
+        return latest_runs(fields=fields, count=count, page=page, tags=tags)
 
     @index.when(method='POST', template='json')
     def index_post(self):
