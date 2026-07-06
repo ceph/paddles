@@ -2,7 +2,7 @@ import logging
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 
-from pecan import abort, expose, request
+from pecan import expose, request
 from sqlalchemy import func, select
 from sqlalchemy.exc import InvalidRequestError, OperationalError
 from sqlalchemy.orm import aliased, load_only
@@ -10,7 +10,6 @@ from sqlalchemy.orm import aliased, load_only
 from paddles.controllers import error
 from paddles.controllers.util import offset_query
 from paddles.decorators import retryOperation
-from paddles.exceptions import PaddlesError
 from paddles.models import Job, Node
 from paddles.models.job_nodes import job_nodes_table
 from paddles.util import coerce_bool
@@ -83,10 +82,7 @@ class NodesController(object):
             error("/errors/invalid/", "Node with name %s already exists" % name)
         else:
             self.node = Node(name=name)
-            try:
-                self.node.update(data)
-            except PaddlesError as exc:
-                error(exc.url, str(exc))
+            self.node.update(data)
             session.add(self.node)
             session.commit()
             log.info(
@@ -156,10 +152,6 @@ class NodesController(object):
                 )
                 request.session.commit()
                 return result
-            except PaddlesError as exc:
-                error(exc.url, str(exc))
-                raise
-                # request.session.rollback()
             except (OperationalError, InvalidRequestError):
                 attempts -= 1
                 request.session.rollback()
@@ -338,19 +330,16 @@ class NodeController(object):
                 verb=_verb, node=node_obj, locked_by=locked_by, desc_str=desc_str
             )
         )
-        try:
-            node_obj.update(node_dict)
-            request.session.commit()
-            log.info(
-                "{verb}ed {node} for {locked_by}{desc_str}".format(
-                    verb=_verb,
-                    node=node_obj,
-                    locked_by=locked_by,
-                    desc_str=desc_str,
-                )
+        node_obj.update(node_dict)
+        request.session.commit()
+        log.info(
+            "{verb}ed {node} for {locked_by}{desc_str}".format(
+                verb=_verb,
+                node=node_obj,
+                locked_by=locked_by,
+                desc_str=desc_str,
             )
-        except PaddlesError as exc:
-            error(exc.url, str(exc))
+        )
         return dict(
             name=node_obj.name,
             locked=node_obj.locked,
@@ -362,7 +351,7 @@ class NodeController(object):
     @expose("json")
     def jobs(self, name="", status="", count=0, page=1):
         if not self.node:
-            abort(404)
+            error("/errors/not_found/", "node not found")
         jobs = (
             select(Job)
             .where(Job.target_nodes.contains(self.node))
@@ -379,7 +368,7 @@ class NodeController(object):
     @expose("json")
     def job_stats(self):
         if not self.node:
-            abort(404)
+            error("/errors/not_found/", "node not found")
         all_jobs = (
             select(func.count())
             .select_from(Job)

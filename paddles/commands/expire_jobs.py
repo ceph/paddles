@@ -4,7 +4,7 @@ from pecan.commands.base import BaseCommand
 from paddles import models
 from paddles.models import Job
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 class ExpireJobsCommand(BaseCommand):
@@ -59,14 +59,14 @@ class ExpireJobsCommand(BaseCommand):
 
     def expire_running(self):
         delta = self.running_delta
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         running = Job.query.filter(Job.status.in_(['running', 'waiting', 'unknown']))
         to_expire = running.filter(~Job.updated.between(now - delta, now))
         self._do_expire(to_expire, 'running')
 
     def expire_queued(self):
         delta = self.queued_delta
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         queued = Job.query.filter(Job.status == 'queued')
         to_expire = queued.filter(~Job.updated.between(now - delta, now))
         self._do_expire(to_expire, 'queued')

@@ -4,7 +4,6 @@ from pecan import expose, request
 from sqlalchemy import select
 
 from paddles.controllers import error
-from paddles.exceptions import PaddlesError
 from paddles.models import Job, Queue, Run
 
 log = logging.getLogger(__name__)
@@ -41,10 +40,7 @@ class QueuesController(object):
             error("/errors/invalid/", "Queue %s already exists" % queue_name)
         else:
             self.queue = Queue(queue=queue_name)
-            try:
-                self.queue.update(data)
-            except PaddlesError as exc:
-                error(exc.url, str(exc))
+            self.queue.update(data)
             session.add(self.queue)
             log.info(
                 "Created {queue}: {data}".format(
@@ -69,10 +65,7 @@ class QueuesController(object):
         queue = request.session.scalars(select(Queue).filter_by(queue=queue_name)).first()
         if queue:
             self.queue = queue
-            try:
-                self.queue.update(data)
-            except PaddlesError as exc:
-                error(exc.url, str(exc))
+            self.queue.update(data)
             log.info(
                 "Updated {queue}: {data}".format(
                     queue=self.queue,

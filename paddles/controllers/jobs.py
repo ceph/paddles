@@ -1,7 +1,7 @@
 import logging
 
 import psycopg.errors
-from pecan import abort, expose, request
+from pecan import expose, request
 from sqlalchemy import desc, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import load_only
@@ -48,7 +48,7 @@ class JobController(object):
     @expose(generic=True, template="json")
     def index(self):
         if not self.job:
-            abort(404)
+            error("/errors/not_found/", "job not found")
         return self.job
 
     @index.when(method="PUT", template="json")
