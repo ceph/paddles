@@ -1,6 +1,18 @@
 class PaddlesError(Exception):
     url = ""
 
+    def __init__(self, message=""):
+        super().__init__(message)
+
+
+class APIError(PaddlesError):
+    """Raised to redirect to a JSON errors endpoint."""
+
+    def __init__(self, url, message=None):
+        self.url = url
+        self.message = message
+        super().__init__(message or "")
+
 
 class InvalidRequestError(PaddlesError, ValueError):
     url = "/errors/invalid/"

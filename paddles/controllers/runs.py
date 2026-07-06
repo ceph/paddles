@@ -1,6 +1,6 @@
 import logging
 
-from pecan import abort, conf, expose, request
+from pecan import conf, expose, request
 from sqlalchemy import Date, cast, select
 
 from paddles.controllers import create_run, date_format, date_from_string, error
@@ -40,7 +40,7 @@ class RunController(object):
     @retryOperation
     def index(self):
         if not self.run:
-            abort(404)
+            error("/errors/not_found/", "run not found")
         json_run = self.run.__json__()
         json_run["jobs"] = self.run.get_jobs()
         return json_run

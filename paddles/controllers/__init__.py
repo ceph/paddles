@@ -1,10 +1,10 @@
 import datetime
-from os import path
 
-from pecan import redirect, request
+from pecan import request
 
 import paddles.models
 from paddles.decorators import retryOperation
+from paddles.exceptions import APIError
 from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT
 
 import logging  # isort: skip
@@ -15,10 +15,7 @@ date_format = "%Y-%m-%d"
 
 
 def error(url, msg=None):
-    if msg:
-        request.context["error_message"] = msg
-        url = path.join(url, "?error_message=%s" % msg)
-    redirect(url, internal=True)
+    raise APIError(url, msg)
 
 
 @retryOperation
