@@ -139,7 +139,29 @@ class StatusesController(RunFilterIndexController):
         return StatusController
 
 
+class Sha1sController(RunFilterIndexController):
+    def get_subquery(self, query):
+        return query.with_only_columns(Job.sha1)
+
+    def get_lookup_controller(self):
+        return Sha1Controller
+
+
+RUN_FILTER_INDEX_CONTROLLERS = {
+    "branch": BranchesController,
+    "date": DatesController,
+    "machine_type": MachineTypesController,
+    "sha1": Sha1sController,
+    "status": StatusesController,
+    "suite": SuitesController,
+    "user": UsersController,
+    "flavor": FlavorsController,
+}
+
+
 class RunFilterController(object):
+    exclude_lookup_field = None
+
     def __init__(self, value):
         self.value = value
         base_query = request.context.get("query", select(Run))
@@ -160,7 +182,12 @@ class RunFilterController(object):
         return list(request.session.scalars(offset_query(query, count, page)))
 
     def get_lookup_controller(self, field: str):
-        raise NotImplementedError
+        if field == self.exclude_lookup_field:
+            return None
+        controller_cls = RUN_FILTER_INDEX_CONTROLLERS.get(field)
+        if controller_cls is None:
+            return None
+        return controller_cls()
 
     @expose("json")
     def _lookup(self, field, *remainder):
@@ -168,27 +195,15 @@ class RunFilterController(object):
 
 
 class BranchController(RunFilterController):
+    exclude_lookup_field = "branch"
+
     def get_subquery(self, query):
         return query.filter(Run.branch == self.value)
 
-    def get_lookup_controller(self, field: str):
-        if field == "date":
-            return DatesController()
-        if field == "machine_type":
-            return MachineTypesController()
-        if field == "sha1":
-            return Sha1sController()
-        if field == "status":
-            return StatusesController()
-        if field == "suite":
-            return SuitesController()
-        if field == "user":
-            return UsersController()
-        if field == "flavor":
-            return FlavorsController()
-
 
 class DateController(RunFilterController):
+    exclude_lookup_field = "date"
+
     def get_subquery(self, query):
         (self.from_date, self.from_date_str) = date_from_string(
             self.value, hours="00:00:00"
@@ -203,126 +218,47 @@ class DateController(RunFilterController):
         query = request.context["query"].order_by(Run.scheduled.desc())
         return list(request.session.scalars(offset_query(query, count, page)))
 
-    def get_lookup_controller(self, field: str):
-        if field == "branch":
-            return BranchesController()
-        if field == "machine_type":
-            return MachineTypesController()
-        if field == "status":
-            return StatusesController()
-        if field == "sha1":
-            return Sha1sController()
-        if field == "suite":
-            return SuitesController()
-        if field == "user":
-            return UsersController()
-        if field == "flavor":
-            return FlavorsController()
-
 
 class MachineTypeController(RunFilterController):
+    exclude_lookup_field = "machine_type"
+
     def get_subquery(self, query):
         return query.filter(Run.machine_type == self.value)
 
-    def get_lookup_controller(self, field: str):
-        if field == "branch":
-            return BranchesController()
-        if field == "date":
-            return DatesController()
-        if field == "status":
-            return StatusesController()
-        if field == "sha1":
-            return Sha1sController()
-        if field == "suite":
-            return SuitesController()
-        if field == "user":
-            return UsersController()
-        if field == "flavor":
-            return FlavorsController()
-
 
 class StatusController(RunFilterController):
+    exclude_lookup_field = "status"
+
     def get_subquery(self, query):
         return query.filter(Run.status == self.value)
 
-    def get_lookup_controller(self, field: str):
-        if field == "branch":
-            return BranchesController()
-        if field == "date":
-            return DatesController()
-        if field == "machine_type":
-            return MachineTypesController()
-        if field == "sha1":
-            return Sha1sController()
-        if field == "suite":
-            return SuitesController()
-        if field == "user":
-            return UsersController()
-        if field == "flavor":
-            return FlavorsController()
-
 
 class SuiteController(RunFilterController):
+    exclude_lookup_field = "suite"
+
     def get_subquery(self, query):
         return query.filter(Run.suite == self.value)
 
-    def get_lookup_controller(self, field: str):
-        if field == "branch":
-            return BranchesController()
-        if field == "date":
-            return DatesController()
-        if field == "machine_type":
-            return MachineTypesController()
-        if field == "sha1":
-            return Sha1sController()
-        if field == "status":
-            return StatusesController()
-        if field == "user":
-            return UsersController()
-        if field == "flavor":
-            return FlavorsController()
-
 
 class UserController(RunFilterController):
+    exclude_lookup_field = "user"
+
     def get_subquery(self, query):
         return query.filter(Run.user == self.value)
 
-    def get_lookup_controller(self, field: str):
-        if field == "branch":
-            return BranchesController()
-        if field == "date":
-            return DatesController()
-        if field == "machine_type":
-            return MachineTypesController()
-        if field == "sha1":
-            return Sha1sController()
-        if field == "status":
-            return StatusesController()
-        if field == "suite":
-            return SuitesController()
-        if field == "flavor":
-            return FlavorsController()
-
 
 class FlavorController(RunFilterController):
+    exclude_lookup_field = "flavor"
+
     def get_subquery(self, query):
         return query.join(Job).filter(Job.flavor == self.value).group_by(Run)
 
-    def get_lookup_controller(self, field: str):
-        if field == "branch":
-            return BranchesController()
-        if field == "date":
-            return DatesController()
-        if field == "machine_type":
-            return MachineTypesController()
-        if field == "sha1":
-            return Sha1sController()
-        if field == "status":
-            return StatusesController()
-        if field == "suite":
-            return SuitesController()
-        if field == "user":
-            return UsersController()
+
+class Sha1Controller(RunFilterController):
+    exclude_lookup_field = "sha1"
+
+    def get_subquery(self, query):
+        return query.join(Job).filter(Job.sha1.startswith(self.value)).group_by(Run)
 
 
 class DateRangeController(object):
@@ -356,35 +292,6 @@ class QueuedRunsController(object):
         return request.session.scalars(query).all()
 
 
-class Sha1sController(RunFilterIndexController):
-    def get_subquery(self, query):
-        return query.with_only_columns(Job.sha1)
-
-    def get_lookup_controller(self):
-        return Sha1Controller
-
-
-class Sha1Controller(RunFilterController):
-    def get_subquery(self, query):
-        return query.join(Job).filter(Job.sha1.startswith(self.value)).group_by(Run)
-
-    def get_lookup_controller(self, field: str):
-        if field == "branch":
-            return BranchesController()
-        if field == "date":
-            return DatesController()
-        if field == "machine_type":
-            return MachineTypesController()
-        if field == "status":
-            return StatusesController()
-        if field == "suite":
-            return SuitesController()
-        if field == "user":
-            return UsersController()
-        if field == "flavor":
-            return FlavorsController()
-
-
 class RunsController(object):
     @expose(generic=True, template="json")
     def index(self, fields="", count=conf.default_latest_runs_count, page=1):
@@ -407,16 +314,6 @@ class RunsController(object):
             return dict()
         else:
             error("/errors/invalid/", "run with name %s already exists" % name)
-
-    @classmethod
-    @retryOperation
-    def _create_run(cls, name):
-        session = request.session
-        log.info("Creating run: %s", name)
-        with session.no_autoflush:
-            run = Run(name)
-            session.add(run)
-            return run
 
     branch = BranchesController()
 
