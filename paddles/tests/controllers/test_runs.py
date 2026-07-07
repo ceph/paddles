@@ -267,3 +267,27 @@ class TestRunControllerDateFilters:
         response = app.get("/runs/suite/nfs/branch/next/?since=2013-01-03")
         got_names = sorted(run["name"] for run in response.json)
         assert got_names == [self.day3_runs[1], self.day4_runs[1]]
+
+
+class TestRunControllerDateFiltersUTC:
+    def test_branch_and_since(self, app, monkeypatch):
+        import pytz
+
+        import paddles.util
+
+        monkeypatch.setattr(paddles.util, "localtz", pytz.UTC)
+
+        day3_runs = [
+            "teuthology-2013-01-03_00:00:00-rados-next-testing-basic-plana",
+            "teuthology-2013-01-03_00:00:01-nfs-next-testing-basic-plana",
+        ]
+        day4_runs = [
+            "teuthology-2013-01-04_00:00:00-rados-next-testing-basic-plana",
+            "teuthology-2013-01-04_00:00:01-nfs-next-testing-basic-plana",
+        ]
+        for run in day3_runs + day4_runs:
+            app.post_json("/runs/", dict(name=run))
+
+        response = app.get("/runs/branch/next/?since=2013-01-03")
+        got_names = sorted(run["name"] for run in response.json)
+        assert got_names == day3_runs + day4_runs

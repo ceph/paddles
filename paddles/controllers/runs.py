@@ -8,6 +8,7 @@ from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.decorators import retryOperation
 from paddles.models import Job, Run
+from paddles.util import local_datetime_to_utc
 
 log = logging.getLogger(__name__)
 
@@ -176,8 +177,10 @@ class RunFilterController(object):
     def index(self, count=conf.default_latest_runs_count, page=1, since=None):
         query = request.context["query"]
         if since:
-            since = date_from_string(since, out_fmt=date_format)[0]
-            query = query.filter(Run.scheduled > since)
+            since = local_datetime_to_utc(
+                date_from_string(since, out_fmt=date_format)[0]
+            )
+            query = query.filter(Run.scheduled >= since)
         query = query.order_by(Run.scheduled.desc())
         return list(request.session.scalars(offset_query(query, count, page)))
 
