@@ -16,19 +16,15 @@ app = {
     'static_root': '%(confdir)s/../../public',
     'template_path': '%(confdir)s/../templates',
     "guess_content_type_from_ext": False,
-    'debug': True,
-    'errors': {
-        '404': '/error/404',
-        '__force_dict__': True
-    },
+    'default_renderer': 'json',
+    'debug': False,
 }
 
 sqlalchemy = {
-    'url': 'sqlite:////tmp/test.db',
+    # 'url': 'sqlite:////tmp/test.db',
     #'url': 'postgresql+psycopg2://paddles:paddles@localhost/',
     'echo':         True,
     'echo_pool':    True,
     'pool_recycle': 3600,
-    'encoding':     'utf-8',
     'isolation_level': 'SERIALIZABLE', # required for correct job reporting
 }

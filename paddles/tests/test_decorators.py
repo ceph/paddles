@@ -1,6 +1,6 @@
 from paddles.decorators import retryOperation
 from pytest import raises
-from mock import Mock
+from unittest.mock import Mock, patch
 
 
 class GoodException(BaseException):
@@ -11,7 +11,7 @@ class BadException(BaseException):
     pass
 
 
-class TestRetryOperation(object):
+class TestRetryOperation:
     def test_basic(self):
         func = Mock()
         func.return_value = "retried"
@@ -23,21 +23,27 @@ class TestRetryOperation(object):
         func = Mock()
         func.side_effect = [GoodException(), 0]
         decorated = retryOperation(exceptions=[GoodException])(func)
-        assert decorated() == 0
+        with patch("paddles.decorators.request") as m_request:
+            assert decorated() == 0
+            m_request.session.rollback.assert_called_once()
         assert func.call_count == 2
 
     def test_wrong_exception(self):
         func = Mock()
         func.side_effect = [GoodException(), BadException(), True]
         decorated = retryOperation(exceptions=[GoodException])(func)
-        with raises(BadException):
-            assert decorated() is None
+        with patch("paddles.decorators.request") as m_request:
+            with raises(BadException):
+                assert decorated() is None
+            m_request.session.rollback.assert_called_once()
         assert func.call_count == 2
 
     def test_exhausted(self):
         func = Mock()
         func.side_effect = [GoodException(), GoodException(), True]
         decorated = retryOperation(attempts=2, exceptions=[GoodException])(func)
-        with raises(GoodException):
-            assert decorated() is None
+        with patch("paddles.decorators.request") as m_request:
+            with raises(GoodException):
+                assert decorated() is None
+            m_request.session.rollback.assert_called_once()
         assert func.call_count == 2

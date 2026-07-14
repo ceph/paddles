@@ -1,128 +1,114 @@
 import logging
-from datetime import datetime
-from sqlalchemy import (Column, Integer, String, Boolean, ForeignKey, DateTime,
-                        Table, Text, Index)
-from sqlalchemy.orm import backref, deferred, load_only, relationship
-from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Optional
+
 from pecan import conf
-from paddles.models import Base, Session, TEUTHOLOGY_TIMESTAMP_FMT
+
+# pre 2.x
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    event,
+    select,
+)
+
+## 2.x
+from sqlalchemy.orm import (
+    LoaderCallableStatus,
+    Mapped,
+    Session,
+    deferred,
+    load_only,
+    mapped_column,
+    relationship,
+    validates,
+)
+from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
+
+from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
-from paddles.stats import get_client as get_statsd_client
 from paddles.util import local_datetime_to_utc
 
-job_nodes_table = Table(
-    'job_nodes',
-    Base.metadata,
-    Column('node_id', Integer, ForeignKey('nodes.id'), primary_key=True,
-           index=True),
-    Column('job_id', Integer, ForeignKey('jobs.id'), primary_key=True,
-           index=True),
-    Index('ix_job_nodes_node_id_job_id', 'node_id', 'job_id'),
-)
+from .job_nodes import job_nodes_table
+
+if TYPE_CHECKING:
+    from paddles.models import Run
 
 log = logging.getLogger(__name__)
 
 
 class Job(Base):
-    __tablename__ = 'jobs'
-    id = Column(Integer, primary_key=True)
-    posted = Column(DateTime, index=True)
-    started = Column(DateTime, index=True)
-    updated = Column(DateTime, index=True)
-    run_id = Column(Integer, ForeignKey('runs.id', ondelete='CASCADE'),
-                    index=True)
-    status = Column(String(32), index=True)
-
-    archive_path = Column(String(512))
-    description = deferred(Column(Text))
-    duration = Column(Integer)
-    email = Column(String(128))
-    failure_reason = deferred(Column(Text))
-    flavor = Column(String(128))
-    job_id = Column(String(32), index=True)
-    kernel = deferred(Column(JSONType()))
-    last_in_suite = Column(Boolean())
-    machine_type = Column(String(32))
-    name = Column(String(512))
-    nuke_on_error = Column(Boolean())
-    os_type = Column(String(32))
-    os_version = Column(String(16))
-    overrides = deferred(Column(JSONType()))
-    owner = Column(String(128))
-    priority = Column(Integer, index=True)
-    pid = Column(String(32))
-    repo = Column(String(256))
-    roles = deferred(Column(JSONType()))
-    sentry_event = Column(String(128))
-    success = Column(Boolean(), index=True)
-    branch = Column(String(128), index=True)
-    seed = Column(Integer)
-    sha1 = Column(String(40), index=True)
-    sleep_before_teardown = Column(Integer)
-    subset = Column(String(32))
-    suite = Column(String(256))
-    suite_branch = Column(String(128), index=True)
-    suite_path = Column(String(256))
-    suite_relpath = Column(String(256))
-    suite_repo = Column(String(256))
-    suite_sha1 = Column(String(40), index=True)
-    targets = deferred(Column(JSONType()))
-    target_nodes = relationship("Node", secondary=job_nodes_table,
-                                backref=backref('jobs'), lazy='dynamic')
-    tasks = deferred(Column(JSONType()))
-    teuthology_branch = Column(String(64))
-    teuthology_sha1 = Column(String(40), index=True)
-    timestamp = Column(DateTime)
-    user = Column(String(64))
-    verbose = Column(Boolean())
-    issue_url = deferred(Column(Text))
-    comment = deferred(Column(Text))
-    pcp_grafana_url = Column(Text)
-    queue = Column(String(32), index=True)
-
-    allowed_keys = (
-        "archive_path",
-        "description",
-        "duration",
-        "email",
-        "failure_reason",
-        "flavor",
-        "job_id",
-        "kernel",
-        "last_in_suite",
-        "machine_type",
-        "name",
-        "nuke_on_error",
-        "os_type",
-        "os_version",
-        "overrides",
-        "owner",
-        "pid",
-        "roles",
-        "sentry_event",
-        "status",
-        "success",
-        "branch",
-        "seed",
-        "sha1",
-        "subset",
-        "suite",
-        "suite_branch",
-        "suite_path",
-        "suite_relpath",
-        "suite_repo",
-        "suite_sha1",
-        "targets",
-        "tasks",
-        "timestamp",
-        "teuthology_branch",
-        "verbose",
-        "pcp_grafana_url",
-        "priority",
-        "user",
-        "queue",
+    __tablename__ = "jobs"
+    __table_args__ = (UniqueConstraint("run_id", "job_id"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    posted: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=True)
+    started: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=True)
+    updated: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=True)
+    run_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("runs.id", ondelete="CASCADE"), index=True, nullable=True
     )
+    run: Mapped["Run"] = relationship(
+        "Run",
+        back_populates="jobs",
+    )
+    status: Mapped[Optional[str]] = mapped_column(String(32), index=True)
+
+    archive_path: Mapped[str] = mapped_column(String(512), nullable=True)
+    description: Mapped[str] = deferred(mapped_column(Text))
+    duration = mapped_column(Integer)
+    email: Mapped[str] = mapped_column(String(128), nullable=True)
+    failure_reason: Mapped[str] = deferred(mapped_column(Text))
+    flavor: Mapped[str] = mapped_column(String(128), nullable=True)
+    job_id: Mapped[str | None] = mapped_column(String(32), index=True, nullable=False)
+    kernel = deferred(mapped_column(JSONType()))
+    last_in_suite = mapped_column(Boolean())
+    machine_type: Mapped[str] = mapped_column(String(32), nullable=True)
+    name: Mapped[str] = mapped_column(String(512), nullable=True)
+    nuke_on_error = mapped_column(Boolean())
+    os_type: Mapped[str] = mapped_column(String(32), nullable=True)
+    os_version: Mapped[str] = mapped_column(String(16), nullable=True)
+    overrides = deferred(mapped_column(JSONType()))
+    owner = mapped_column(String(128))
+    priority = mapped_column(Integer, index=True)
+    pid = mapped_column(String(32))
+    repo = mapped_column(String(256))
+    roles = deferred(mapped_column(JSONType()))
+    sentry_event = mapped_column(String(128))
+    success = mapped_column(Boolean(), index=True)
+    branch = mapped_column(String(128), index=True)
+    seed = mapped_column(Integer)
+    sha1 = mapped_column(String(40), index=True)
+    sleep_before_teardown = mapped_column(Integer)
+    subset = mapped_column(String(32))
+    suite = mapped_column(String(256))
+    suite_branch = mapped_column(String(128), index=True)
+    suite_path = mapped_column(String(256))
+    suite_relpath = mapped_column(String(256))
+    suite_repo = mapped_column(String(256))
+    suite_sha1 = mapped_column(String(40), index=True)
+    targets = deferred(mapped_column(JSONType()))
+    target_nodes = relationship(
+        "Node",
+        secondary=job_nodes_table,
+        back_populates="jobs",
+        remote_side="Node.id",
+    )
+    tasks = deferred(mapped_column(JSONType()))
+    teuthology_branch = mapped_column(String(64))
+    teuthology_sha1 = mapped_column(String(40), index=True)
+    timestamp = mapped_column(DateTime)
+    user = mapped_column(String(64))
+    verbose = mapped_column(Boolean())
+    issue_url = deferred(mapped_column(Text))
+    comment = deferred(mapped_column(Text))
+    pcp_grafana_url = mapped_column(Text)
+    queue = mapped_column(String(32), index=True)
 
     allowed_statuses = (
         "pass",
@@ -134,134 +120,154 @@ class Job(Base):
         "waiting",
     )
 
+    status_map = {
+        True: "pass",
+        False: "fail",
+        None: "unknown",
+    }
+
     def __init__(self, json_data, run):
         self.run = run
-        self.posted = datetime.utcnow()
-        self.set_or_update(json_data)
+        self.posted = datetime.now(timezone.utc)
+        targets = json_data.pop("targets", {})
+        updated = json_data.pop("updated", None)
+        self.update(json_data)
+        if targets:
+            self.targets = targets
+        if updated:
+            self.set_updated(updated)
+        else:
+            self.updated = datetime.now(timezone.utc)
 
-    def set_or_update(self, json_data):
-        # Set self.updated, and more importantly, self.run.updated, to avoid
-        # deadlocks when lots of jobs are updated at once.
-        self.run.updated = self.updated = datetime.utcnow()
-
-        if 'timestamp' in json_data:
-            self.timestamp = datetime.strptime(
-                json_data.pop('timestamp'),
-                TEUTHOLOGY_TIMESTAMP_FMT,
-            )
-
-        status_map = {True: 'pass',
-                      False: 'fail',
-                      None: 'unknown',
-                      }
-
-        old_status = self.status
-        old_run_status = self.run.status
-        if 'status' in json_data:
-            status = json_data.pop('status')
-            if status not in self.allowed_statuses:
-                raise ValueError("Job status must be one of: %s" %
-                                 self.allowed_statuses)
-            if self.status not in ('pass', 'fail'):
-                self.status = status
-        elif 'success' in json_data:
-            success = json_data.pop('success')
-            self.status = status_map.get(success)
+    def update(self, data):
+        data.pop("run", None)
+        if status := data.pop("status", None):
+            data.pop("success", None)
+            self.status = status
+        elif (success := data.pop("success", None)) is not None:
             self.success = success
-        elif self.success is None and self.status is None:
-            self.status = 'unknown'
-
-        if old_status in (None, 'queued') and self.status == 'running':
-            self.started = datetime.utcnow()
-
-        if self.status != old_status:
-            # Submit pass/fail/dead stats to statsd
-            if self.status in ('pass', 'fail', 'dead'):
-                counter = get_statsd_client().get_counter('jobs.status')
-                counter.increment(self.status)
-            self.run.set_status()
-
-        if old_run_status != 'running' and self.run.status == 'running':
-            self.run.started = self.started
-
-        target_nodes_q = self.target_nodes.options(load_only('id', 'name'))
-        target_nodes = target_nodes_q.count()
-        if json_data.get('targets') is not None:
-            if len(json_data.get('targets', {})) > target_nodes:
-                # Populate self.target_nodes, creating Node objects if necessary
-                targets = json_data['targets']
-                for target_key in targets.keys():
-                    if '@' in target_key:
-                        hostname = target_key.split('@')[1]
-                    else:
-                        hostname = target_key
-                    node_q = Node.query.options(load_only('id', 'name'))\
-                        .filter(Node.name == hostname)
-                    try:
-                        node = node_q.one()
-                    except NoResultFound:
-                        node = Node(name=hostname)
-                        mtype = json_data.get('machine_type')
-                        if mtype:
-                            node.machine_type = mtype
-                    if node not in self.target_nodes:
-                        self.target_nodes.append(node)
-
-        for k, v in json_data.items():
-            key = k.replace('-', '_')
-            if key == 'updated':
-                self.set_updated(v)
+            self.status = self.status_map[success]
+        elif self.status is None:
+            self.status = "queued"
+        for k, v in data.items():
+            key = k.replace("-", "_")
+            if key in ["posted", "started", "updated", "run_id"]:
                 continue
-            # Correct potentially-incorrect Run.suite/branch values
-            # We started putting the suite/branch names in the job config on
-            # 5/1/2014
-            elif key == 'suite' and self.run.suite != v:
-                self.run.suite = v
-            elif key == 'branch' and self.run.branch != v:
-                self.run.branch = v
-            # Correct a potential 'multi' value parsed from the run name to be
-            # equal to the actual value given to the runs
-            elif key == 'machine_type' and self.run.machine_type != v:
-                self.run.machine_type = v
-            if key in self.allowed_keys:
-                setattr(self, key, v)
+            setattr(self, key, v)
 
-    def set_updated(self, local_str):
+    def set_updated(self, value: str):
         """
         Given a string in the format of '%Y-%m-%d %H:%M:%S', in the local
         timezone, create a datetime object, convert it to UTC, and store it in
         self.updated.
         """
-        local_str = local_str.split(".")[0]
-        local_dt = datetime.strptime(local_str, '%Y-%m-%d %H:%M:%S')
-        utc_dt = local_datetime_to_utc(local_dt)
-        self.run.updated = self.updated = utc_dt
+        self.run.updated = self.updated = local_datetime_to_utc(
+            datetime.strptime(value.split(".")[0], "%Y-%m-%d %H:%M:%S")
+        )
 
-    def update(self, json_data):
-        self.set_or_update(json_data)
-        Session.flush()
+    @validates("status")
+    def validate_status(self, key, status):
+        if status not in self.allowed_statuses:
+            raise ValueError("Job status must be one of: %s" % self.allowed_statuses)
+        if self.status in ["pass", "fail"]:
+            return self.status
+        return status
 
     @property
     def href(self):
-        return "%s/runs/%s/jobs/%s/" % (conf.address, self.run.name,
-                                        self.job_id),
+        return "%s/runs/%s/jobs/%s/" % (conf.address, self.run.name, self.job_id)
 
     @property
     def log_href(self):
-        return conf.job_log_href_templ.format(run_name=self.run.name,
-                                              job_id=self.job_id)
+        return conf.job_log_href_templ.format(
+            run_name=self.run.name, job_id=self.job_id
+        )
 
     def __repr__(self):
         try:
-            return '<Job %r %r>' % (self.name, self.job_id)
+            return "<Job %r %r>" % (self.name, self.job_id)
         except DetachedInstanceError:
-            return '<Job detached>'
+            return "<Job detached>"
 
     def __json__(self):
-        json_ = dict(
-            log_href=self.log_href
-        )
-        for key in self.allowed_keys + ('posted', 'started', 'updated'):
-            json_[key] = getattr(self, key)
+        obj = dict(log_href=self.log_href)
+        for field in self.__table__.columns:
+            if field.name in ["run_id"]:
+                continue
+            obj[field.name] = getattr(self, field.name)
+        return obj
 
-        return json_
+
+@event.listens_for(Job.branch, "set")
+def branch_cb(target: Job, value, oldvalue, initiator):
+    if target.run.branch != value:
+        target.run.branch = value
+
+
+@event.listens_for(Job.suite, "set")
+def suite_cb(target: Job, value, oldvalue, initiator):
+    if target.run.suite != value:
+        target.run.suite = value
+
+
+@event.listens_for(Job.machine_type, "set")
+def machine_type_cb(target: Job, value, oldvalue, initiator):
+    if target.run.machine_type != value:
+        target.run.machine_type = value
+
+
+@event.listens_for(Job.status, "set")
+def status_cb(target: Job, value, oldvalue, initiator):
+    if (
+        oldvalue in (None, LoaderCallableStatus.NO_VALUE, "queued")
+        and value == "running"
+    ):
+        target.started = datetime.now(timezone.utc)
+    if target.run.status != "running":
+        target.run.started = target.started
+
+
+@event.listens_for(Job.timestamp, "set", retval=True)
+def timestamp_cb(target: Job, value, oldvalue, initiator):
+    return datetime.strptime(
+        value,
+        TEUTHOLOGY_TIMESTAMP_FMT,
+    )
+
+
+@event.listens_for(Job.updated, "set")
+def updated_cb(target: Job, value: datetime, oldvalue, initiator, retval=True):
+    if target.run:
+        if target.run.updated:
+            target.run.updated = max(
+                target.run.updated.astimezone(timezone.utc),
+                value.astimezone(timezone.utc),
+            )
+        else:
+            target.run.updated = value
+    return value
+
+@event.listens_for(Session, "before_flush")
+def before_flush(session, flush_context, instances):
+    for obj in session.new:
+        if isinstance(obj, Job):
+            if not obj.targets:
+                continue
+            for key in obj.targets:
+                node_name = key.split("@")[-1]
+                node_query = (
+                    select(Node).options(load_only(Node.id, Node.name)).where(Node.name == node_name)
+                )
+                try:
+                    node = session.scalars(node_query).one()
+                except NoResultFound:
+                    node = Node(name=node_name, machine_type=obj.machine_type)
+                    session.add(node)
+                if node not in obj.target_nodes:
+                    obj.target_nodes.append(node)
+
+
+@event.listens_for(Job, "init")
+def new_job(target, args, kwargs):
+    if not args[0].get("updated"):
+        target.updated = datetime.now(timezone.utc)

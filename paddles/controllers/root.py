@@ -1,13 +1,13 @@
 from pecan import expose
 
-from paddles.controllers.runs import RunsController
-from paddles.controllers.jobs import JobsListController
-from paddles.controllers.nodes import NodesController
-from paddles.controllers.errors import ErrorsController
-from paddles.controllers.queue import QueuesController
+from .errors import ErrorsController
+from .jobs import JobsListController
+from .nodes import NodesController
+from .queue import QueuesController
+from .runs import RunsController
+
 
 class RootController(object):
-
     _help = {
         "repo": "https://github.com/ceph/paddles",
     }
