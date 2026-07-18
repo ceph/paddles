@@ -199,3 +199,19 @@ class TestJobModel(TestApp):
         assert m_get_client.called_once_with()
         assert m_client.get_counter.called_once_with('jobs.status')
         assert m_counter.increment.called_once_with('pass')
+
+
+    def test_package_source_field(self):
+        run_name = 'test_package_source_field'
+        run = Run(run_name)
+        package_source = 'shaman'
+        job = Job(dict(job_id='37', id=37, package_source=package_source), run)
+        models.commit()
+        assert job.package_source == package_source
+
+    def test_package_source_nullable(self):
+        run_name = 'test_package_source_nullable'
+        run = Run(run_name)
+        job = Job(dict(job_id='38', id=38), run)
+        models.commit()
+        assert job.package_source is None

@@ -80,6 +80,7 @@ class Job(Base):
     comment = deferred(Column(Text))
     pcp_grafana_url = Column(Text)
     queue = Column(String(32), index=True)
+    package_source = Column(String(32), nullable=True)
 
     allowed_keys = (
         "archive_path",
@@ -122,6 +123,7 @@ class Job(Base):
         "priority",
         "user",
         "queue",
+        "package_source",
     )
 
     allowed_statuses = (
