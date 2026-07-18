@@ -222,6 +222,118 @@ class TestRunController(TestApp):
         result_names = sorted([r['name'] for r in result])
         assert result_names == sorted(run_names)
 
+    def test_create_run_with_tags(self):
+        self.app.post_json('/runs/', dict(name="tagged_run",
+                                          tags=["squid"]))
+        new_run = Run.get(1)
+        assert new_run.tags == ['squid']
+
+    def test_create_run_with_multiple_tags(self):
+        self.app.post_json('/runs/', dict(name="multi_tag",
+                                          tags=["squid", "tracker-123"]))
+        new_run = Run.get(1)
+        assert sorted(new_run.tags) == ['squid', 'tracker-123']
+
+    def test_create_run_without_tags(self):
+        self.app.post_json('/runs/', dict(name="untagged_run"))
+        new_run = Run.get(1)
+        assert new_run.tags == []
+
+    def test_create_run_tags_must_be_list(self):
+        response = self.app.post_json('/runs/',
+                                      dict(name="bad", tags="not-a-list"),
+                                      expect_errors=True)
+        assert response.status_int == 400
+
+    def test_tags_in_json_response(self):
+        self.app.post_json('/runs/', dict(name="foo",
+                                          tags=["reef", "squid"]))
+        response = self.app.get('/runs/')
+        assert sorted(response.json[0]['tags']) == ['reef', 'squid']
+
+    def test_filter_by_tags_query_param(self):
+        self.app.post_json('/runs/', dict(name="run_a", tags=["reef"]))
+        self.app.post_json('/runs/', dict(name="run_b", tags=["squid"]))
+        self.app.post_json('/runs/', dict(name="run_c"))
+        response = self.app.get('/runs/?tags=reef')
+        assert len(response.json) == 1
+        assert response.json[0]['name'] == 'run_a'
+
+    def test_filter_by_tags_query_param_multi(self):
+        self.app.post_json('/runs/', dict(name="run_a",
+                                          tags=["reef", "squid"]))
+        self.app.post_json('/runs/', dict(name="run_b", tags=["squid"]))
+        self.app.post_json('/runs/', dict(name="run_c", tags=["tentacle"]))
+        response = self.app.get('/runs/?tags=squid')
+        assert len(response.json) == 2
+        got_names = sorted(r['name'] for r in response.json)
+        assert got_names == ['run_a', 'run_b']
+
+    def test_filter_by_comma_separated_tags(self):
+        self.app.post_json('/runs/', dict(name="run_a",
+                                          tags=["reef", "squid"]))
+        self.app.post_json('/runs/', dict(name="run_b", tags=["squid"]))
+        self.app.post_json('/runs/', dict(name="run_c", tags=["tentacle"]))
+        response = self.app.get('/runs/?tags=reef,squid')
+        assert len(response.json) == 1
+        assert response.json[0]['name'] == 'run_a'
+
+    def test_filter_by_tags_no_substring_false_positive(self):
+        self.app.post_json('/runs/', dict(name="run_abc", tags=["abc"]))
+        self.app.post_json('/runs/', dict(name="run_xyz", tags=["xyz"]))
+        response = self.app.get('/runs/?tags=bc')
+        assert response.json == []
+
+    def test_filter_by_tag_url_path(self):
+        self.app.post_json('/runs/', dict(name="run_a", tags=["reef"]))
+        self.app.post_json('/runs/', dict(name="run_b", tags=["squid"]))
+        self.app.post_json('/runs/', dict(name="run_c"))
+        response = self.app.get('/runs/tag/reef/')
+        assert len(response.json) == 1
+        assert response.json[0]['name'] == 'run_a'
+
+    def test_filter_by_tag_url_path_multi(self):
+        self.app.post_json('/runs/', dict(name="run_a",
+                                          tags=["reef", "tentacle"]))
+        self.app.post_json('/runs/', dict(name="run_b",
+                                          tags=["squid", "tentacle"]))
+        response = self.app.get('/runs/tag/tentacle/')
+        assert len(response.json) == 2
+
+    def test_list_tags(self):
+        self.app.post_json('/runs/', dict(name="run_a",
+                                          tags=["reef", "tentacle"]))
+        self.app.post_json('/runs/', dict(name="run_b",
+                                          tags=["squid", "tentacle"]))
+        self.app.post_json('/runs/', dict(name="run_c"))
+        response = self.app.get('/runs/tag/')
+        assert sorted(response.json) == ['reef', 'squid', 'tentacle']
+
+    def test_put_tags(self):
+        self.app.post_json('/runs/', dict(name="foo"))
+        self.app.put_json('/runs/foo/', dict(tags=["new-tag"]))
+        response = self.app.get('/runs/foo/')
+        assert response.json['tags'] == ['new-tag']
+
+    def test_put_tags_append(self):
+        self.app.post_json('/runs/', dict(name="foo", tags=["old"]))
+        self.app.put_json('/runs/foo/', dict(tags=["old", "new"]))
+        response = self.app.get('/runs/foo/')
+        assert sorted(response.json['tags']) == ['new', 'old']
+
+    def test_put_tags_must_be_list(self):
+        self.app.post_json('/runs/', dict(name="foo"))
+        response = self.app.put_json('/runs/foo/',
+                                     dict(tags="not-a-list"),
+                                     expect_errors=True)
+        assert response.status_int == 400
+
+    def test_put_nonexistent_run(self):
+        response = self.app.put_json('/runs/nope/',
+                                     dict(tags=["x"]),
+                                     expect_errors=True)
+        assert response.status_int == 400
+
 
 class TestRunControllerDateFilters(TestApp):
 
