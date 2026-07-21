@@ -1,0 +1,85 @@
+---
+name: ceph-devstack integration
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  ceph-devstack-integration:
+    name: Integration Tests via ceph-devstack
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout paddles
+        uses: actions/checkout@v4
+        with:
+          path: paddles
+
+      - name: Checkout ceph-devstack
+        uses: actions/checkout@v4
+        with:
+          repository: ceph/ceph-devstack
+          path: ceph-devstack
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          enable-cache: true
+
+      - name: Set up ceph-devstack
+        run: |
+          sudo chown $(whoami) /dev/loop-control
+          uv tool install ceph-devstack
+          ceph-devstack -v doctor --fix
+
+      - name: Configure ceph-devstack to use local paddles
+        working-directory: ceph-devstack
+        run: |
+          ceph-devstack config set containers.paddles.repo "${{ github.workspace }}/paddles"
+
+      - name: Build paddles container from local source
+        working-directory: ceph-devstack
+        run: |
+          ceph-devstack build
+
+      - name: Start ceph-devstack (deploys paddles and runs teuthology tests)
+        working-directory: ceph-devstack
+        run: |
+          ceph-devstack start
+
+      - name: Wait for teuthology tests to complete
+        working-directory: ceph-devstack
+        run: |
+          ceph-devstack wait teuthology
+
+      - name: Check test results
+        working-directory: ceph-devstack
+        run: |
+          podman logs teuthology | tail -100
+
+      - name: Collect logs
+        if: always()
+        run: |
+          mkdir -p logs
+          podman logs paddles > logs/paddles.log 2>&1 || true
+          podman logs teuthology > logs/teuthology.log 2>&1 || true
+          podman ps -a > logs/containers.txt 2>&1 || true
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-logs
+          path: logs/
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        working-directory: ceph-devstack
+        run: |
+          ceph-devstack remove || true
