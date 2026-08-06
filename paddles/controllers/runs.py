@@ -109,7 +109,7 @@ class RunFilterIndexController(object):
 
 class BranchesController(RunFilterIndexController):
     def get_subquery(self, query):
-        return query.values(Run.branch)
+        return query.limit(500).values(Run.branch)
 
     def get_lookup_controller(self):
         return BranchController
