@@ -1,6 +1,6 @@
 ## 2.x
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from pecan import request
 from typing import TYPE_CHECKING, List, Optional
 
@@ -30,6 +30,7 @@ from paddles.exceptions import (
     ResourceUnavailableError,
 )
 from paddles.models import Base
+from paddles.util import utcnow
 
 from .job_nodes import job_nodes_table
 
@@ -150,7 +151,7 @@ class Node(Base):
 
         if "locked" in values:
             if self.locked != was_locked:
-                self.locked_since = datetime.now(timezone.utc) if self.locked else None
+                self.locked_since = utcnow() if self.locked else None
             if not self.locked:
                 self.locked_by = None
         # self.session.flush()
@@ -206,7 +207,7 @@ class Node(Base):
         update_dict = dict(
             locked=True,
             locked_by=locked_by,
-            locked_since=datetime.now(timezone.utc),
+            locked_since=utcnow(),
             description=description,
         )
 

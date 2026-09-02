@@ -1,42 +1,39 @@
-from __future__ import print_function
-from pecan.commands.base import BaseCommand
+from sqlalchemy import select
 
-from paddles import models
-from paddles.models import Job, Run
+from paddles.commands import SessionCommand
+from paddles.models import Run
 
 
 def out(string):
     print("==> %s" % string)
 
 
-class SetStatusCommand(BaseCommand):
+class SetStatusCommand(SessionCommand):
     """
     Corrects Run.status
     """
 
-    def run(self, args):
-        super(SetStatusCommand, self).run(args)
-        out("LOADING ENVIRONMENT")
-        self.load_app()
-        models.start()
-        try:
-            out("SETTING RUN STATUSES...")
-            running = Run.query.filter(Run.status == 'running')
-            to_fix = []
-            for run in running:
-                if run.jobs.filter(Job.status == 'running').count() == 0:
-                    to_fix.append(run)
-                    self._set_run_status(run)
-            print("")
-            out("Updated {count} runs...".format(count=len(to_fix)))
-        except:
-            models.rollback()
-            out("ROLLING BACK...")
-            raise
-        else:
-            out("COMMITTING...")
-            models.commit()
+    arguments = SessionCommand.arguments + (
+        dict(
+            name=["-a", "--all"],
+            help="Recompute the status of every run, not just 'running' ones",
+            action="store_true",
+            default=False,
+        ),
+    )
 
-    def _set_run_status(self, run):
-        run.set_status()
-        print("."),
+    def run(self, args):
+        super().run(args)
+        out("SETTING RUN STATUSES...")
+        query = select(Run)
+        if not args.all:
+            query = query.where(Run.status == 'running')
+        fixed = 0
+        for run in self.session.scalars(query.execution_options(yield_per=100)):
+            old_status, new_status = run.refresh_status(self.session)
+            if old_status != new_status:
+                fixed += 1
+                print("{name}: {old} => {new}".format(name=run.name, old=old_status, new=new_status))
+        out("Updated {count} runs...".format(count=fixed))
+        out("COMMITTING...")
+        self.commit(out)

@@ -1,36 +1,25 @@
-from __future__ import print_function
-from pecan.commands.base import BaseCommand
+from sqlalchemy import select
 
-from paddles import models
-from paddles.models.runs import local_datetime_to_utc
+from paddles.commands import SessionCommand
+from paddles.models import Run
+from paddles.util import local_datetime_to_utc
 
 
 def out(string):
     print("==> %s" % string)
 
 
-class ReparseCommand(BaseCommand):
+class ReparseCommand(SessionCommand):
     """
     Reparse the name of the run and populate its fields based on the result
     """
 
     def run(self, args):
-        super(ReparseCommand, self).run(args)
-        out("LOADING ENVIRONMENT")
-        self.load_app()
-        try:
-            out("STARTING A TRANSACTION...")
-            models.start()
-            runs = models.Run.query.all()
-            for run in runs:
-                self._reparse(run)
-        except:
-            models.rollback()
-            out("ROLLING BACK... ")
-            raise
-        else:
-            out("COMMITING... ")
-            models.commit()
+        super().run(args)
+        for run in self.session.scalars(select(Run).execution_options(yield_per=100)):
+            self._reparse(run)
+        out("COMMITING... ")
+        self.commit(out)
 
     def _reparse(self, run):
         old_values = dict(
@@ -56,11 +45,11 @@ class ReparseCommand(BaseCommand):
         )
 
         if old_values != new_values:
-            print("{name}".format(name=run.name)),
+            print("{name}".format(name=run.name), end="")
             for field in old_values.keys():
                 new_value = new_values[field]
                 if old_values[field] != new_value:
-                    print("| {old} => {new}".format(
-                        old=old_values[field], new=new_value)),
+                    print(" | {old} => {new}".format(
+                        old=old_values[field], new=new_value), end="")
                     setattr(run, field, new_value)
             print()

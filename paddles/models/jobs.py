@@ -19,7 +19,6 @@ from sqlalchemy import (
 
 ## 2.x
 from sqlalchemy.orm import (
-    LoaderCallableStatus,
     Mapped,
     Session,
     deferred,
@@ -28,12 +27,13 @@ from sqlalchemy.orm import (
     relationship,
     validates,
 )
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 
 from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
-from paddles.util import local_datetime_to_utc
+from paddles.util import local_datetime_to_utc, utcnow
 
 from .job_nodes import job_nodes_table
 
@@ -45,7 +45,7 @@ log = logging.getLogger(__name__)
 
 class Job(Base):
     __tablename__ = "jobs"
-    __table_args__ = (UniqueConstraint("run_id", "job_id"),)
+    __table_args__ = (UniqueConstraint("run_id", "job_id", name="uq_jobs_run_id_job_id"),)
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     posted: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=True)
     started: Mapped[datetime] = mapped_column(DateTime, index=True, nullable=True)
@@ -127,34 +127,56 @@ class Job(Base):
         None: "unknown",
     }
 
+    # Keys a client may never set directly; they are derived server-side.
+    _protected_keys = frozenset(("id", "posted", "started", "updated", "run_id"))
+
     def __init__(self, json_data, run):
         self.run = run
-        self.posted = datetime.now(timezone.utc)
-        targets = json_data.pop("targets", {})
-        updated = json_data.pop("updated", None)
+        self.posted = utcnow()
         self.update(json_data)
-        if targets:
-            self.targets = targets
-        if updated:
-            self.set_updated(updated)
-        else:
-            self.updated = datetime.now(timezone.utc)
 
     def update(self, data):
+        """
+        Apply a job dict as posted by teuthology.
+
+        Only real columns are settable, ``status``/``success`` are reconciled,
+        the run's status (and ``started``) is recomputed, and ``updated`` is
+        stamped on every call unless the client supplied one.
+        """
+        data = dict(data)
         data.pop("run", None)
-        if status := data.pop("status", None):
-            data.pop("success", None)
+        status = data.pop("status", None)
+        success = data.pop("success", None)
+        updated = data.pop("updated", None)
+
+        old_status = self.status
+        if status:
             self.status = status
-        elif (success := data.pop("success", None)) is not None:
-            self.success = success
+        elif success is not None:
             self.status = self.status_map[success]
         elif self.status is None:
             self.status = "queued"
+        if success is not None:
+            self.success = success
+        if old_status in (None, "queued") and self.status == "running":
+            self.started = utcnow()
+
+        columns = self.__table__.columns.keys()
         for k, v in data.items():
             key = k.replace("-", "_")
-            if key in ["posted", "started", "updated", "run_id"]:
+            if key in self._protected_keys or key not in columns:
                 continue
             setattr(self, key, v)
+
+        if self.run is not None:
+            old_run_status, run_status = self.run.set_status()
+            if old_run_status != "running" and run_status == "running":
+                self.run.started = self.started
+
+        if updated:
+            self.set_updated(updated)
+        else:
+            self.updated = utcnow()
 
     def set_updated(self, value: str):
         """
@@ -169,7 +191,7 @@ class Job(Base):
     @validates("status")
     def validate_status(self, key, status):
         if status not in self.allowed_statuses:
-            raise ValueError("Job status must be one of: %s" % self.allowed_statuses)
+            raise ValueError("Job status must be one of: %s" % (self.allowed_statuses,))
         if self.status in ["pass", "fail"]:
             return self.status
         return status
@@ -217,19 +239,10 @@ def machine_type_cb(target: Job, value, oldvalue, initiator):
         target.run.machine_type = value
 
 
-@event.listens_for(Job.status, "set")
-def status_cb(target: Job, value, oldvalue, initiator):
-    if (
-        oldvalue in (None, LoaderCallableStatus.NO_VALUE, "queued")
-        and value == "running"
-    ):
-        target.started = datetime.now(timezone.utc)
-    if target.run.status != "running":
-        target.run.started = target.started
-
-
 @event.listens_for(Job.timestamp, "set", retval=True)
 def timestamp_cb(target: Job, value, oldvalue, initiator):
+    if value is None or isinstance(value, datetime):
+        return value
     return datetime.strptime(
         value,
         TEUTHOLOGY_TIMESTAMP_FMT,
@@ -237,38 +250,47 @@ def timestamp_cb(target: Job, value, oldvalue, initiator):
 
 
 @event.listens_for(Job.updated, "set")
-def updated_cb(target: Job, value: datetime, oldvalue, initiator, retval=True):
-    if target.run:
-        if target.run.updated:
-            target.run.updated = max(
-                target.run.updated.astimezone(timezone.utc),
-                value.astimezone(timezone.utc),
-            )
-        else:
-            target.run.updated = value
-    return value
+def updated_cb(target: Job, value: datetime, oldvalue, initiator):
+    """
+    Keep Run.updated at the newest Job.updated of its jobs.
+    """
+    if value is None or target.run is None:
+        return
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+    run_updated = target.run.updated
+    if run_updated is not None and run_updated.tzinfo is not None:
+        run_updated = run_updated.astimezone(timezone.utc).replace(tzinfo=None)
+    if run_updated is None or run_updated < value:
+        target.run.updated = value
+
 
 @event.listens_for(Session, "before_flush")
 def before_flush(session, flush_context, instances):
-    for obj in session.new:
-        if isinstance(obj, Job):
-            if not obj.targets:
+    """
+    Populate Job.target_nodes from Job.targets, creating Node rows as needed.
+
+    teuthology creates a job without targets and adds them later with a PUT
+    once nodes are locked, so this has to run for updated jobs as well as
+    new ones.
+    """
+    for obj in list(session.new) + list(session.dirty):
+        if not isinstance(obj, Job) or not obj.targets:
+            continue
+        if obj not in session.new:
+            if not sa_inspect(obj).attrs.targets.history.has_changes():
                 continue
-            for key in obj.targets:
-                node_name = key.split("@")[-1]
-                node_query = (
-                    select(Node).options(load_only(Node.id, Node.name)).where(Node.name == node_name)
-                )
-                try:
-                    node = session.scalars(node_query).one()
-                except NoResultFound:
-                    node = Node(name=node_name, machine_type=obj.machine_type)
-                    session.add(node)
-                if node not in obj.target_nodes:
-                    obj.target_nodes.append(node)
+        for key in obj.targets:
+            node_name = key.split("@")[-1]
+            node_query = (
+                select(Node).options(load_only(Node.id, Node.name)).where(Node.name == node_name)
+            )
+            try:
+                node = session.scalars(node_query).one()
+            except NoResultFound:
+                node = Node(name=node_name, machine_type=obj.machine_type or "")
+                session.add(node)
+            if node not in obj.target_nodes:
+                obj.target_nodes.append(node)
 
 
-@event.listens_for(Job, "init")
-def new_job(target, args, kwargs):
-    if not args[0].get("updated"):
-        target.updated = datetime.now(timezone.utc)

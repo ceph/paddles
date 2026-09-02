@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
+from paddles.util import utcnow
 from sqlalchemy.sql.selectable import Select
 
 
@@ -16,7 +17,7 @@ def offset_query(query, page_size, page) -> Select:
 
 
 def last_seen(model_obj):
-    now = datetime.now(timezone.utc)
+    now = utcnow()
     try:
         last_obj = model_obj.query[0].posted
         if not last_obj:

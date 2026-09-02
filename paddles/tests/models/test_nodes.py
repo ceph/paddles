@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import StatementError
 
 from paddles.exceptions import ForbiddenRequestError
+from paddles.util import utcnow
 from paddles.models import Node
 
 
@@ -72,7 +73,7 @@ class TestNodeModel:
         # This used to take <100us; since we started flushing on node updates,
         # it takes around 2-3ms.
         assert node.locked_since is not None
-        assert (datetime.now(timezone.utc) - node.locked_since) < timedelta(
+        assert (utcnow() - node.locked_since) < timedelta(
             milliseconds=5
         )
 

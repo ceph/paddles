@@ -1,21 +1,20 @@
-from __future__ import print_function
-from pecan.commands.base import BaseCommand
-
+import json
 from datetime import date, datetime
-from paddles import models
+
+from sqlalchemy import select
+
+from paddles.commands import SessionCommand
 from paddles.models import Job
 
-import json
 
-
-class NodeStatsCommand(BaseCommand):
+class NodeStatsCommand(SessionCommand):
     """
     Print JSON-formatted statistics on jobs executed in a given timeframe and
     how many nodes they used.
     """
-    epoch = datetime.utcfromtimestamp(0)
+    epoch = datetime(1970, 1, 1)
 
-    arguments = BaseCommand.arguments + (
+    arguments = SessionCommand.arguments + (
         dict(
             name="days",
             help="How many days to go back in history",
@@ -28,11 +27,9 @@ class NodeStatsCommand(BaseCommand):
     )
 
     def run(self, args):
-        super(NodeStatsCommand, self).run(args)
+        super().run(args)
         days = int(args.days) + 1
         self.machine_type = args.machine_type
-        self.load_app()
-        models.start()
         today = date.today()
         day_objs = []
         for day_num in range(days)[::-1]:
@@ -44,7 +41,7 @@ class NodeStatsCommand(BaseCommand):
             if day_objs[0] == day:
                 continue
             prev_day = day_objs[day_objs.index(day) - 1]
-            jobs_done = self.jobs_completed_between(prev_day, day)
+            jobs_done = self.session.scalars(self.jobs_completed_between(prev_day, day))
             for job in jobs_done:
                 if not job.started:
                     continue
@@ -53,15 +50,15 @@ class NodeStatsCommand(BaseCommand):
         print(json.dumps(all_jobs, indent=2))
 
     def jobs_scheduled_between(self, day1, day2):
-        query = Job.query.filter(Job.posted.between(day1, day2))
+        query = select(Job).where(Job.posted.between(day1, day2))
         if self.machine_type:
-            query = query.filter(Job.machine_type == self.machine_type)
+            query = query.where(Job.machine_type == self.machine_type)
         return query
 
     def jobs_completed_between(self, day1, day2):
         statuses = ['pass', 'fail', 'dead']
         query = self.jobs_scheduled_between(day1, day2)
-        query = query.filter(Job.status.in_(statuses))
+        query = query.where(Job.status.in_(statuses))
         return query
 
     def seconds_since_epoch(self, datetime_obj):
@@ -77,7 +74,7 @@ class NodeStatsCommand(BaseCommand):
             job='/'.join((job.name, job.job_id)),
             status=job.status,
             suite=job.run.suite,
-            nodes=job.target_nodes.count(),
+            nodes=len(job.target_nodes),
             duration=duration,
             runtime=runtime,
             waited=waited,

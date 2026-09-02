@@ -1,6 +1,5 @@
 import logging
 
-import psycopg.errors
 from pecan import expose, request
 from sqlalchemy import desc, func, select
 from sqlalchemy.exc import IntegrityError
@@ -77,7 +76,11 @@ class JobController(object):
                         "Job status %s. Priority cannot be changed", self.job.status
                     )
                     data["priority"] = old_priority
-        self.job.update(data)
+        try:
+            self.job.update(data)
+        except ValueError as e:
+            request.session.rollback()
+            error("/errors/invalid/", str(e))
         request.session.commit()
         log.info(f"job {self.job.job_id} COMMITTED")
 
@@ -88,7 +91,12 @@ class JobController(object):
         if not self.job:
             error("/errors/not_found/", "attempted to delete a non-existent job")
         log.info("Deleting job %r", self.job)
-        request.session.delete(self.job)
+        session = request.session
+        run = self.job.run
+        session.delete(self.job)
+        session.flush()
+        if run is not None:
+            run.refresh_status(session)
         return dict()
 
 
@@ -155,42 +163,47 @@ class JobsController(object):
     @retryOperation
     def _create_job(self, data):
         session = request.session
-        if "job_id" in data:
-            if "queue" in data:
+        if data.get("job_id") is not None:
+            if data.get("queue"):
                 error("/errors/invalid/", "job cannot contain both job_id and queue")
             job_id = str(data["job_id"])
+            existing = session.scalars(
+                select(Job).where(Job.run_id == self.run.id, Job.job_id == job_id)
+            ).first()
+            if existing is not None:
+                # teuthology relies on this exact wording to fall back to PUT
+                error("/errors/invalid/", f"job with job_id {job_id} already exists")
             try:
                 with session.no_autoflush:
                     self.job = Job(data, self.run)
                 session.add(self.job)
                 session.commit()
-                log.info("Created job: %s/%s", data.get("name", "<no name!>"), job_id)
-                return self.job
-            except IntegrityError as e:
+            except ValueError as e:
                 session.rollback()
-                if isinstance(
-                    e.orig, psycopg.errors.UniqueViolation
-                ):
-                    error(
-                        "/errors/invalid/", f"job with job_id {job_id} already exists"
-                    )
-                else:
-                    log.exception("failed to create job")
-                query = select(Job).where(
-                    Job.job_id == job_id, Job.run.has(name=self.run_name)
-                )
-                self.job = session.scalars(query).one()
-                return self.job
+                error("/errors/invalid/", str(e))
+            except IntegrityError:
+                # lost a race with a concurrent create of the same job
+                session.rollback()
+                error("/errors/invalid/", f"job with job_id {job_id} already exists")
+            log.info("Created job: %s/%s", data.get("name", "<no name!>"), job_id)
+            return self.job
         else:
-            if "queue" not in data:
+            if not data.get("queue"):
                 error("/errors/invalid/", "job must contain either job_id or queue")
             # with paddles as queue backend, we generate job ID here
-            with session.no_autoflush:
-                self.job = Job(data, self.run)
+            try:
+                with session.no_autoflush:
+                    self.job = Job(data, self.run)
+            except ValueError as e:
+                session.rollback()
+                error("/errors/invalid/", str(e))
             session.add(self.job)
-            self.job.job_id = str(max(
-                [int(job.job_id) for job in self.run.jobs if job.job_id is not None] or [1]
-            ) + 1)
+            numeric_ids = [
+                int(job.job_id)
+                for job in self.run.jobs
+                if job.job_id is not None and job.job_id.isdigit()
+            ]
+            self.job.job_id = str(max(numeric_ids or [1]) + 1)
             try:
                 session.commit()
             except Exception as e:
@@ -239,11 +252,11 @@ class JobsListController(object):
             job_query = job_query.filter_by(user=user)
 
         if posted_after:
-            posted_after = date_from_string(posted_after)[1]
+            posted_after = date_from_string(posted_after)[0]
             job_query = job_query.filter(Job.posted > posted_after)
 
         if posted_before:
-            posted_before = date_from_string(posted_before)[1]
+            posted_before = date_from_string(posted_before)[0]
             job_query = job_query.filter(Job.posted < posted_before)
 
         job_query = offset_query(job_query, page_size=count, page=page)

@@ -1,6 +1,7 @@
 import logging
 from pecan.core import RoutingState
 from pecan.hooks import TransactionHook
+from webob import exc
 from sqlalchemy.orm import sessionmaker
 
 log = logging.getLogger(__name__)
@@ -34,6 +35,12 @@ class SessionHook(TransactionHook):
                 session.close()
 
     def on_error(self, state: RoutingState, e):
+        # A pecan trailing-slash redirect (or any deliberate HTTP response
+        # with a <400 status) is not a failure: leave the session alone so
+        # `after` can commit it. Rolling back here would discard the whole
+        # request's work for what is really a successful response.
+        if isinstance(e, exc.HTTPException) and e.status_int < 400:
+            return
         super().on_error(state, e)
         # log.error(f"{e=} {state.arguments=} {state.request=} {state.response=}")
         session = getattr(state.request, 'session', None)

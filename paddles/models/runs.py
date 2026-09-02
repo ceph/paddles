@@ -1,13 +1,11 @@
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List
 
 from sqlalchemy import (
     DateTime,
     Integer,
-    SQLColumnExpression,
     String,
-    case,
     func,
     select,
 )
@@ -22,7 +20,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from paddles import conf
 from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base
 from paddles.models.jobs import Job
-from paddles.util import local_datetime_to_utc
+from paddles.util import local_datetime_to_utc, utcnow
 
 suite_names = [
     "big",
@@ -125,7 +123,7 @@ class Run(Base):
     __tablename__ = "runs"
     id = mapped_column(Integer, primary_key=True)
     name = mapped_column(String(512), index=True, unique=True)
-    status_ = mapped_column(String(16), index=True, name="status")
+    status = mapped_column(String(16), index=True)
     user = mapped_column(String(32), index=True)
     scheduled = mapped_column(DateTime, index=True)
     suite = mapped_column(String(256), index=True)
@@ -156,7 +154,8 @@ class Run(Base):
 
     def __init__(self, name):
         self.name = name
-        self.posted = datetime.now(timezone.utc)
+        self.posted = utcnow()
+        self.status = "empty"
         parsed_name = self.parse_name()
         self.user = parsed_name.get("user", "")
         if "scheduled" in parsed_name:
@@ -253,7 +252,7 @@ class Run(Base):
     def _total_jobs_expr(cls):
         return select(func.count(1)).where(Job.run_id == cls.id).label("total_jobs")
 
-    @hybrid_property
+    @property
     def results(self):
         result = {key: 0 for key in Job.allowed_statuses}
         for job in self.jobs:
@@ -263,63 +262,61 @@ class Run(Base):
         result["flavor"] = self.jobs[0].flavor if self.jobs else None
         return result
 
-    @results.inplace.expression
-    def _results_expr(cls):
-        return (
-            select(Job.status, func.count())
-            .where(Job.run_id == cls.id)
-            .group_by(Job.status)
-            .scalar_subquery()
-        )
-
-    @hybrid_property
-    def status(self):
-        if self.total_jobs == 0:
-            return "empty"
-        results = self.results
+    @staticmethod
+    def _status_from_results(results):
         total = results["total"]
-
+        if total == 0:
+            return "empty"
         if results["queued"] == total:
-            new_status = "queued"
-        elif results["running"] > 0:
-            new_status = "running"
-        elif results["waiting"] > 0:
-            new_status = "waiting"
-        elif results["dead"] == total:
-            new_status = "finished dead"
-        elif results["fail"] > 0:
-            new_status = "finished fail"
-        elif results["dead"] > 0:
-            new_status = "finished fail"
-        elif results["pass"] == total:
-            new_status = "finished pass"
-        elif results["queued"]:
-            new_status = "queued"
-        else:
-            new_status = "unknown"
-        return new_status
+            return "queued"
+        if results["running"] > 0:
+            return "running"
+        if results["waiting"] > 0:
+            return "waiting"
+        if results["dead"] == total:
+            return "finished dead"
+        if results["fail"] > 0:
+            return "finished fail"
+        if results["dead"] > 0:
+            return "finished fail"
+        if results["pass"] == total:
+            return "finished pass"
+        if results["queued"]:
+            return "queued"
+        return "unknown"
 
-    @status.inplace.expression
-    def _status_expr(cls) -> SQLColumnExpression[String]:
-        def count_status(status):
-            return (
-                select(func.count(1))
-                .select_from(Job)
-                .where(Job.run_id == cls.id)
-                .where(Job.status == status)
-                .scalar_subquery()
-            )
+    def set_status(self):
+        """
+        Recompute ``status`` from the statuses of this run's jobs and store
+        it. ``status`` is a real, indexed column: the run list filters
+        (``/runs/status/<status>/``) rely on it, so it must be kept current
+        whenever a job's status changes.
 
-        stmt = case(
-            (cls.total_jobs == 0, "empty"),
-            (count_status("queued") == cls.total_jobs, "queued"),
-            (count_status("running") > 0, "running"),
-            (count_status("waiting") > 0, "waiting"),
-            (count_status("dead") == cls.total_jobs, "finished dead"),
-            (count_status("fail") > 0, "finished fail"),
-            (count_status("dead") > 0, "finished fail"),
-            (count_status("pass") == cls.total_jobs, "finished pass"),
-            (count_status("queued") > 0, "queued"),
-            else_="unknown",
-        )
-        return stmt
+        :returns: ``(old_status, new_status)``
+        """
+        old_status = self.status
+        new_status = self._status_from_results(self.results)
+        if new_status != old_status:
+            self.status = new_status
+        return old_status, new_status
+
+    def refresh_status(self, session):
+        """
+        Like set_status(), but counts job statuses with a query instead of
+        the loaded ``jobs`` collection. Used after jobs are deleted, when the
+        collection may be stale.
+        """
+        rows = session.execute(
+            select(Job.status, func.count())
+            .where(Job.run_id == self.id)
+            .group_by(Job.status)
+        ).all()
+        results = {key: 0 for key in Job.allowed_statuses}
+        for status, count in rows:
+            results[status] = results.get(status, 0) + count
+        results["total"] = sum(count for _, count in rows)
+        old_status = self.status
+        new_status = self._status_from_results(results)
+        if new_status != old_status:
+            self.status = new_status
+        return old_status, new_status

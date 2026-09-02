@@ -45,7 +45,6 @@ setup(
         node_jobs=paddles.commands.node_jobs:NodeJobsCommand
         set_status=paddles.commands.set_status:SetStatusCommand
         set_targets=paddles.commands.set_targets:SetTargetsCommand
-        import_nodes=paddles.commands.import_nodes:ImportNodesCommand
         queue_stats=paddles.commands.queue_stats:QueueStatsCommand
         node_stats=paddles.commands.node_stats:NodeStatsCommand
         get_secret=paddles.commands.get_secret:GetSecretCommand

@@ -6,6 +6,18 @@ import tzlocal
 localtz = tzlocal.get_localzone()
 
 
+def utcnow() -> datetime.datetime:
+    """
+    The current time in UTC, as a naive datetime.
+
+    Every timestamp column is ``timestamp without time zone`` and has always
+    held naive UTC values; keep writing the same thing so stored values do
+    not depend on the server's TimeZone setting and so JSON output is
+    consistent between freshly-set and reloaded values.
+    """
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+
 def local_datetime_to_utc(local_dt) -> datetime.datetime:
     """
     Given a datetime object in the local timezone, convert it to UTC.

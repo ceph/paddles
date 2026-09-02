@@ -42,6 +42,11 @@ class PaddlesErrorHook(PecanHook):
             redirect_error(e)
             return
 
+        if isinstance(e, exc.HTTPRedirection):
+            # e.g. pecan's trailing-slash redirect. Leave it alone so the
+            # Location header survives; clients like teuthology follow it.
+            return None
+
         if isinstance(e, exc.HTTPException):
             return json_error_response(e.status_int, _http_exception_message(e))
 

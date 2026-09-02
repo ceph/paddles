@@ -1,11 +1,12 @@
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy import DateTime, Integer, String, event
 from sqlalchemy.orm import Mapped, mapped_column
 
 from paddles.exceptions import ForbiddenRequestError, InvalidRequestError
 from paddles.models import Base
+from paddles.util import utcnow
 
 log = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class Queue(Base):
     def paused(self):
         if self.paused_until is None:
             return False
-        if datetime.now(timezone.utc) > self.paused_until.replace(tzinfo=timezone.utc):
+        if utcnow() > self.paused_until.replace(tzinfo=None):
             return False
         return True
 
@@ -86,8 +87,8 @@ def pause_duration_cb(target: Queue, value, oldvalue, initiator):
     # Queue is currently not paused
     if value and value > 0:
         log.info("pausing")
-        target.paused_since = datetime.now(timezone.utc)
-        target.paused_until = datetime.now(timezone.utc) + timedelta(
+        target.paused_since = utcnow()
+        target.paused_until = target.paused_since + timedelta(
             seconds=float(value)
         )
     else:

@@ -174,6 +174,7 @@ class TestJobModel:
         session.flush()
         session.expire(new_run, ["jobs"])
         assert new_run.jobs == []
+        new_run.refresh_status(session)
         assert new_run.status == "empty"
         new_run_copy = session.scalars(
             select(Run).where(Run.name == new_run.name)

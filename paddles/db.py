@@ -9,7 +9,23 @@ from sqlalchemy.pool import NullPool
 #     Session.add(target)
 
 
+def normalize_url(sqlalchemy_url: str) -> str:
+    """
+    Make sure PostgreSQL URLs select the psycopg (v3) driver.
+
+    SQLAlchemy resolves a bare ``postgresql://`` URL to psycopg2, which is
+    no longer installed. Deployments (and Crunchy's generated pgbouncer-uri)
+    hand us bare URLs, so rewrite them here rather than requiring every
+    secret to be edited.
+    """
+    for prefix in ("postgresql://", "postgres://", "postgresql+psycopg2://"):
+        if sqlalchemy_url.startswith(prefix):
+            return "postgresql+psycopg://" + sqlalchemy_url[len(prefix):]
+    return sqlalchemy_url
+
+
 def get_engine(sqlalchemy_url: str, **options) -> Engine:
+    sqlalchemy_url = normalize_url(sqlalchemy_url)
     if sqlalchemy_url.startswith("sqlite"):
         options = {**options, "poolclass": NullPool}
     else:
