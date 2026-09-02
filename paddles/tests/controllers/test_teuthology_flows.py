@@ -92,3 +92,41 @@ class TestJobUpdates:
         )
         assert response.status_int == 400
         assert response.json["message"].endswith("already exists")
+
+
+class TestRunStatus:
+    def test_status_filter_uses_stored_column(self, app, job_conf):
+        app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo", "status": "queued"})
+        assert [r["name"] for r in app.get("/runs/status/queued/").json] == ["foo"]
+        assert app.get("/runs/status/running/").json == []
+
+        app.put_json("/runs/foo/jobs/1/", {"status": "running"})
+        assert [r["name"] for r in app.get("/runs/status/running/").json] == ["foo"]
+        assert app.get("/runs/status/queued/").json == []
+        assert "running" in app.get("/runs/status/").json
+
+        app.put_json("/runs/foo/jobs/1/", {"status": "pass"})
+        assert [r["name"] for r in app.get("/runs/status/finished%20pass/").json] == ["foo"]
+
+    def test_status_recomputed_on_job_delete(self, app, job_conf):
+        app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo", "status": "running"})
+        app.post_json(
+            "/runs/foo/jobs/", job_conf | {"name": "foo", "job_id": "2", "status": "pass"}
+        )
+        assert app.get("/runs/foo/").json["status"] == "running"
+        app.delete("/runs/foo/jobs/1/")
+        assert app.get("/runs/foo/").json["status"] == "finished pass"
+        assert [r["name"] for r in app.get("/runs/status/finished%20pass/").json] == ["foo"]
+
+    def test_started_is_set_once(self, app, job_conf):
+        app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo"})
+        app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo", "job_id": "2"})
+        app.put_json("/runs/foo/jobs/1/", {"status": "running"})
+        first = app.get("/runs/foo/").json["started"]
+        assert first == app.get("/runs/foo/jobs/1/").json["started"]
+        time.sleep(0.01)
+        app.put_json("/runs/foo/jobs/2/", {"status": "running"})
+        assert app.get("/runs/foo/").json["started"] == first
+        app.put_json("/runs/foo/jobs/1/", {"status": "pass"})
+        app.put_json("/runs/foo/jobs/2/", {"status": "pass"})
+        assert app.get("/runs/foo/").json["started"] == first

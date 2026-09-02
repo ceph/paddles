@@ -19,7 +19,6 @@ from sqlalchemy import (
 
 ## 2.x
 from sqlalchemy.orm import (
-    LoaderCallableStatus,
     Mapped,
     Session,
     deferred,
@@ -140,8 +139,8 @@ class Job(Base):
         Apply a job dict as posted by teuthology.
 
         Only real columns are settable, ``status``/``success`` are reconciled,
-        and ``updated`` is stamped on every call unless the client supplied
-        one.
+        the run's status (and ``started``) is recomputed, and ``updated`` is
+        stamped on every call unless the client supplied one.
         """
         data = dict(data)
         data.pop("run", None)
@@ -149,6 +148,7 @@ class Job(Base):
         success = data.pop("success", None)
         updated = data.pop("updated", None)
 
+        old_status = self.status
         if status:
             self.status = status
         elif success is not None:
@@ -157,6 +157,8 @@ class Job(Base):
             self.status = "queued"
         if success is not None:
             self.success = success
+        if old_status in (None, "queued") and self.status == "running":
+            self.started = utcnow()
 
         columns = self.__table__.columns.keys()
         for k, v in data.items():
@@ -164,6 +166,11 @@ class Job(Base):
             if key in self._protected_keys or key not in columns:
                 continue
             setattr(self, key, v)
+
+        if self.run is not None:
+            old_run_status, run_status = self.run.set_status()
+            if old_run_status != "running" and run_status == "running":
+                self.run.started = self.started
 
         if updated:
             self.set_updated(updated)
@@ -229,17 +236,6 @@ def suite_cb(target: Job, value, oldvalue, initiator):
 def machine_type_cb(target: Job, value, oldvalue, initiator):
     if target.run.machine_type != value:
         target.run.machine_type = value
-
-
-@event.listens_for(Job.status, "set")
-def status_cb(target: Job, value, oldvalue, initiator):
-    if (
-        oldvalue in (None, LoaderCallableStatus.NO_VALUE, "queued")
-        and value == "running"
-    ):
-        target.started = utcnow()
-    if target.run.status != "running":
-        target.run.started = target.started
 
 
 @event.listens_for(Job.timestamp, "set", retval=True)
