@@ -74,7 +74,8 @@ class RunFilterIndexController(object):
     @retryOperation
     def index(self):
         query = request.context.get("query", select(Run))
-        return sorted(list(request.session.scalars(self.get_subquery(query))))
+        values = request.session.scalars(self.get_subquery(query).distinct())
+        return sorted(value for value in set(values) if value is not None)
 
     @expose("json")
     def _lookup(self, value, *remainder):

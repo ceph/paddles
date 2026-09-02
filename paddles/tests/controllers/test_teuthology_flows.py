@@ -6,6 +6,10 @@ production database.
 import time
 from datetime import datetime
 
+from sqlalchemy import select, update
+
+from paddles.models import Run
+
 
 def _parse(ts):
     return datetime.fromisoformat(ts)
@@ -146,3 +150,16 @@ class TestRunStatus:
         app.put_json("/runs/foo/jobs/1/", {"status": "pass"})
         app.put_json("/runs/foo/jobs/2/", {"status": "pass"})
         assert app.get("/runs/foo/").json["started"] == first
+
+
+class TestListEndpoints:
+    def test_filter_index_skips_nulls_and_dedupes(self, app, job_conf, session):
+        app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo"})
+        app.post_json("/runs/bar/jobs/", job_conf | {"name": "bar"})
+        app.post_json("/runs/", {"name": "baz"})
+        session.execute(update(Run).where(Run.name == "baz").values(machine_type=None))
+        session.commit()
+        assert session.scalars(select(Run.machine_type).where(Run.name == "baz")).one() is None
+        response = app.get("/runs/machine_type/")
+        assert response.status_int == 200
+        assert response.json == [job_conf["machine_type"]]
