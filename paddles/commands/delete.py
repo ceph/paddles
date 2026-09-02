@@ -1,7 +1,6 @@
-from __future__ import print_function
-from pecan.commands.base import BaseCommand
+from sqlalchemy import select
 
-from paddles import models
+from paddles.commands import SessionCommand
 from paddles.models import Run
 
 
@@ -9,31 +8,20 @@ def out(string):
     print("==> %s" % string)
 
 
-class DeleteCommand(BaseCommand):
+class DeleteCommand(SessionCommand):
     """
     Delete a run
     """
 
-    arguments = BaseCommand.arguments + (dict(
+    arguments = SessionCommand.arguments + (dict(
         name="name",
         help="The name of the run to delete",
     ),)
 
     def run(self, args):
-        super(DeleteCommand, self).run(args)
-        out("LOADING ENVIRONMENT")
-        self.load_app()
-        try:
-            out("STARTING A TRANSACTION...")
-            models.start()
-            query = Run.query.filter(Run.name == args.name)
-            run = query.one()
-            out("Deleting run named %s" % run.name)
-            run.delete()
-        except:
-            models.rollback()
-            out("ROLLING BACK... ")
-            raise
-        else:
-            out("COMMITING... ")
-            models.commit()
+        super().run(args)
+        run = self.session.scalars(select(Run).where(Run.name == args.name)).one()
+        out("Deleting run named %s" % run.name)
+        self.session.delete(run)
+        out("COMMITING... ")
+        self.commit(out)
