@@ -49,6 +49,22 @@ class TestJobUpdates:
         assert job["status"] == "pass"
         assert job["success"] is True
 
+    def test_invalid_status_is_a_400(self, app, job_conf):
+        app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo"})
+        response = app.put_json(
+            "/runs/foo/jobs/1/", {"status": "bogus"}, expect_errors=True
+        )
+        assert response.status_int == 400
+        assert "status" in response.json["message"]
+
+    def test_bad_timestamp_is_a_400(self, app, job_conf):
+        response = app.post_json(
+            "/runs/foo/jobs/",
+            job_conf | {"name": "foo", "timestamp": "2026-09-01 16:55:47"},
+            expect_errors=True,
+        )
+        assert response.status_int == 400
+
     def test_unknown_and_protected_keys_are_ignored(self, app, job_conf):
         app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo"})
         before = app.get("/runs/foo/jobs/1/").json

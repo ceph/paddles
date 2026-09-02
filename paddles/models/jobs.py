@@ -183,7 +183,7 @@ class Job(Base):
     @validates("status")
     def validate_status(self, key, status):
         if status not in self.allowed_statuses:
-            raise ValueError("Job status must be one of: %s" % self.allowed_statuses)
+            raise ValueError("Job status must be one of: %s" % (self.allowed_statuses,))
         if self.status in ["pass", "fail"]:
             return self.status
         return status
@@ -244,6 +244,8 @@ def status_cb(target: Job, value, oldvalue, initiator):
 
 @event.listens_for(Job.timestamp, "set", retval=True)
 def timestamp_cb(target: Job, value, oldvalue, initiator):
+    if value is None or isinstance(value, datetime):
+        return value
     return datetime.strptime(
         value,
         TEUTHOLOGY_TIMESTAMP_FMT,

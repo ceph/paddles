@@ -77,7 +77,11 @@ class JobController(object):
                         "Job status %s. Priority cannot be changed", self.job.status
                     )
                     data["priority"] = old_priority
-        self.job.update(data)
+        try:
+            self.job.update(data)
+        except ValueError as e:
+            request.session.rollback()
+            error("/errors/invalid/", str(e))
         request.session.commit()
         log.info(f"job {self.job.job_id} COMMITTED")
 
@@ -166,6 +170,9 @@ class JobsController(object):
                 session.commit()
                 log.info("Created job: %s/%s", data.get("name", "<no name!>"), job_id)
                 return self.job
+            except ValueError as e:
+                session.rollback()
+                error("/errors/invalid/", str(e))
             except IntegrityError as e:
                 session.rollback()
                 if isinstance(
@@ -185,8 +192,12 @@ class JobsController(object):
             if "queue" not in data:
                 error("/errors/invalid/", "job must contain either job_id or queue")
             # with paddles as queue backend, we generate job ID here
-            with session.no_autoflush:
-                self.job = Job(data, self.run)
+            try:
+                with session.no_autoflush:
+                    self.job = Job(data, self.run)
+            except ValueError as e:
+                session.rollback()
+                error("/errors/invalid/", str(e))
             session.add(self.job)
             self.job.job_id = str(max(
                 [int(job.job_id) for job in self.run.jobs if job.job_id is not None] or [1]
