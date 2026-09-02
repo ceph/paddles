@@ -109,6 +109,7 @@ class Job(Base):
     comment = deferred(mapped_column(Text))
     pcp_grafana_url = mapped_column(Text)
     queue = mapped_column(String(32), index=True)
+    package_source: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     allowed_statuses = (
         "pass",

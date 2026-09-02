@@ -195,3 +195,17 @@ class TestJobModel:
         machine_type = "plana,mira,burnupi"
         Job(dict(machine_type=machine_type), new_run)
         assert new_run.machine_type == machine_type
+
+    def test_package_source_field(self, session, name):
+        run = Run(name)
+        session.add(run)
+        job = Job(dict(job_id="37", package_source="shaman"), run)
+        session.flush()
+        assert job.package_source == "shaman"
+
+    def test_package_source_nullable(self, session, name):
+        run = Run(name)
+        session.add(run)
+        job = Job(dict(job_id="38"), run)
+        session.flush()
+        assert job.package_source is None
