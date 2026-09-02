@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List
 
 from sqlalchemy import (
@@ -22,7 +22,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from paddles import conf
 from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base
 from paddles.models.jobs import Job
-from paddles.util import local_datetime_to_utc
+from paddles.util import local_datetime_to_utc, utcnow
 
 suite_names = [
     "big",
@@ -156,7 +156,7 @@ class Run(Base):
 
     def __init__(self, name):
         self.name = name
-        self.posted = datetime.now(timezone.utc)
+        self.posted = utcnow()
         parsed_name = self.parse_name()
         self.user = parsed_name.get("user", "")
         if "scheduled" in parsed_name:

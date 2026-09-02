@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from pecan import expose, request
 from sqlalchemy import func, select
@@ -12,7 +12,7 @@ from paddles.controllers.util import offset_query
 from paddles.decorators import retryOperation
 from paddles.models import Job, Node
 from paddles.models.job_nodes import job_nodes_table
-from paddles.util import coerce_bool
+from paddles.util import utcnow, coerce_bool
 
 log = logging.getLogger(__name__)
 
@@ -204,7 +204,7 @@ class NodesController(object):
         if since_days < 1:
             error("/errors/invalid/", "since_days must be a positive integer")
 
-        now = datetime.now(timezone.utc)
+        now = utcnow()
         past = now - timedelta(days=since_days)
         recent_jobs = select(Job).where(Job.posted.between(past, now)).subquery()
         RecentJob = aliased(Job, recent_jobs)

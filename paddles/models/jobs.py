@@ -33,7 +33,7 @@ from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base
 from paddles.models.nodes import Node
 from paddles.models.types import JSONType
-from paddles.util import local_datetime_to_utc
+from paddles.util import local_datetime_to_utc, utcnow
 
 from .job_nodes import job_nodes_table
 
@@ -129,7 +129,7 @@ class Job(Base):
 
     def __init__(self, json_data, run):
         self.run = run
-        self.posted = datetime.now(timezone.utc)
+        self.posted = utcnow()
         targets = json_data.pop("targets", {})
         updated = json_data.pop("updated", None)
         self.update(json_data)
@@ -138,7 +138,7 @@ class Job(Base):
         if updated:
             self.set_updated(updated)
         else:
-            self.updated = datetime.now(timezone.utc)
+            self.updated = utcnow()
 
     def update(self, data):
         data.pop("run", None)
@@ -223,7 +223,7 @@ def status_cb(target: Job, value, oldvalue, initiator):
         oldvalue in (None, LoaderCallableStatus.NO_VALUE, "queued")
         and value == "running"
     ):
-        target.started = datetime.now(timezone.utc)
+        target.started = utcnow()
     if target.run.status != "running":
         target.run.started = target.started
 
@@ -237,16 +237,19 @@ def timestamp_cb(target: Job, value, oldvalue, initiator):
 
 
 @event.listens_for(Job.updated, "set")
-def updated_cb(target: Job, value: datetime, oldvalue, initiator, retval=True):
-    if target.run:
-        if target.run.updated:
-            target.run.updated = max(
-                target.run.updated.astimezone(timezone.utc),
-                value.astimezone(timezone.utc),
-            )
-        else:
-            target.run.updated = value
-    return value
+def updated_cb(target: Job, value: datetime, oldvalue, initiator):
+    """
+    Keep Run.updated at the newest Job.updated of its jobs.
+    """
+    if value is None or target.run is None:
+        return
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+    run_updated = target.run.updated
+    if run_updated is not None and run_updated.tzinfo is not None:
+        run_updated = run_updated.astimezone(timezone.utc).replace(tzinfo=None)
+    if run_updated is None or run_updated < value:
+        target.run.updated = value
 
 @event.listens_for(Session, "before_flush")
 def before_flush(session, flush_context, instances):
@@ -271,4 +274,4 @@ def before_flush(session, flush_context, instances):
 @event.listens_for(Job, "init")
 def new_job(target, args, kwargs):
     if not args[0].get("updated"):
-        target.updated = datetime.now(timezone.utc)
+        target.updated = utcnow()
