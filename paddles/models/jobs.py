@@ -127,34 +127,48 @@ class Job(Base):
         None: "unknown",
     }
 
+    # Keys a client may never set directly; they are derived server-side.
+    _protected_keys = frozenset(("id", "posted", "started", "updated", "run_id"))
+
     def __init__(self, json_data, run):
         self.run = run
         self.posted = utcnow()
-        targets = json_data.pop("targets", {})
-        updated = json_data.pop("updated", None)
         self.update(json_data)
-        if targets:
-            self.targets = targets
+
+    def update(self, data):
+        """
+        Apply a job dict as posted by teuthology.
+
+        Only real columns are settable, ``status``/``success`` are reconciled,
+        and ``updated`` is stamped on every call unless the client supplied
+        one.
+        """
+        data = dict(data)
+        data.pop("run", None)
+        status = data.pop("status", None)
+        success = data.pop("success", None)
+        updated = data.pop("updated", None)
+
+        if status:
+            self.status = status
+        elif success is not None:
+            self.status = self.status_map[success]
+        elif self.status is None:
+            self.status = "queued"
+        if success is not None:
+            self.success = success
+
+        columns = self.__table__.columns.keys()
+        for k, v in data.items():
+            key = k.replace("-", "_")
+            if key in self._protected_keys or key not in columns:
+                continue
+            setattr(self, key, v)
+
         if updated:
             self.set_updated(updated)
         else:
             self.updated = utcnow()
-
-    def update(self, data):
-        data.pop("run", None)
-        if status := data.pop("status", None):
-            data.pop("success", None)
-            self.status = status
-        elif (success := data.pop("success", None)) is not None:
-            self.success = success
-            self.status = self.status_map[success]
-        elif self.status is None:
-            self.status = "queued"
-        for k, v in data.items():
-            key = k.replace("-", "_")
-            if key in ["posted", "started", "updated", "run_id"]:
-                continue
-            setattr(self, key, v)
 
     def set_updated(self, value: str):
         """
@@ -269,9 +283,3 @@ def before_flush(session, flush_context, instances):
                     session.add(node)
                 if node not in obj.target_nodes:
                     obj.target_nodes.append(node)
-
-
-@event.listens_for(Job, "init")
-def new_job(target, args, kwargs):
-    if not args[0].get("updated"):
-        target.updated = utcnow()
