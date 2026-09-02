@@ -77,6 +77,13 @@ class TestJobUpdates:
         assert after["id"] == before["id"]
         assert after["posted"] == before["posted"]
 
+    def test_null_queue_key_with_job_id_is_accepted(self, app, job_conf):
+        # a job JSON round-tripped from paddles' own GET carries "queue": null
+        response = app.post_json(
+            "/runs/foo/jobs/", job_conf | {"name": "foo", "queue": None}
+        )
+        assert response.status_int == 200
+
     def test_duplicate_post_message(self, app, job_conf):
         # teuthology falls back to PUT only if the message ends this way
         app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo"})

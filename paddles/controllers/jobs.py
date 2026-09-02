@@ -158,8 +158,8 @@ class JobsController(object):
     @retryOperation
     def _create_job(self, data):
         session = request.session
-        if "job_id" in data:
-            if "queue" in data:
+        if data.get("job_id") is not None:
+            if data.get("queue"):
                 error("/errors/invalid/", "job cannot contain both job_id and queue")
             job_id = str(data["job_id"])
             existing = session.scalars(
@@ -183,7 +183,7 @@ class JobsController(object):
             log.info("Created job: %s/%s", data.get("name", "<no name!>"), job_id)
             return self.job
         else:
-            if "queue" not in data:
+            if not data.get("queue"):
                 error("/errors/invalid/", "job must contain either job_id or queue")
             # with paddles as queue backend, we generate job ID here
             try:
@@ -193,9 +193,12 @@ class JobsController(object):
                 session.rollback()
                 error("/errors/invalid/", str(e))
             session.add(self.job)
-            self.job.job_id = str(max(
-                [int(job.job_id) for job in self.run.jobs if job.job_id is not None] or [1]
-            ) + 1)
+            numeric_ids = [
+                int(job.job_id)
+                for job in self.run.jobs
+                if job.job_id is not None and job.job_id.isdigit()
+            ]
+            self.job.job_id = str(max(numeric_ids or [1]) + 1)
             try:
                 session.commit()
             except Exception as e:
