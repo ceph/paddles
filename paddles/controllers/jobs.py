@@ -1,6 +1,5 @@
 import logging
 
-import psycopg.errors
 from pecan import expose, request
 from sqlalchemy import desc, func, select
 from sqlalchemy.exc import IntegrityError
@@ -163,31 +162,26 @@ class JobsController(object):
             if "queue" in data:
                 error("/errors/invalid/", "job cannot contain both job_id and queue")
             job_id = str(data["job_id"])
+            existing = session.scalars(
+                select(Job).where(Job.run_id == self.run.id, Job.job_id == job_id)
+            ).first()
+            if existing is not None:
+                # teuthology relies on this exact wording to fall back to PUT
+                error("/errors/invalid/", f"job with job_id {job_id} already exists")
             try:
                 with session.no_autoflush:
                     self.job = Job(data, self.run)
                 session.add(self.job)
                 session.commit()
-                log.info("Created job: %s/%s", data.get("name", "<no name!>"), job_id)
-                return self.job
             except ValueError as e:
                 session.rollback()
                 error("/errors/invalid/", str(e))
-            except IntegrityError as e:
+            except IntegrityError:
+                # lost a race with a concurrent create of the same job
                 session.rollback()
-                if isinstance(
-                    e.orig, psycopg.errors.UniqueViolation
-                ):
-                    error(
-                        "/errors/invalid/", f"job with job_id {job_id} already exists"
-                    )
-                else:
-                    log.exception("failed to create job")
-                query = select(Job).where(
-                    Job.job_id == job_id, Job.run.has(name=self.run_name)
-                )
-                self.job = session.scalars(query).one()
-                return self.job
+                error("/errors/invalid/", f"job with job_id {job_id} already exists")
+            log.info("Created job: %s/%s", data.get("name", "<no name!>"), job_id)
+            return self.job
         else:
             if "queue" not in data:
                 error("/errors/invalid/", "job must contain either job_id or queue")

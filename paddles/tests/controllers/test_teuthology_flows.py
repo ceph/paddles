@@ -76,3 +76,12 @@ class TestJobUpdates:
         after = app.get("/runs/foo/jobs/1/").json
         assert after["id"] == before["id"]
         assert after["posted"] == before["posted"]
+
+    def test_duplicate_post_message(self, app, job_conf):
+        # teuthology falls back to PUT only if the message ends this way
+        app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo"})
+        response = app.post_json(
+            "/runs/foo/jobs/", job_conf | {"name": "foo"}, expect_errors=True
+        )
+        assert response.status_int == 400
+        assert response.json["message"].endswith("already exists")
