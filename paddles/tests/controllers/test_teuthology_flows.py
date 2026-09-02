@@ -93,6 +93,22 @@ class TestJobUpdates:
         assert response.status_int == 400
         assert response.json["message"].endswith("already exists")
 
+    def test_targets_on_put_link_nodes(self, app, job_conf):
+        # teuthology creates the job first and sends targets later, once
+        # nodes are locked
+        app.post_json("/runs/foo/jobs/", job_conf | {"name": "foo"})
+        app.put_json(
+            "/runs/foo/jobs/1/",
+            {
+                "status": "running",
+                "targets": {"ubuntu@smithi001.front.sepia.ceph.com": "ssh-key"},
+            },
+        )
+        response = app.get("/nodes/smithi001.front.sepia.ceph.com/jobs/")
+        assert [job["job_id"] for job in response.json] == ["1"]
+        node = app.get("/nodes/smithi001.front.sepia.ceph.com/").json
+        assert node["machine_type"] == job_conf["machine_type"]
+
 
 class TestRunStatus:
     def test_status_filter_uses_stored_column(self, app, job_conf):

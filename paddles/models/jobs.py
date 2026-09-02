@@ -27,6 +27,7 @@ from sqlalchemy.orm import (
     relationship,
     validates,
 )
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm.exc import DetachedInstanceError, NoResultFound
 
 from paddles.models import TEUTHOLOGY_TIMESTAMP_FMT, Base
@@ -265,19 +266,28 @@ def updated_cb(target: Job, value: datetime, oldvalue, initiator):
 
 @event.listens_for(Session, "before_flush")
 def before_flush(session, flush_context, instances):
-    for obj in session.new:
-        if isinstance(obj, Job):
-            if not obj.targets:
+    """
+    Populate Job.target_nodes from Job.targets, creating Node rows as needed.
+
+    teuthology creates a job without targets and adds them later with a PUT
+    once nodes are locked, so this has to run for updated jobs as well as
+    new ones.
+    """
+    for obj in list(session.new) + list(session.dirty):
+        if not isinstance(obj, Job) or not obj.targets:
+            continue
+        if obj not in session.new:
+            if not sa_inspect(obj).attrs.targets.history.has_changes():
                 continue
-            for key in obj.targets:
-                node_name = key.split("@")[-1]
-                node_query = (
-                    select(Node).options(load_only(Node.id, Node.name)).where(Node.name == node_name)
-                )
-                try:
-                    node = session.scalars(node_query).one()
-                except NoResultFound:
-                    node = Node(name=node_name, machine_type=obj.machine_type)
-                    session.add(node)
-                if node not in obj.target_nodes:
-                    obj.target_nodes.append(node)
+        for key in obj.targets:
+            node_name = key.split("@")[-1]
+            node_query = (
+                select(Node).options(load_only(Node.id, Node.name)).where(Node.name == node_name)
+            )
+            try:
+                node = session.scalars(node_query).one()
+            except NoResultFound:
+                node = Node(name=node_name, machine_type=obj.machine_type or "")
+                session.add(node)
+            if node not in obj.target_nodes:
+                obj.target_nodes.append(node)
