@@ -1,5 +1,8 @@
+from mock import patch
+from sqlalchemy.exc import OperationalError
+
 from paddles.tests import TestApp
-from paddles.models import Node, Job, start, commit
+from paddles.models import Node, Job, Session, start, commit
 
 
 class TestNodesController(TestApp):
@@ -236,6 +239,54 @@ class TestNodesController(TestApp):
             expect_errors=True,
         )
         assert 'only 0' in response.json['message']
+
+    def test_lock_many_db_error_mid_request(self):
+        # https://tracker.ceph.com/issues/80969
+        # A transient DB error (e.g. a serialization failure) while locking
+        # the Nth node rolls back the whole transaction, including the
+        # nodes locked before it. Every node we claim to have locked must
+        # really be locked afterward.
+        count = 4
+        mtype = 'lost_lock'
+        for i in range(count):
+            self.app.post_json(
+                '/nodes/',
+                dict(name='n%s' % i, machine_type=mtype, locked=False,
+                     up=True,)
+            )
+        # The nodes must outlive the rollback that the DB error causes
+        commit()
+
+        real_flush = Session.flush
+        calls = []
+
+        def flaky_flush(*args, **kwargs):
+            calls.append(1)
+            if len(calls) == 3:
+                raise OperationalError(
+                    'UPDATE nodes', {},
+                    Exception('could not serialize access'))
+            return real_flush(*args, **kwargs)
+
+        with patch.object(Session, 'flush', side_effect=flaky_flush):
+            response = self.app.post_json(
+                '/nodes/lock_many/',
+                dict(count=count, machine_type=mtype, description='desc',
+                     locked_by='me'),
+                expect_errors=True,
+            )
+        assert len(calls) >= 3
+
+        nodes = self.app.get('/nodes/?machine_type=%s' % mtype).json
+        locked = sorted(n['name'] for n in nodes if n['locked'])
+        if response.status_int == 200:
+            claimed = sorted(n['name'] for n in response.json)
+            assert len(claimed) == count
+            assert locked == claimed
+            assert set(n['locked_by'] for n in nodes) == set(['me'])
+        else:
+            assert response.status_int == 503
+            assert locked == []
 
     def test_unlock_many_simple(self):
         mtype = 'ulmtest'
