@@ -1,6 +1,6 @@
+from pecan import request
 from pecan.util import _cfg
 from sqlalchemy.exc import OperationalError
-import paddles.models
 import logging
 
 log = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ def retryOperation(func=None, *, attempts=10, exceptions=(OperationalError,)):
                     log.warning(
                         f"Rolling back and retrying {name} "
                         f"({_attempts} attempts left): {reason}")
-                    paddles.models.Session.rollback()
+                    request.session.rollback()
 
         return wrapper
 
