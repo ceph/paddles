@@ -137,6 +137,15 @@ class Node(Base):
         """
         :param values: a dict.
         """
+        self._update(values)
+
+    def _update(self, values):
+        """
+        update() without the retry. retryOperation rolls back the whole
+        transaction before retrying, so callers that change more than one
+        object per transaction must use this and retry the transaction as a
+        whole.
+        """
         self._check_for_update(values)
         was_locked = self.locked
 
@@ -235,9 +244,14 @@ class Node(Base):
             raise ResourceUnavailableError(
                 "only {count} nodes available".format(count=nodes_avail)
             )
+        # All of the nodes must be locked in the same transaction as the
+        # query that found them unlocked. Don't use update() here: on a DB
+        # error it would roll back the nodes we have already locked, retry
+        # only the one that failed, and leave us claiming nodes that are
+        # still unlocked. Let the error propagate so that the entire request
+        # is retried instead.
         for node in nodes:
-            node.update(update_dict)
-        log.info(f"after update: {nodes=}")
+            node._update(update_dict)
         log.info(f"locked {nodes=}")
         return nodes
 

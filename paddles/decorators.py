@@ -31,11 +31,18 @@ def retryOperation(func=None, *, attempts=10, exceptions=(OperationalError,)):
                 try:
                     result = func(*args, **kwargs)
                     return result
-                except exceptions:
+                except exceptions as exc:
                     _attempts -= 1
                     if _attempts <= 0:
                         log.error(f"All {attempts} attempts failed: {func} with {args} {kwargs}")
                         raise
+                    # The rollback discards everything the transaction has
+                    # done so far, not only what func did, so leave a trace
+                    name = getattr(func, '__qualname__', func)
+                    reason = str(exc).split('\n', 1)[0] or repr(exc)
+                    log.warning(
+                        f"Rolling back and retrying {name} "
+                        f"({_attempts} attempts left): {reason}")
                     request.session.rollback()
 
         return wrapper

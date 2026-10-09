@@ -28,6 +28,19 @@ class TestRetryOperation:
             m_request.session.rollback.assert_called_once()
         assert func.call_count == 2
 
+    def test_retry_is_logged(self, caplog):
+        func = Mock()
+        func.side_effect = [GoodException("it broke"), 0]
+        decorated = retryOperation(exceptions=[GoodException])(func)
+        with patch("paddles.decorators.request"):
+            with caplog.at_level("WARNING", logger="paddles.decorators"):
+                assert decorated() == 0
+        messages = [r.getMessage() for r in caplog.records
+                    if r.levelname == "WARNING"]
+        assert len(messages) == 1
+        assert "it broke" in messages[0]
+        assert "9 attempts left" in messages[0]
+
     def test_wrong_exception(self):
         func = Mock()
         func.side_effect = [GoodException(), BadException(), True]
