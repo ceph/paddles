@@ -255,3 +255,25 @@ class TestRunModel(TestApp):
         Job(dict(job_id=1, id=1, status='queued', flavor="blah"), new_run)
         run_result = new_run.get_results()
         assert run_result.get('flavor') == "blah"
+
+    def test_run_tags(self):
+        new_run = Run("run_with_tags", tags=["tracker-456"])
+        assert new_run.tags == ["tracker-456"]
+
+    def test_run_multiple_tags(self):
+        new_run = Run("run_multi_tags", tags=["alpha", "beta"])
+        assert sorted(new_run.tags) == ["alpha", "beta"]
+
+    def test_run_tags_default_empty(self):
+        new_run = Run("run_without_tags")
+        assert new_run.tags == []
+
+    def test_run_tags_in_json(self):
+        new_run = Run("run_tags_json", tags=["my-tag"])
+        run_json = new_run.__json__()
+        assert run_json['tags'] == ["my-tag"]
+
+    def test_run_tags_empty_in_json(self):
+        new_run = Run("run_tags_empty_json")
+        run_json = new_run.__json__()
+        assert run_json['tags'] == []

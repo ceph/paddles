@@ -132,6 +132,7 @@ def flush():
     Session.flush()
 
 from .runs import Run  # noqa
+from .run_tags import RunTag  # noqa
 from .jobs import Job  # noqa
 from .nodes import Node  # noqa
 from .queue import Queue  # noqa
