@@ -4,7 +4,7 @@ from sqlalchemy import Date, cast
 from sqlalchemy.exc import InvalidRequestError, OperationalError
 
 from pecan import abort, conf, expose, request
-from paddles.models import Job, Run, rollback, Session, TEUTHOLOGY_TIMESTAMP_FMT
+from paddles.models import Job, Run, RunTag, rollback, Session, TEUTHOLOGY_TIMESTAMP_FMT
 from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.controllers import error
@@ -15,8 +15,25 @@ log = logging.getLogger(__name__)
 date_format = '%Y-%m-%d'
 
 
-def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1):
-    query = Run.query.order_by(Run.posted.desc())
+def filter_query_by_tags(query, tags_param):
+    """
+    Filter runs that contain all comma-separated tags in tags_param.
+
+    tags_param is the ?tags= query string value.
+    """
+    for t in tags_param.split(','):
+        t = t.strip()
+        if t:
+            query = query.filter(
+                Run.run_tag_rows.any(RunTag.tag == t))
+    return query
+
+
+def latest_runs(fields=None, count=conf.default_latest_runs_count, page=1, tags=None):
+    query = Run.query
+    if tags:
+        query = filter_query_by_tags(query, tags)
+    query = query.order_by(Run.posted.desc())
     query = offset_query(query, page_size=count, page=page)
     runs = list(query)
     if fields:
@@ -70,6 +87,29 @@ class RunController(object):
         json_run = self.run.__json__()
         json_run['jobs'] = self.run.get_jobs()
         return json_run
+
+    @index.when(method='PUT', template='json')
+    def index_put(self):
+        if not self.run:
+            error('/errors/not_found/',
+                  'attempted to update a non-existent run')
+        try:
+            data = request.json
+        except ValueError:
+            rollback()
+            error('/errors/invalid/', 'could not decode JSON body')
+
+        if 'tags' in data:
+            tags = data['tags']
+            if not isinstance(tags, list):
+                error('/errors/invalid/', "'tags' must be a list of strings")
+            if not all(isinstance(t, str) for t in tags):
+                error('/errors/invalid/',
+                      "'tags' must be a list of strings")
+            self.run.set_tags(tags)
+
+        log.info("Updated run: %r", self.run)
+        return {}
 
     @index.when(method='DELETE', template='json')
     def index_delete(self):
@@ -148,6 +188,14 @@ class SuitesController(RunFilterIndexController):
 
     def get_lookup_controller(self):
         return SuiteController
+
+
+class RunTagsIndexController(object):
+    @expose('json')
+    @retryOperation
+    def index(self):
+        rows = Session.query(RunTag.tag).distinct().order_by(RunTag.tag)
+        return [tag for (tag,) in rows]
 
 
 class UsersController(RunFilterIndexController):
@@ -402,31 +450,41 @@ class Sha1Controller(RunFilterController):
 
 class RunsController(object):
     @expose(generic=True, template='json')
-    def index(self, fields='', count=conf.default_latest_runs_count, page=1):
-        return latest_runs(fields=fields, count=count, page=page)
+    def index(self, fields='', count=conf.default_latest_runs_count, page=1,
+              tags=None):
+        return latest_runs(fields=fields, count=count, page=page, tags=tags)
 
     @index.when(method='POST', template='json')
     def index_post(self):
-        # save to DB here
         try:
             name = request.json.get('name')
+            tags = request.json.get('tags')
         except ValueError:
             rollback()
             error('/errors/invalid/', 'could not decode JSON body')
+
         if not name:
             error('/errors/invalid/', "could not find required key: 'name'")
+
+        if tags is not None:
+            if not isinstance(tags, list):
+                error('/errors/invalid/', "'tags' must be a list of strings")
+            if not all(isinstance(t, str) for t in tags):
+                error('/errors/invalid/',
+                      "'tags' must be a list of strings")
+
         if not Run.query.filter_by(name=name).first():
-            self._create_run(name)
+            self._create_run(name, tags=tags)
             return dict()
         else:
             error('/errors/invalid/', "run with name %s already exists" % name)
 
     @classmethod
     @retryOperation
-    def _create_run(cls, name):
-        log.info("Creating run: %s", name)
+    def _create_run(cls, name, tags=None):
+        log.info("Creating run: %s with tags: %r", name, tags)
         Session.flush()
-        return Run(name)
+        return Run(name, tags=tags)
 
     branch = BranchesController()
 
@@ -437,6 +495,8 @@ class RunsController(object):
     status = StatusesController()
 
     suite = SuitesController()
+
+    tags = RunTagsIndexController()
 
     queued = QueuedRunsController()
 
