@@ -4,9 +4,7 @@
 
 import os
 import sentry_sdk
-from paddles.hooks import IsolatedTransactionHook, SentryHook
 from paddles import models
-from paddles.hooks.cors import CorsHook
 
 sentry_dsn = os.environ.get("SENTRY_DSN")
 if sentry_dsn:
@@ -46,22 +44,6 @@ app = {
     'default_renderer': 'json',
     'guess_content_type_from_ext': False,
     'debug': False,
-    'hooks': [
-        IsolatedTransactionHook(
-            models.start,
-            models.start_read_only,
-            models.commit,
-            models.rollback,
-            models.clear
-        ),
-        # Uncomment this if you want more logging
-        #RequestViewerHook({'blacklist': ['/favicon.ico', '/errors/'],
-        #                   'items':
-        #                  ['date', 'path', 'status', 'method', 'controller'],
-        #                   }),
-        CorsHook(),
-        SentryHook(),
-    ],
 }
 
 logging = {
@@ -98,7 +80,7 @@ logging = {
 
 def get_sqlalchemy_url():
     import subprocess
-    return subprocess.getoutput("pecan get_secret")
+    return subprocess.check_output(["pecan", "get_secret"]).decode()
 
 sqlalchemy = {
     'url': get_sqlalchemy_url(),
