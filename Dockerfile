@@ -7,8 +7,8 @@ RUN apk add curl tzdata && \
 # Install dependencies:
 COPY requirements.txt .
 ADD . /paddles
-RUN pip3 install -r requirements.txt
-RUN pip3 install /paddles/.
+RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir /paddles/.
 
 # Run the application:
 COPY config.py.in /paddles/config.py
