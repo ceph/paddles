@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from paddles.models import Run, Job, start, commit
+from paddles.models import Run, Job, RunTag, start, commit
 from paddles.tests import TestApp
 
 
@@ -8,6 +8,7 @@ class TestRunController(TestApp):
     def teardown_method(self):
         start()
         Job.query.delete()
+        RunTag.query.delete()
         Run.query.delete()
         commit()
 
@@ -284,29 +285,13 @@ class TestRunController(TestApp):
         response = self.app.get('/runs/?tags=bc')
         assert response.json == []
 
-    def test_filter_by_tag_url_path(self):
-        self.app.post_json('/runs/', dict(name="run_a", tags=["reef"]))
-        self.app.post_json('/runs/', dict(name="run_b", tags=["squid"]))
-        self.app.post_json('/runs/', dict(name="run_c"))
-        response = self.app.get('/runs/tag/reef/')
-        assert len(response.json) == 1
-        assert response.json[0]['name'] == 'run_a'
-
-    def test_filter_by_tag_url_path_multi(self):
-        self.app.post_json('/runs/', dict(name="run_a",
-                                          tags=["reef", "tentacle"]))
-        self.app.post_json('/runs/', dict(name="run_b",
-                                          tags=["squid", "tentacle"]))
-        response = self.app.get('/runs/tag/tentacle/')
-        assert len(response.json) == 2
-
     def test_list_tags(self):
         self.app.post_json('/runs/', dict(name="run_a",
                                           tags=["reef", "tentacle"]))
         self.app.post_json('/runs/', dict(name="run_b",
                                           tags=["squid", "tentacle"]))
         self.app.post_json('/runs/', dict(name="run_c"))
-        response = self.app.get('/runs/tag/')
+        response = self.app.get('/runs/tags/')
         assert sorted(response.json) == ['reef', 'squid', 'tentacle']
 
     def test_put_tags(self):
@@ -332,7 +317,7 @@ class TestRunController(TestApp):
         response = self.app.put_json('/runs/nope/',
                                      dict(tags=["x"]),
                                      expect_errors=True)
-        assert response.status_int == 400
+        assert response.status_int == 404
 
 
 class TestRunControllerDateFilters(TestApp):

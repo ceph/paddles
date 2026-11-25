@@ -8,7 +8,7 @@ from pecan import conf
 from paddles.util import local_datetime_to_utc
 from paddles.models import Base, TEUTHOLOGY_TIMESTAMP_FMT
 from paddles.models.jobs import Job
-from paddles.models.types import JSONType
+from paddles.models.run_tags import RunTag
 
 suite_names = ['big',
                'ceph-deploy',
@@ -111,7 +111,6 @@ class Run(Base):
     machine_type = Column(String(32), index=True)
     posted = Column(DateTime, index=True)
     started = Column(DateTime, index=True)
-    tags = Column(JSONType(), nullable=True)
     updated = Column(DateTime, index=True)
     jobs = relationship('Job',
                         backref=backref('run'),
@@ -119,6 +118,12 @@ class Run(Base):
                         lazy='dynamic',
                         order_by='Job.job_id',
                         )
+    run_tag_rows = relationship(
+        'RunTag',
+        back_populates='run',
+        cascade='all,delete-orphan',
+        order_by='RunTag.tag',
+    )
 
     allowed_statuses = ('empty',
                         'queued',
@@ -132,7 +137,6 @@ class Run(Base):
 
     def __init__(self, name, tags=None):
         self.name = name
-        self.tags = tags or []
         self.posted = datetime.utcnow()
         parsed_name = self.parse_name()
         self.user = parsed_name.get('user', '')
@@ -145,6 +149,33 @@ class Run(Base):
         self.branch = parsed_name.get('branch', '')
         self.machine_type = parsed_name.get('machine_type', '')
         self.set_status()
+        if tags:
+            self.set_tags(tags)
+
+    @property
+    def tags(self):
+        return [row.tag for row in self.run_tag_rows]
+
+    def set_tags(self, tags):
+        if not isinstance(tags, list):
+            raise TypeError('tags must be a list')
+        normalized = []
+        seen = set()
+        for item in tags:
+            if not isinstance(item, str):
+                raise TypeError('tags must be a list of strings')
+            tag = item.strip()
+            if not tag or tag in seen:
+                continue
+            seen.add(tag)
+            normalized.append(tag)
+        self.flush()
+        if self.id is not None:
+            RunTag.query.filter_by(run_id=self.id).delete(
+                synchronize_session='fetch')
+        self.run_tag_rows.clear()
+        for tag in normalized:
+            RunTag(run=self, tag=tag)
 
     def __repr__(self):
         try:

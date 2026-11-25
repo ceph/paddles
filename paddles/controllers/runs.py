@@ -1,10 +1,10 @@
 import logging
 import datetime
-from sqlalchemy import Date, cast, or_, UnicodeText
+from sqlalchemy import Date, cast
 from sqlalchemy.exc import InvalidRequestError, OperationalError
 
 from pecan import abort, conf, expose, request
-from paddles.models import Job, Run, rollback, Session, TEUTHOLOGY_TIMESTAMP_FMT
+from paddles.models import Job, Run, RunTag, rollback, Session, TEUTHOLOGY_TIMESTAMP_FMT
 from paddles.controllers.jobs import JobsController
 from paddles.controllers.util import offset_query
 from paddles.controllers import error
@@ -15,36 +15,17 @@ log = logging.getLogger(__name__)
 date_format = '%Y-%m-%d'
 
 
-def run_tags_text_has_element(tags_text, tag):
-    """
-    Match one tag in JSON-serialized Run.tags (json.dumps output).
-
-    Plain contains('"bc"') would match inside '"abc"'. We match json.dumps
-    array element boundaries instead (e.g. '["reef", "squid"]').
-    """
-    tag = tag.strip()
-    if not tag:
-        return True
-    quoted = '"%s"' % tag.replace('"', '')
-    return or_(
-        tags_text.contains('[%s,' % quoted),
-        tags_text.contains(', %s,' % quoted),
-        tags_text.contains(', %s]' % quoted),
-        tags_text.contains('[%s]' % quoted),
-    )
-
-
 def filter_query_by_tags(query, tags_param):
     """
     Filter runs that contain all comma-separated tags in tags_param.
 
     tags_param is the ?tags= query string value.
     """
-    tags_text = cast(Run.tags, UnicodeText)
     for t in tags_param.split(','):
         t = t.strip()
         if t:
-            query = query.filter(run_tags_text_has_element(tags_text, t))
+            query = query.filter(
+                Run.run_tag_rows.any(RunTag.tag == t))
     return query
 
 
@@ -122,7 +103,10 @@ class RunController(object):
             tags = data['tags']
             if not isinstance(tags, list):
                 error('/errors/invalid/', "'tags' must be a list of strings")
-            self.run.tags = tags
+            if not all(isinstance(t, str) for t in tags):
+                error('/errors/invalid/',
+                      "'tags' must be a list of strings")
+            self.run.set_tags(tags)
 
         log.info("Updated run: %r", self.run)
         return {}
@@ -206,23 +190,12 @@ class SuitesController(RunFilterIndexController):
         return SuiteController
 
 
-class TagsController(RunFilterIndexController):
-    def get_subquery(self, query):
-        return query.values(Run.tags)
-
+class RunTagsIndexController(object):
     @expose('json')
     @retryOperation
     def index(self):
-        query = request.context.get('query', Run.query)
-        all_tags = set()
-        for (tags_value,) in self.get_subquery(query):
-            if tags_value:
-                for tag in tags_value:
-                    all_tags.add(tag)
-        return sorted(all_tags)
-
-    def get_lookup_controller(self):
-        return TagController
+        rows = Session.query(RunTag.tag).distinct().order_by(RunTag.tag)
+        return [tag for (tag,) in rows]
 
 
 class UsersController(RunFilterIndexController):
@@ -277,8 +250,6 @@ class BranchController(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
-        if field == 'tag':
-            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -309,8 +280,6 @@ class DateController(RunFilterController):
             return Sha1sController()
         if field == 'suite':
             return SuitesController()
-        if field == 'tag':
-            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -332,8 +301,6 @@ class MachineTypeController(RunFilterController):
             return Sha1sController()
         if field == 'suite':
             return SuitesController()
-        if field == 'tag':
-            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -355,8 +322,6 @@ class StatusController(RunFilterController):
             return Sha1sController()
         if field == 'suite':
             return SuitesController()
-        if field == 'tag':
-            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -378,32 +343,6 @@ class SuiteController(RunFilterController):
             return Sha1sController()
         if field == 'status':
             return StatusesController()
-        if field == 'tag':
-            return TagsController()
-        if field == 'user':
-            return UsersController()
-        if field == 'flavor':
-            return FlavorsController()
-
-
-class TagController(RunFilterController):
-    def get_subquery(self, query):
-        tags_text = cast(Run.tags, UnicodeText)
-        return query.filter(run_tags_text_has_element(tags_text, self.value))
-
-    def get_lookup_controller(self, field):
-        if field == 'branch':
-            return BranchesController()
-        if field == 'date':
-            return DatesController()
-        if field == 'machine_type':
-            return MachineTypesController()
-        if field == 'sha1':
-            return Sha1sController()
-        if field == 'status':
-            return StatusesController()
-        if field == 'suite':
-            return SuitesController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -427,8 +366,6 @@ class UserController(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
-        if field == 'tag':
-            return TagsController()
         if field == 'flavor':
             return FlavorsController()
 
@@ -450,8 +387,6 @@ class FlavorController(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
-        if field == 'tag':
-            return TagsController()
         if field == 'user':
             return UsersController()
 
@@ -506,8 +441,6 @@ class Sha1Controller(RunFilterController):
             return StatusesController()
         if field == 'suite':
             return SuitesController()
-        if field == 'tag':
-            return TagsController()
         if field == 'user':
             return UsersController()
         if field == 'flavor':
@@ -533,8 +466,12 @@ class RunsController(object):
         if not name:
             error('/errors/invalid/', "could not find required key: 'name'")
 
-        if tags is not None and not isinstance(tags, list):
-            error('/errors/invalid/', "'tags' must be a list of strings")
+        if tags is not None:
+            if not isinstance(tags, list):
+                error('/errors/invalid/', "'tags' must be a list of strings")
+            if not all(isinstance(t, str) for t in tags):
+                error('/errors/invalid/',
+                      "'tags' must be a list of strings")
 
         if not Run.query.filter_by(name=name).first():
             self._create_run(name, tags=tags)
@@ -559,7 +496,7 @@ class RunsController(object):
 
     suite = SuitesController()
 
-    tag = TagsController()
+    tags = RunTagsIndexController()
 
     queued = QueuedRunsController()
 
